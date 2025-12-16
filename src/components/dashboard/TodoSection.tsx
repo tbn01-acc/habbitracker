@@ -81,8 +81,8 @@ export function TodoSection({
           className="w-14 h-14 rounded-full flex items-center justify-center bg-white/20"
           layoutId={`ring-${title}`}
         >
-          <span className="text-lg font-bold text-white">
-            {completedCount}/{totalCount}
+          <span className="text-xl font-bold text-white">
+            {incompleteItems.length}
           </span>
         </motion.div>
         <div className="flex items-center gap-2">
