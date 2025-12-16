@@ -6,44 +6,49 @@ import { useHabits } from '@/hooks/useHabits';
 import { useTasks } from '@/hooks/useTasks';
 import { useFitness } from '@/hooks/useFitness';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { format, subDays, startOfDay, isWithinInterval, parseISO } from 'date-fns';
+import { format, subDays, startOfDay, parseISO, subMonths, subYears } from 'date-fns';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-type Period = '7' | '30';
+type Period = 'week' | 'month' | 'quarter' | 'year';
+
+const PERIOD_DAYS: Record<Period, number> = {
+  week: 7,
+  month: 30,
+  quarter: 90,
+  year: 365,
+};
 
 export function ProductivityStats() {
   const { t } = useTranslation();
   const { habits } = useHabits();
   const { tasks } = useTasks();
   const { workouts, completions } = useFitness();
-  const [period, setPeriod] = useState<Period>('7');
+  const [period, setPeriod] = useState<Period>('week');
 
-  const periodDays = parseInt(period);
+  const periodDays = PERIOD_DAYS[period];
 
-  const dateRange = useMemo(() => {
+  const getDateRange = (days: number, offset: number = 0) => {
     const today = startOfDay(new Date());
-    return Array.from({ length: periodDays }, (_, i) => {
-      const date = subDays(today, periodDays - 1 - i);
+    const startDay = subDays(today, days - 1 + offset * days);
+    return Array.from({ length: days }, (_, i) => {
+      const date = subDays(startDay, -i);
       return format(date, 'yyyy-MM-dd');
     });
-  }, [periodDays]);
+  };
 
-  // Calculate daily stats
-  const dailyStats = useMemo(() => {
+  const calculateStats = (dateRange: string[]) => {
     return dateRange.map(date => {
-      // Habits completed on this date
       const habitsCompleted = habits.filter(h => h.completedDates.includes(date)).length;
       const habitsTotal = habits.filter(h => {
         const dayOfWeek = new Date(date).getDay();
         return h.targetDays.includes(dayOfWeek);
       }).length;
 
-      // Tasks completed on this date
       const tasksCompleted = tasks.filter(t => 
         t.completed && t.dueDate.split('T')[0] === date
       ).length;
       const tasksTotal = tasks.filter(t => t.dueDate.split('T')[0] === date).length;
 
-      // Exercises completed on this date
       const dayOfWeek = new Date(date).getDay();
       const todayWorkouts = workouts.filter(w => w.scheduledDays.includes(dayOfWeek));
       const totalExercises = todayWorkouts.reduce((sum, w) => sum + w.exercises.length, 0);
@@ -52,12 +57,10 @@ export function ProductivityStats() {
         return sum + (completion?.completedExercises.length || 0);
       }, 0);
 
-      // Calculate productivity score (0-100)
       const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
       const taskScore = tasksTotal > 0 ? (tasksCompleted / tasksTotal) * 100 : 0;
       const exerciseScore = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
-      // Weighted average
       const weights = [
         habitsTotal > 0 ? 1 : 0,
         tasksTotal > 0 ? 1 : 0,
@@ -80,17 +83,25 @@ export function ProductivityStats() {
         productivity: Math.round(productivity),
       };
     });
-  }, [dateRange, habits, tasks, workouts, completions]);
+  };
+
+  const dateRange = useMemo(() => getDateRange(periodDays, 0), [periodDays]);
+  const previousDateRange = useMemo(() => getDateRange(periodDays, 1), [periodDays]);
+
+  const dailyStats = useMemo(() => calculateStats(dateRange), [dateRange, habits, tasks, workouts, completions]);
+  const previousStats = useMemo(() => calculateStats(previousDateRange), [previousDateRange, habits, tasks, workouts, completions]);
 
   // Summary stats
-  const summary = useMemo(() => {
-    const totalHabits = dailyStats.reduce((sum, d) => sum + d.habits, 0);
-    const totalHabitsTarget = dailyStats.reduce((sum, d) => sum + d.habitsTotal, 0);
-    const totalTasks = dailyStats.reduce((sum, d) => sum + d.tasks, 0);
-    const totalTasksTarget = dailyStats.reduce((sum, d) => sum + d.tasksTotal, 0);
-    const totalExercises = dailyStats.reduce((sum, d) => sum + d.exercises, 0);
-    const totalExercisesTarget = dailyStats.reduce((sum, d) => sum + d.exercisesTotal, 0);
-    const avgProductivity = Math.round(dailyStats.reduce((sum, d) => sum + d.productivity, 0) / dailyStats.length);
+  const getSummary = (stats: typeof dailyStats) => {
+    const totalHabits = stats.reduce((sum, d) => sum + d.habits, 0);
+    const totalHabitsTarget = stats.reduce((sum, d) => sum + d.habitsTotal, 0);
+    const totalTasks = stats.reduce((sum, d) => sum + d.tasks, 0);
+    const totalTasksTarget = stats.reduce((sum, d) => sum + d.tasksTotal, 0);
+    const totalExercises = stats.reduce((sum, d) => sum + d.exercises, 0);
+    const totalExercisesTarget = stats.reduce((sum, d) => sum + d.exercisesTotal, 0);
+    const avgProductivity = stats.length > 0 
+      ? Math.round(stats.reduce((sum, d) => sum + d.productivity, 0) / stats.length) 
+      : 0;
 
     return {
       habits: { completed: totalHabits, total: totalHabitsTarget },
@@ -98,7 +109,44 @@ export function ProductivityStats() {
       exercises: { completed: totalExercises, total: totalExercisesTarget },
       productivity: avgProductivity,
     };
-  }, [dailyStats]);
+  };
+
+  const summary = useMemo(() => getSummary(dailyStats), [dailyStats]);
+  const previousSummary = useMemo(() => getSummary(previousStats), [previousStats]);
+
+  // Growth calculation
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const growth = {
+    habits: calculateGrowth(summary.habits.completed, previousSummary.habits.completed),
+    tasks: calculateGrowth(summary.tasks.completed, previousSummary.tasks.completed),
+    exercises: calculateGrowth(summary.exercises.completed, previousSummary.exercises.completed),
+    productivity: summary.productivity - previousSummary.productivity,
+  };
+
+  const GrowthIndicator = ({ value }: { value: number }) => {
+    if (value > 0) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-green-500">
+          <TrendingUp className="w-3 h-3" />+{value}%
+        </span>
+      );
+    } else if (value < 0) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-red-500">
+          <TrendingDown className="w-3 h-3" />{value}%
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+        <Minus className="w-3 h-3" />0%
+      </span>
+    );
+  };
 
   const pieData = [
     { name: t('habits'), value: summary.habits.completed, color: 'hsl(var(--habit))' },
@@ -113,40 +161,43 @@ export function ProductivityStats() {
     productivity: { label: t('productivity'), color: 'hsl(var(--primary))' },
   };
 
+  const periods: { key: Period; label: string }[] = [
+    { key: 'week', label: t('week') },
+    { key: 'month', label: t('month') },
+    { key: 'quarter', label: t('quarter') },
+    { key: 'year', label: t('year') },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Period Selector */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setPeriod('7')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            period === '7'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          }`}
-        >
-          {t('week')}
-        </button>
-        <button
-          onClick={() => setPeriod('30')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            period === '30'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          }`}
-        >
-          {t('month')}
-        </button>
+      <div className="flex gap-2 flex-wrap">
+        {periods.map(p => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              period === p.key
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards with Growth */}
       <div className="grid grid-cols-2 gap-3">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="p-4 rounded-xl bg-habit/10 border border-habit/20"
         >
-          <div className="text-2xl font-bold text-habit">{summary.habits.completed}</div>
+          <div className="flex justify-between items-start">
+            <div className="text-2xl font-bold text-habit">{summary.habits.completed}</div>
+            <GrowthIndicator value={growth.habits} />
+          </div>
           <div className="text-xs text-muted-foreground">{t('habits')}</div>
           <div className="text-xs text-habit/70">{summary.habits.total} {t('planned')}</div>
         </motion.div>
@@ -156,7 +207,10 @@ export function ProductivityStats() {
           transition={{ delay: 0.1 }}
           className="p-4 rounded-xl bg-task/10 border border-task/20"
         >
-          <div className="text-2xl font-bold text-task">{summary.tasks.completed}</div>
+          <div className="flex justify-between items-start">
+            <div className="text-2xl font-bold text-task">{summary.tasks.completed}</div>
+            <GrowthIndicator value={growth.tasks} />
+          </div>
           <div className="text-xs text-muted-foreground">{t('tasks')}</div>
           <div className="text-xs text-task/70">{summary.tasks.total} {t('planned')}</div>
         </motion.div>
@@ -166,7 +220,10 @@ export function ProductivityStats() {
           transition={{ delay: 0.2 }}
           className="p-4 rounded-xl bg-fitness/10 border border-fitness/20"
         >
-          <div className="text-2xl font-bold text-fitness">{summary.exercises.completed}</div>
+          <div className="flex justify-between items-start">
+            <div className="text-2xl font-bold text-fitness">{summary.exercises.completed}</div>
+            <GrowthIndicator value={growth.exercises} />
+          </div>
           <div className="text-xs text-muted-foreground">{t('exercises')}</div>
           <div className="text-xs text-fitness/70">{summary.exercises.total} {t('planned')}</div>
         </motion.div>
@@ -176,7 +233,10 @@ export function ProductivityStats() {
           transition={{ delay: 0.3 }}
           className="p-4 rounded-xl bg-primary/10 border border-primary/20"
         >
-          <div className="text-2xl font-bold text-primary">{summary.productivity}%</div>
+          <div className="flex justify-between items-start">
+            <div className="text-2xl font-bold text-primary">{summary.productivity}%</div>
+            <GrowthIndicator value={growth.productivity} />
+          </div>
           <div className="text-xs text-muted-foreground">{t('productivity')}</div>
           <div className="text-xs text-primary/70">{t('average')}</div>
         </motion.div>

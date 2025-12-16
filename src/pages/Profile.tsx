@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, LogIn, BarChart3 } from 'lucide-react';
+import { User, LogOut, LogIn, BarChart3, Award } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ProductivityStats } from '@/components/ProductivityStats';
+import { Achievements } from '@/components/Achievements';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -73,6 +74,17 @@ export default function Profile() {
               </Button>
             </>
           )}
+        </div>
+
+        {/* Achievements */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Award className="w-4 h-4 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">{t('achievements')}</h2>
+          </div>
+          <Achievements />
         </div>
 
         {/* Productivity Statistics */}
