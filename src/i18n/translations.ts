@@ -3,10 +3,10 @@ export type Language = 'ru' | 'en' | 'es';
 export const translations = {
   ru: {
     // Greetings
-    goodNight: 'Доброй ночи! 🌙',
-    goodMorning: 'Доброе утро! ☀️',
-    goodAfternoon: 'Добрый день! 👋',
-    goodEvening: 'Добрый вечер! 🌆',
+    goodNight: 'Доброй ночи',
+    goodMorning: 'Доброе утро',
+    goodAfternoon: 'Добрый день',
+    goodEvening: 'Добрый вечер',
     
     // Stats
     completedToday: 'Сегодня выполнено',
@@ -179,10 +179,10 @@ export const translations = {
   },
   en: {
     // Greetings
-    goodNight: 'Good night! 🌙',
-    goodMorning: 'Good morning! ☀️',
-    goodAfternoon: 'Good afternoon! 👋',
-    goodEvening: 'Good evening! 🌆',
+    goodNight: 'Good night',
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
     
     // Stats
     completedToday: 'Completed today',
@@ -355,10 +355,10 @@ export const translations = {
   },
   es: {
     // Greetings
-    goodNight: '¡Buenas noches! 🌙',
-    goodMorning: '¡Buenos días! ☀️',
-    goodAfternoon: '¡Buenas tardes! 👋',
-    goodEvening: '¡Buenas noches! 🌆',
+    goodNight: 'Buenas noches',
+    goodMorning: 'Buenos días',
+    goodAfternoon: 'Buenas tardes',
+    goodEvening: 'Buenas noches',
     
     // Stats
     completedToday: 'Completado hoy',
