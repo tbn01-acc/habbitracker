@@ -121,23 +121,23 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     <div className="min-h-screen bg-background pb-24">
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <PageHeader
-            showTitle
-            icon={<CheckSquare className="w-5 h-5 text-task" />}
-            iconBgClass="bg-task/20"
-            title={t('myTasks')}
-            subtitle={`${tasks.length} ${t('tasks').toLowerCase()}`}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSettingsOpen(true)}
-            className="rounded-xl hover:bg-task/10 w-12 h-12"
-          >
-            <Settings className="w-7 h-7 text-task" />
-          </Button>
-        </div>
+        <PageHeader
+          showTitle
+          icon={<CheckSquare className="w-5 h-5 text-task" />}
+          iconBgClass="bg-task/20"
+          title={t('myTasks')}
+          subtitle={`${tasks.length} ${t('tasks').toLowerCase()}`}
+          rightAction={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="rounded-xl hover:bg-task/10 w-12 h-12"
+            >
+              <Settings className="w-7 h-7 text-task" />
+            </Button>
+          }
+        />
 
         {/* View Tabs */}
         <div className="mt-4">

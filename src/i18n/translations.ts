@@ -188,6 +188,16 @@ export const translations = {
     myTasks: 'Мои задачи',
     myFinance: 'Мои финансы',
     myFitness: 'Мой фитнес',
+    
+    // Productivity stats
+    productivity: 'Продуктивность',
+    productivityStats: 'Статистика продуктивности',
+    productivityTrend: 'Тренд продуктивности',
+    activityByDay: 'Активность по дням',
+    activityDistribution: 'Распределение активности',
+    planned: 'запланировано',
+    average: 'в среднем',
+    month: 'Месяц',
 
     // Finance
     financeTracker: 'Трекер финансов',
@@ -426,6 +436,16 @@ export const translations = {
     myTasks: 'My Tasks',
     myFinance: 'My Finance',
     myFitness: 'My Fitness',
+    
+    // Productivity stats
+    productivity: 'Productivity',
+    productivityStats: 'Productivity Statistics',
+    productivityTrend: 'Productivity Trend',
+    activityByDay: 'Activity by Day',
+    activityDistribution: 'Activity Distribution',
+    planned: 'planned',
+    average: 'average',
+    month: 'Month',
 
     // Finance
     financeTracker: 'Finance Tracker',
@@ -664,6 +684,16 @@ export const translations = {
     myTasks: 'Mis Tareas',
     myFinance: 'Mis Finanzas',
     myFitness: 'Mi Fitness',
+    
+    // Productivity stats
+    productivity: 'Productividad',
+    productivityStats: 'Estadísticas de productividad',
+    productivityTrend: 'Tendencia de productividad',
+    activityByDay: 'Actividad por día',
+    activityDistribution: 'Distribución de actividad',
+    planned: 'planificado',
+    average: 'promedio',
+    month: 'Mes',
 
     // Finance
     financeTracker: 'Rastreador de Finanzas',

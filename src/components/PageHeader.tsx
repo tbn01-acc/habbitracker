@@ -10,9 +10,10 @@ interface PageHeaderProps {
   iconBgClass?: string;
   title?: string;
   subtitle?: string;
+  rightAction?: React.ReactNode;
 }
 
-export function PageHeader({ showTitle = false, icon, iconBgClass, title, subtitle }: PageHeaderProps) {
+export function PageHeader({ showTitle = false, icon, iconBgClass, title, subtitle, rightAction }: PageHeaderProps) {
   const { t } = useTranslation();
   const { profile, user } = useAuth();
 
@@ -59,10 +60,11 @@ export function PageHeader({ showTitle = false, icon, iconBgClass, title, subtit
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBgClass || ''}`}>
             {icon}
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground">{title}</h1>
             {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
           </div>
+          {rightAction}
         </div>
       )}
     </div>
