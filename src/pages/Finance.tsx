@@ -90,7 +90,7 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
           showTitle
           icon={<Wallet className="w-5 h-5 text-finance" />}
           iconBgClass="bg-finance/20"
-          title={t('financeTracker')}
+          title={t('myFinance')}
           subtitle={`${transactions.length} ${t('transactions').toLowerCase()}`}
         />
 

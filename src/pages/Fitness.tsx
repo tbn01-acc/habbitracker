@@ -79,7 +79,7 @@ export default function Fitness({ openDialog, onDialogClose }: FitnessProps) {
           showTitle
           icon={<Dumbbell className="w-5 h-5 text-fitness" />}
           iconBgClass="bg-fitness/20"
-          title={t('fitnessTracker')}
+          title={t('myFitness')}
           subtitle={`${workouts.length} ${t('workoutsCount')}`}
         />
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/types/task';
+import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, SubTask, TaskAttachment, DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/types/task';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 
 const STORAGE_KEY = 'habitflow_tasks';
@@ -41,12 +41,14 @@ export function useTasks() {
     if (storedTasks) {
       try {
         const parsed = JSON.parse(storedTasks);
-        // Migrate old tasks without status/tagIds/recurrence
+        // Migrate old tasks without status/tagIds/recurrence/subtasks/attachments
         const migrated = parsed.map((t: Task) => ({
           ...t,
           status: t.status || (t.completed ? 'done' : 'not_started'),
           tagIds: t.tagIds || [],
           recurrence: t.recurrence || 'none',
+          subtasks: t.subtasks || [],
+          attachments: t.attachments || [],
         }));
         setTasks(migrated);
       } catch (e) {

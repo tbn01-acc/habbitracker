@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, LogIn } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ export default function Profile() {
           subtitle={t('profileSettings')}
         />
 
-        <div className="flex flex-col items-center justify-center py-16">
+        <div className="flex flex-col items-center justify-center py-8">
           {user ? (
             <>
               <Avatar className="w-24 h-24 mb-4">
@@ -71,6 +72,11 @@ export default function Profile() {
               </Button>
             </>
           )}
+        </div>
+
+        {/* Notification Settings */}
+        <div className="mt-6">
+          <NotificationSettings />
         </div>
       </div>
     </div>

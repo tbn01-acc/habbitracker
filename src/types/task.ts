@@ -19,6 +19,20 @@ export interface TaskReminder {
   notifiedAt?: string; // ISO date when last notified
 }
 
+export interface SubTask {
+  id: string;
+  name: string;
+  completed: boolean;
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  type: 'file' | 'note';
+  content: string; // For notes: text content, for files: base64 or URL
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   name: string;
@@ -34,6 +48,9 @@ export interface Task {
   tagIds: string[];
   recurrence: TaskRecurrence;
   reminder?: TaskReminder;
+  subtasks: SubTask[];
+  attachments: TaskAttachment[];
+  notes?: string;
 }
 
 export const TASK_ICONS = [

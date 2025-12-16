@@ -160,6 +160,34 @@ export const translations = {
     reminder: 'Напоминание',
     reminderEnabled: 'Вкл',
     reminderDisabled: 'Выкл',
+    
+    // Subtasks and attachments
+    subtasks: 'Подзадачи',
+    addSubtask: 'Добавить подзадачу',
+    subtaskPlaceholder: 'Название подзадачи',
+    taskNotes: 'Заметки',
+    notesPlaceholder: 'Добавьте заметки к задаче...',
+    attachments: 'Вложения',
+    addNote: 'Заметка',
+    addFile: 'Файл',
+    noteTitle: 'Заголовок',
+    noteContent: 'Содержание',
+    downloadFile: 'Скачать файл',
+    
+    // Notification settings
+    notificationSettings: 'Настройки уведомлений',
+    advanceNotification: 'Уведомлять заранее',
+    minutes5: '5 мин',
+    minutes15: '15 мин',
+    minutes30: '30 мин',
+    hour1: '1 час',
+    hours2: '2 часа',
+    day1: '1 день',
+    
+    // Renamed trackers
+    myTasks: 'Мои задачи',
+    myFinance: 'Мои финансы',
+    myFitness: 'Мой фитнес',
 
     // Finance
     financeTracker: 'Трекер финансов',
@@ -370,6 +398,34 @@ export const translations = {
     reminder: 'Reminder',
     reminderEnabled: 'On',
     reminderDisabled: 'Off',
+    
+    // Subtasks and attachments
+    subtasks: 'Subtasks',
+    addSubtask: 'Add subtask',
+    subtaskPlaceholder: 'Subtask name',
+    taskNotes: 'Notes',
+    notesPlaceholder: 'Add notes to task...',
+    attachments: 'Attachments',
+    addNote: 'Note',
+    addFile: 'File',
+    noteTitle: 'Title',
+    noteContent: 'Content',
+    downloadFile: 'Download file',
+    
+    // Notification settings
+    notificationSettings: 'Notification Settings',
+    advanceNotification: 'Notify in advance',
+    minutes5: '5 min',
+    minutes15: '15 min',
+    minutes30: '30 min',
+    hour1: '1 hour',
+    hours2: '2 hours',
+    day1: '1 day',
+    
+    // Renamed trackers
+    myTasks: 'My Tasks',
+    myFinance: 'My Finance',
+    myFitness: 'My Fitness',
 
     // Finance
     financeTracker: 'Finance Tracker',
@@ -580,6 +636,34 @@ export const translations = {
     reminder: 'Recordatorio',
     reminderEnabled: 'Act',
     reminderDisabled: 'Des',
+    
+    // Subtasks and attachments
+    subtasks: 'Subtareas',
+    addSubtask: 'Añadir subtarea',
+    subtaskPlaceholder: 'Nombre de subtarea',
+    taskNotes: 'Notas',
+    notesPlaceholder: 'Añadir notas a la tarea...',
+    attachments: 'Adjuntos',
+    addNote: 'Nota',
+    addFile: 'Archivo',
+    noteTitle: 'Título',
+    noteContent: 'Contenido',
+    downloadFile: 'Descargar archivo',
+    
+    // Notification settings
+    notificationSettings: 'Configuración de notificaciones',
+    advanceNotification: 'Notificar con anticipación',
+    minutes5: '5 min',
+    minutes15: '15 min',
+    minutes30: '30 min',
+    hour1: '1 hora',
+    hours2: '2 horas',
+    day1: '1 día',
+    
+    // Renamed trackers
+    myTasks: 'Mis Tareas',
+    myFinance: 'Mis Finanzas',
+    myFitness: 'Mi Fitness',
 
     // Finance
     financeTracker: 'Rastreador de Finanzas',

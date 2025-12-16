@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell } from 'lucide-react';
+import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -53,6 +53,8 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
 
   const isOverdue = !task.completed && new Date(task.dueDate) < new Date(new Date().toDateString());
   const isToday = task.dueDate === new Date().toISOString().split('T')[0];
+  const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
+  const totalSubtasks = task.subtasks?.length || 0;
 
   return (
     <motion.div
@@ -145,6 +147,18 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
             )}
             {task.reminder?.enabled && (
               <Bell className="w-3 h-3 text-task" />
+            )}
+            {totalSubtasks > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
+                <ListTodo className="w-3 h-3" />
+                {completedSubtasks}/{totalSubtasks}
+              </span>
+            )}
+            {(task.attachments?.length || 0) > 0 && (
+              <Paperclip className="w-3 h-3 text-muted-foreground" />
+            )}
+            {task.notes && (
+              <StickyNote className="w-3 h-3 text-amber-500" />
             )}
           </div>
         </div>

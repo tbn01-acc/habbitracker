@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Bell, BellOff, Repeat } from 'lucide-react';
-import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, TaskReminder, TASK_ICONS, TASK_COLORS } from '@/types/task';
+import { X, Plus, Bell, BellOff, Repeat, ListTodo, Paperclip } from 'lucide-react';
+import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, TaskReminder, SubTask, TaskAttachment, TASK_ICONS, TASK_COLORS } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { SubtaskList } from '@/components/SubtaskList';
+import { TaskAttachments } from '@/components/TaskAttachments';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { getNotificationPermissionStatus } from '@/hooks/useTaskReminders';
@@ -33,10 +35,15 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const [recurrence, setRecurrence] = useState<TaskRecurrence>('none');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('09:00');
+  const [subtasks, setSubtasks] = useState<SubTask[]>([]);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [notes, setNotes] = useState<string>('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newTagName, setNewTagName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [showNewTag, setShowNewTag] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -52,6 +59,11 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setRecurrence(task.recurrence || 'none');
       setReminderEnabled(task.reminder?.enabled || false);
       setReminderTime(task.reminder?.time || '09:00');
+      setSubtasks(task.subtasks || []);
+      setAttachments(task.attachments || []);
+      setNotes(task.notes || '');
+      setShowSubtasks((task.subtasks?.length || 0) > 0);
+      setShowAttachments((task.attachments?.length || 0) > 0 || !!task.notes);
     } else {
       setName('');
       setIcon(TASK_ICONS[0]);
@@ -64,6 +76,11 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setRecurrence('none');
       setReminderEnabled(false);
       setReminderTime('09:00');
+      setSubtasks([]);
+      setAttachments([]);
+      setNotes('');
+      setShowSubtasks(false);
+      setShowAttachments(false);
     }
   }, [task, open]);
 
@@ -74,7 +91,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       : undefined;
     onSave({ 
       name: name.trim(), icon, color, dueDate, priority, status, 
-      categoryId, tagIds, recurrence, reminder 
+      categoryId, tagIds, recurrence, reminder, subtasks, attachments, notes
     });
     onClose();
   };
@@ -113,6 +130,11 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
     setTagIds(prev => 
       prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
     );
+  };
+
+  const handleAttachmentsChange = (newAttachments: TaskAttachment[], newNotes?: string) => {
+    setAttachments(newAttachments);
+    if (newNotes !== undefined) setNotes(newNotes);
   };
 
   const priorities: Array<{ value: 'low' | 'medium' | 'high'; label: string }> = [
@@ -283,6 +305,50 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
                   {reminderEnabled ? t('reminderEnabled') : t('reminderDisabled')}
                 </span>
               </div>
+            </div>
+
+            {/* Subtasks toggle and list */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowSubtasks(!showSubtasks)}
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium transition-colors",
+                  showSubtasks ? "text-task" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <ListTodo className="w-4 h-4" />
+                {t('subtasks')} {subtasks.length > 0 && `(${subtasks.length})`}
+              </button>
+              {showSubtasks && (
+                <div className="mt-2 pl-2 border-l-2 border-task/30">
+                  <SubtaskList subtasks={subtasks} onChange={setSubtasks} />
+                </div>
+              )}
+            </div>
+
+            {/* Attachments toggle and section */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowAttachments(!showAttachments)}
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium transition-colors",
+                  showAttachments ? "text-task" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Paperclip className="w-4 h-4" />
+                {t('attachments')} {attachments.length > 0 && `(${attachments.length})`}
+              </button>
+              {showAttachments && (
+                <div className="mt-2 pl-2 border-l-2 border-task/30">
+                  <TaskAttachments 
+                    attachments={attachments} 
+                    notes={notes}
+                    onChange={handleAttachmentsChange}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Category */}
