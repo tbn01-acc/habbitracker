@@ -237,6 +237,9 @@ export default function Dashboard() {
                 onToggle={(id) => toggleHabitCompletion(id, today)}
                 isExpanded={true}
                 onCollapse={() => setExpandedSection(null)}
+                onSwipeLeft={() => setExpandedSection('tasks')}
+                hasPrev={false}
+                hasNext={true}
               />
             )}
 
@@ -255,6 +258,10 @@ export default function Dashboard() {
                 onToggle={toggleTaskCompletion}
                 isExpanded={true}
                 onCollapse={() => setExpandedSection(null)}
+                onSwipeLeft={() => setExpandedSection('finance')}
+                onSwipeRight={() => setExpandedSection('habits')}
+                hasPrev={true}
+                hasNext={true}
               />
             )}
 
@@ -272,6 +279,10 @@ export default function Dashboard() {
                 onToggle={toggleTransactionCompletion}
                 isExpanded={true}
                 onCollapse={() => setExpandedSection(null)}
+                onSwipeLeft={() => setExpandedSection('fitness')}
+                onSwipeRight={() => setExpandedSection('tasks')}
+                hasPrev={true}
+                hasNext={true}
               />
             )}
 
@@ -293,6 +304,9 @@ export default function Dashboard() {
                 emptyMessage={t('recoveryDay')}
                 isExpanded={true}
                 onCollapse={() => setExpandedSection(null)}
+                onSwipeRight={() => setExpandedSection('finance')}
+                hasPrev={true}
+                hasNext={false}
               />
             )}
           </AnimatePresence>
