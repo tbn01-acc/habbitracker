@@ -198,6 +198,17 @@ export const translations = {
     planned: 'запланировано',
     average: 'в среднем',
     month: 'Месяц',
+    quarter: 'Квартал',
+    year: 'Год',
+    growthVsPrevious: 'к прошлому периоду',
+    
+    // Achievements
+    achievements: 'Достижения',
+    achievementsEarned: 'достижений получено',
+    months1: '1 месяц',
+    months3: '3 месяца',
+    months6: '6 месяцев',
+    months12: '12 месяцев',
 
     // Finance
     financeTracker: 'Трекер финансов',
@@ -446,6 +457,17 @@ export const translations = {
     planned: 'planned',
     average: 'average',
     month: 'Month',
+    quarter: 'Quarter',
+    year: 'Year',
+    growthVsPrevious: 'vs previous period',
+    
+    // Achievements
+    achievements: 'Achievements',
+    achievementsEarned: 'achievements earned',
+    months1: '1 month',
+    months3: '3 months',
+    months6: '6 months',
+    months12: '12 months',
 
     // Finance
     financeTracker: 'Finance Tracker',
@@ -694,6 +716,17 @@ export const translations = {
     planned: 'planificado',
     average: 'promedio',
     month: 'Mes',
+    quarter: 'Trimestre',
+    year: 'Año',
+    growthVsPrevious: 'vs período anterior',
+    
+    // Achievements
+    achievements: 'Logros',
+    achievementsEarned: 'logros obtenidos',
+    months1: '1 mes',
+    months3: '3 meses',
+    months6: '6 meses',
+    months12: '12 meses',
 
     // Finance
     financeTracker: 'Rastreador de Finanzas',
