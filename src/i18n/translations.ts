@@ -476,6 +476,14 @@ export const translations = {
     months3: '3 months',
     months6: '6 months',
     months12: '12 months',
+    newAchievement: 'New achievement!',
+    achievementUnlocked: 'Achievement unlocked',
+    shareAchievement: 'Share achievement',
+    
+    // Settings
+    habitSettings: 'Habit Settings',
+    financeSettings: 'Finance Settings',
+    fitnessSettings: 'Fitness Settings',
 
     // Finance
     financeTracker: 'Finance Tracker',
@@ -735,6 +743,14 @@ export const translations = {
     months3: '3 meses',
     months6: '6 meses',
     months12: '12 meses',
+    newAchievement: '¡Nuevo logro!',
+    achievementUnlocked: 'Logro desbloqueado',
+    shareAchievement: 'Compartir logro',
+    
+    // Settings
+    habitSettings: 'Configuración de Hábitos',
+    financeSettings: 'Configuración de Finanzas',
+    fitnessSettings: 'Configuración de Fitness',
 
     // Finance
     financeTracker: 'Rastreador de Finanzas',

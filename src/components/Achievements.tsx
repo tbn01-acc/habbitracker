@@ -26,6 +26,8 @@ export function Achievements() {
   const { habits } = useHabits();
   const { tasks } = useTasks();
   const { workouts, completions } = useFitness();
+  const earnedBadgesRef = useRef<Set<string>>(new Set());
+  const isFirstRender = useRef(true);
 
   const badges = useMemo(() => {
     const today = startOfDay(new Date());
@@ -43,7 +45,7 @@ export function Achievements() {
           return isWithinInterval(date, interval);
         }).length;
       }, 0);
-      const habitsTarget = period * 30; // ~30 completions per month target
+      const habitsTarget = period * 30;
       result.push({
         id: `habits-${period}`,
         type: 'habits',
@@ -60,7 +62,7 @@ export function Achievements() {
         const dueDate = parseISO(t.dueDate.split('T')[0]);
         return isWithinInterval(dueDate, interval);
       }).length;
-      const tasksTarget = period * 20; // ~20 tasks per month target
+      const tasksTarget = period * 20;
       result.push({
         id: `tasks-${period}`,
         type: 'tasks',
@@ -76,7 +78,7 @@ export function Achievements() {
         const date = parseISO(c.date);
         return isWithinInterval(date, interval);
       }).reduce((sum, c) => sum + c.completedExercises.length, 0);
-      const exercisesTarget = period * 40; // ~40 exercises per month target
+      const exercisesTarget = period * 40;
       result.push({
         id: `exercises-${period}`,
         type: 'exercises',
@@ -118,6 +120,53 @@ export function Achievements() {
     }
   };
 
+  // Notify on new achievements
+  useEffect(() => {
+    if (isFirstRender.current) {
+      // Initialize with current earned badges on first render
+      earnedBadgesRef.current = new Set(badges.filter(b => b.earned).map(b => b.id));
+      isFirstRender.current = false;
+      return;
+    }
+
+    const newlyEarned = badges.filter(b => b.earned && !earnedBadgesRef.current.has(b.id));
+    
+    if (newlyEarned.length > 0) {
+      newlyEarned.forEach(badge => {
+        toast.success(`🏆 ${t('newAchievement')} ${getTypeLabel(badge.type)} - ${getPeriodLabel(badge.period)}`, {
+          duration: 5000,
+        });
+      });
+    }
+    
+    earnedBadgesRef.current = new Set(badges.filter(b => b.earned).map(b => b.id));
+  }, [badges, t]);
+
+  const shareAchievement = (badge: Badge) => {
+    const text = `🏆 ${t('achievementUnlocked')}: ${getTypeLabel(badge.type)} - ${getPeriodLabel(badge.period)}!`;
+    const url = window.location.origin;
+    
+    if (navigator.share) {
+      navigator.share({ title: t('achievements'), text, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`);
+      toast.success(t('linkCopied'));
+    }
+  };
+
+  const shareAllAchievements = () => {
+    const earnedBadges = badges.filter(b => b.earned);
+    const text = `🏆 ${t('achievements')}: ${earnedBadges.length}/${badges.length}\n${earnedBadges.map(b => `• ${getTypeLabel(b.type)} - ${getPeriodLabel(b.period)}`).join('\n')}`;
+    const url = window.location.origin;
+    
+    if (navigator.share) {
+      navigator.share({ title: t('achievements'), text, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text}\n${url}`);
+      toast.success(t('linkCopied'));
+    }
+  };
+
   const earnedCount = badges.filter(b => b.earned).length;
 
   return (
@@ -127,10 +176,21 @@ export function Achievements() {
         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
           <Award className="w-6 h-6 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <div className="text-xl font-bold text-foreground">{earnedCount}/{badges.length}</div>
           <div className="text-sm text-muted-foreground">{t('achievementsEarned')}</div>
         </div>
+        {earnedCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={shareAllAchievements}
+            className="text-xs"
+          >
+            <Share2 className="w-4 h-4 mr-1" />
+            {t('share')}
+          </Button>
+        )}
       </div>
 
       {/* Badges Grid */}
@@ -145,11 +205,12 @@ export function Achievements() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className={`relative p-3 rounded-xl border ${
+              className={`relative p-3 rounded-xl border cursor-pointer ${
                 badge.earned 
                   ? `bg-${color}/20 border-${color}/40` 
                   : 'bg-muted/30 border-border'
               }`}
+              onClick={() => badge.earned && shareAchievement(badge)}
             >
               {/* Badge Icon */}
               <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${
@@ -170,6 +231,13 @@ export function Achievements() {
               {!badge.earned && (
                 <div className="absolute top-2 right-2">
                   <span className="text-[10px] text-muted-foreground">{badge.progress}%</span>
+                </div>
+              )}
+
+              {/* Share indicator for earned */}
+              {badge.earned && (
+                <div className="absolute top-2 right-2">
+                  <Share2 className="w-3 h-3 text-muted-foreground" />
                 </div>
               )}
 

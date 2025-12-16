@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sparkles, Target } from 'lucide-react';
+import { Plus, Sparkles, Target, Settings, Filter } from 'lucide-react';
 import { useHabits } from '@/hooks/useHabits';
-import { Habit } from '@/types/habit';
+import { Habit, HABIT_COLORS } from '@/types/habit';
 import { HabitCard } from '@/components/HabitCard';
 import { HabitDialog } from '@/components/HabitDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { ViewTabs, ViewType } from '@/components/ViewTabs';
 import { CalendarView } from '@/components/CalendarView';
 import { ProgressView } from '@/components/ProgressView';
+import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,11 +30,19 @@ interface HabitsProps {
 }
 
 export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
-  const { habits, categories, tags, isLoading, addHabit, updateHabit, deleteHabit, toggleHabitCompletion } = useHabits();
+  const { 
+    habits, categories, tags, isLoading, 
+    addHabit, updateHabit, deleteHabit, toggleHabitCompletion,
+    addCategory, updateCategory, deleteCategory,
+    addTag, updateTag, deleteTag
+  } = useHabits();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [deleteConfirmHabit, setDeleteConfirmHabit] = useState<Habit | null>(null);
   const [activeView, setActiveView] = useState<ViewType>('habits');
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [filterTag, setFilterTag] = useState<string | null>(null);
   const { t } = useTranslation();
 
   const handleSaveHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'completedDates' | 'streak'>) => {
@@ -62,6 +72,15 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     }
   };
 
+  // Filter habits
+  const filteredHabits = habits.filter(habit => {
+    if (filterCategory && habit.categoryId !== filterCategory) return false;
+    if (filterTag && !habit.tagIds?.includes(filterTag)) return false;
+    return true;
+  });
+
+  const hasFilters = filterCategory || filterTag;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -82,7 +101,75 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
           iconBgClass="bg-habit/20"
           title={t('myHabits')}
           subtitle={`${habits.length} ${t('habits').toLowerCase()}`}
+          rightAction={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="w-9 h-9"
+            >
+              <Settings className="w-5 h-5 text-habit" />
+            </Button>
+          }
         />
+
+        {/* Category/Tag Filters */}
+        {(categories.length > 0 || tags.length > 0) && (
+          <div className="mb-4 space-y-2">
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterCategory(null)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                    !filterCategory ? "bg-habit text-white" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {t('uncategorized')}
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFilterCategory(filterCategory === cat.id ? null : cat.id)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1",
+                      filterCategory === cat.id ? "text-white" : "bg-muted text-muted-foreground"
+                    )}
+                    style={filterCategory === cat.id ? { backgroundColor: cat.color } : undefined}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => setFilterTag(filterTag === tag.id ? null : tag.id)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-xs font-medium transition-all flex items-center gap-1",
+                      filterTag === tag.id ? "text-white" : "bg-muted/50 text-muted-foreground"
+                    )}
+                    style={filterTag === tag.id ? { backgroundColor: tag.color } : undefined}
+                  >
+                    #{tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {hasFilters && (
+              <button
+                onClick={() => { setFilterCategory(null); setFilterTag(null); }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {t('clearFilters')}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* View Tabs */}
         <div className="mt-6">
@@ -100,7 +187,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 exit={{ opacity: 0, x: 10 }}
               >
                 <AnimatePresence mode="popLayout">
-                  {habits.length === 0 ? (
+                  {filteredHabits.length === 0 ? (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -110,22 +197,24 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                         <Target className="w-10 h-10 text-habit" />
                       </div>
                       <h3 className="text-lg font-medium text-foreground mb-2">
-                        {t('startBuilding')}
+                        {hasFilters ? t('noHabitsToShow') : t('startBuilding')}
                       </h3>
                       <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
-                        {t('createFirst')}
+                        {hasFilters ? t('clearFilters') : t('createFirst')}
                       </p>
-                      <Button 
-                        onClick={() => setDialogOpen(true)}
-                        className="bg-habit text-white hover:bg-habit/90"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        {t('createHabit')}
-                      </Button>
+                      {!hasFilters && (
+                        <Button 
+                          onClick={() => setDialogOpen(true)}
+                          className="bg-habit text-white hover:bg-habit/90"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('createHabit')}
+                        </Button>
+                      )}
                     </motion.div>
                   ) : (
                     <div className="space-y-3">
-                      {habits.map((habit, index) => (
+                      {filteredHabits.map((habit, index) => (
                         <HabitCard
                           key={habit.id}
                           habit={habit}
@@ -149,7 +238,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 exit={{ opacity: 0, x: 10 }}
               >
                 <CalendarView 
-                  habits={habits} 
+                  habits={filteredHabits} 
                   onToggle={toggleHabitCompletion}
                   initialPeriod="7"
                 />
@@ -163,7 +252,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <ProgressView habits={habits} initialPeriod="7" />
+                <ProgressView habits={filteredHabits} initialPeriod="7" />
               </motion.div>
             )}
           </AnimatePresence>
@@ -203,6 +292,22 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
         habit={editingHabit}
         categories={categories}
         tags={tags}
+      />
+
+      <GenericSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        categories={categories}
+        tags={tags}
+        onAddCategory={addCategory}
+        onUpdateCategory={updateCategory}
+        onDeleteCategory={deleteCategory}
+        onAddTag={addTag}
+        onUpdateTag={updateTag}
+        onDeleteTag={deleteTag}
+        colors={HABIT_COLORS}
+        accentColor="hsl(168, 80%, 40%)"
+        title={t('habitSettings')}
       />
 
       <AlertDialog open={!!deleteConfirmHabit} onOpenChange={() => setDeleteConfirmHabit(null)}>
