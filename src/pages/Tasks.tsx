@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, CheckSquare, Settings } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
+import { useTaskReminders } from '@/hooks/useTaskReminders';
 import { Task, TaskStatus } from '@/types/task';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDialog } from '@/components/TaskDialog';
@@ -51,6 +52,9 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
 
   // Show notifications for overdue and high-priority tasks
   useTaskNotifications(tasks);
+  
+  // Task reminders with push notifications
+  const { requestPermission } = useTaskReminders(tasks, updateTask);
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
     if (editingTask) {
@@ -264,6 +268,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
         tags={tags}
         onAddCategory={addCategory}
         onAddTag={addTag}
+        onRequestNotificationPermission={requestPermission}
       />
 
       <TaskSettingsDialog

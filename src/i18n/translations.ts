@@ -152,6 +152,14 @@ export const translations = {
     overdueTasksCount: 'У вас {count} просроченных задач',
     highPriorityNotification: 'Важные задачи на сегодня',
     highPriorityCount: '{count} задач с высоким приоритетом',
+    recurrence: 'Повторение',
+    recurrenceNone: 'Нет',
+    recurrenceDaily: 'Ежедневно',
+    recurrenceWeekly: 'Еженедельно',
+    recurrenceMonthly: 'Ежемесячно',
+    reminder: 'Напоминание',
+    reminderEnabled: 'Вкл',
+    reminderDisabled: 'Выкл',
 
     // Finance
     financeTracker: 'Трекер финансов',
@@ -354,6 +362,14 @@ export const translations = {
     overdueTasksCount: 'You have {count} overdue tasks',
     highPriorityNotification: 'Important tasks today',
     highPriorityCount: '{count} high priority tasks',
+    recurrence: 'Recurrence',
+    recurrenceNone: 'None',
+    recurrenceDaily: 'Daily',
+    recurrenceWeekly: 'Weekly',
+    recurrenceMonthly: 'Monthly',
+    reminder: 'Reminder',
+    reminderEnabled: 'On',
+    reminderDisabled: 'Off',
 
     // Finance
     financeTracker: 'Finance Tracker',
@@ -556,6 +572,14 @@ export const translations = {
     overdueTasksCount: 'Tienes {count} tareas vencidas',
     highPriorityNotification: 'Tareas importantes hoy',
     highPriorityCount: '{count} tareas de alta prioridad',
+    recurrence: 'Repetición',
+    recurrenceNone: 'Ninguna',
+    recurrenceDaily: 'Diario',
+    recurrenceWeekly: 'Semanal',
+    recurrenceMonthly: 'Mensual',
+    reminder: 'Recordatorio',
+    reminderEnabled: 'Act',
+    reminderDisabled: 'Des',
 
     // Finance
     financeTracker: 'Rastreador de Finanzas',

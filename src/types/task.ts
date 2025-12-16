@@ -1,4 +1,5 @@
 export type TaskStatus = 'not_started' | 'in_progress' | 'done';
+export type TaskRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export interface TaskCategory {
   id: string;
@@ -10,6 +11,12 @@ export interface TaskTag {
   id: string;
   name: string;
   color: string;
+}
+
+export interface TaskReminder {
+  enabled: boolean;
+  time?: string; // HH:mm format
+  notifiedAt?: string; // ISO date when last notified
 }
 
 export interface Task {
@@ -25,6 +32,8 @@ export interface Task {
   status: TaskStatus;
   categoryId?: string;
   tagIds: string[];
+  recurrence: TaskRecurrence;
+  reminder?: TaskReminder;
 }
 
 export const TASK_ICONS = [

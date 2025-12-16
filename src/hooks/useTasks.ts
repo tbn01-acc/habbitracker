@@ -1,9 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskCategory, TaskTag, TaskStatus, DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/types/task';
+import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/types/task';
+import { addDays, addWeeks, addMonths } from 'date-fns';
 
 const STORAGE_KEY = 'habitflow_tasks';
 const CATEGORIES_KEY = 'habitflow_task_categories';
 const TAGS_KEY = 'habitflow_task_tags';
+
+function getNextDueDate(currentDate: string, recurrence: TaskRecurrence): string {
+  const date = new Date(currentDate);
+  let nextDate: Date;
+  
+  switch (recurrence) {
+    case 'daily':
+      nextDate = addDays(date, 1);
+      break;
+    case 'weekly':
+      nextDate = addWeeks(date, 1);
+      break;
+    case 'monthly':
+      nextDate = addMonths(date, 1);
+      break;
+    default:
+      return currentDate;
+  }
+  
+  return nextDate.toISOString().split('T')[0];
+}
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -19,11 +41,12 @@ export function useTasks() {
     if (storedTasks) {
       try {
         const parsed = JSON.parse(storedTasks);
-        // Migrate old tasks without status/tagIds
+        // Migrate old tasks without status/tagIds/recurrence
         const migrated = parsed.map((t: Task) => ({
           ...t,
           status: t.status || (t.completed ? 'done' : 'not_started'),
           tagIds: t.tagIds || [],
+          recurrence: t.recurrence || 'none',
         }));
         setTasks(migrated);
       } catch (e) {
@@ -95,12 +118,34 @@ export function useTasks() {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     const newCompleted = !task.completed;
-    updateTask(id, { 
-      completed: newCompleted,
-      status: newCompleted ? 'done' : 'not_started',
-      completedAt: newCompleted ? new Date().toISOString() : undefined
-    });
-  }, [tasks, updateTask]);
+    
+    if (newCompleted && task.recurrence !== 'none') {
+      // For recurring tasks, create a new instance with next due date
+      const newDueDate = getNextDueDate(task.dueDate, task.recurrence);
+      const newTask: Task = {
+        ...task,
+        id: crypto.randomUUID(),
+        dueDate: newDueDate,
+        completed: false,
+        status: 'not_started',
+        completedAt: undefined,
+        reminder: task.reminder ? { ...task.reminder, notifiedAt: undefined } : undefined,
+      };
+      // Mark current as done and add new recurring instance
+      const updatedTasks = tasks.map(t => 
+        t.id === id 
+          ? { ...t, completed: true, status: 'done' as TaskStatus, completedAt: new Date().toISOString() }
+          : t
+      );
+      saveTasks([...updatedTasks, newTask]);
+    } else {
+      updateTask(id, { 
+        completed: newCompleted,
+        status: newCompleted ? 'done' : 'not_started',
+        completedAt: newCompleted ? new Date().toISOString() : undefined
+      });
+    }
+  }, [tasks, updateTask, saveTasks]);
 
   const updateTaskStatus = useCallback((id: string, status: TaskStatus) => {
     updateTask(id, { status });

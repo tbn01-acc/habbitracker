@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus } from 'lucide-react';
-import { Task, TaskCategory, TaskTag, TaskStatus, TASK_ICONS, TASK_COLORS } from '@/types/task';
+import { X, Plus, Bell, BellOff, Repeat } from 'lucide-react';
+import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, TaskReminder, TASK_ICONS, TASK_COLORS } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { getNotificationPermissionStatus } from '@/hooks/useTaskReminders';
 
 interface TaskDialogProps {
   open: boolean;
@@ -16,9 +18,10 @@ interface TaskDialogProps {
   tags: TaskTag[];
   onAddCategory?: (category: Omit<TaskCategory, 'id'>) => void;
   onAddTag?: (tag: Omit<TaskTag, 'id'>) => void;
+  onRequestNotificationPermission?: () => Promise<boolean>;
 }
 
-export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag }: TaskDialogProps) {
+export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag, onRequestNotificationPermission }: TaskDialogProps) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState(TASK_ICONS[0]);
   const [color, setColor] = useState(TASK_COLORS[0]);
@@ -27,6 +30,9 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const [status, setStatus] = useState<TaskStatus>('not_started');
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [recurrence, setRecurrence] = useState<TaskRecurrence>('none');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState('09:00');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newTagName, setNewTagName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -43,6 +49,9 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setStatus(task.status);
       setCategoryId(task.categoryId);
       setTagIds(task.tagIds);
+      setRecurrence(task.recurrence || 'none');
+      setReminderEnabled(task.reminder?.enabled || false);
+      setReminderTime(task.reminder?.time || '09:00');
     } else {
       setName('');
       setIcon(TASK_ICONS[0]);
@@ -52,13 +61,36 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setStatus('not_started');
       setCategoryId(undefined);
       setTagIds([]);
+      setRecurrence('none');
+      setReminderEnabled(false);
+      setReminderTime('09:00');
     }
   }, [task, open]);
 
   const handleSave = () => {
     if (!name.trim()) return;
-    onSave({ name: name.trim(), icon, color, dueDate, priority, status, categoryId, tagIds });
+    const reminder: TaskReminder | undefined = reminderEnabled 
+      ? { enabled: true, time: reminderTime }
+      : undefined;
+    onSave({ 
+      name: name.trim(), icon, color, dueDate, priority, status, 
+      categoryId, tagIds, recurrence, reminder 
+    });
     onClose();
+  };
+
+  const handleReminderToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const permissionStatus = getNotificationPermissionStatus();
+      if (permissionStatus === 'unsupported') {
+        return;
+      }
+      if (permissionStatus !== 'granted' && onRequestNotificationPermission) {
+        const granted = await onRequestNotificationPermission();
+        if (!granted) return;
+      }
+    }
+    setReminderEnabled(enabled);
   };
 
   const handleAddCategory = () => {
@@ -93,6 +125,13 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
     { value: 'not_started', label: t('statusNotStarted') },
     { value: 'in_progress', label: t('statusInProgress') },
     { value: 'done', label: t('statusDone') },
+  ];
+
+  const recurrenceOptions: Array<{ value: TaskRecurrence; label: string }> = [
+    { value: 'none', label: t('recurrenceNone') },
+    { value: 'daily', label: t('recurrenceDaily') },
+    { value: 'weekly', label: t('recurrenceWeekly') },
+    { value: 'monthly', label: t('recurrenceMonthly') },
   ];
 
   return (
@@ -194,6 +233,55 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
                     {s.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                <Repeat className="w-4 h-4 inline mr-1" />
+                {t('recurrence')}
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {recurrenceOptions.map((r) => (
+                  <button
+                    key={r.value}
+                    onClick={() => setRecurrence(r.value)}
+                    className={cn(
+                      "py-2 px-3 rounded-xl text-xs font-medium transition-all",
+                      recurrence === r.value
+                        ? "bg-task text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Reminder */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {reminderEnabled ? <Bell className="w-4 h-4 inline mr-1" /> : <BellOff className="w-4 h-4 inline mr-1" />}
+                {t('reminder')}
+              </label>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={reminderEnabled}
+                  onCheckedChange={handleReminderToggle}
+                />
+                {reminderEnabled && (
+                  <Input
+                    type="time"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="w-32 bg-background border-border"
+                  />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {reminderEnabled ? t('reminderEnabled') : t('reminderDisabled')}
+                </span>
               </div>
             </div>
 

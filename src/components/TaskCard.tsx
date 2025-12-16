@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,12 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
     not_started: 'bg-muted text-muted-foreground',
     in_progress: 'bg-amber-500/20 text-amber-600',
     done: 'bg-task/20 text-task',
+  };
+
+  const recurrenceLabels = {
+    daily: t('recurrenceDaily'),
+    weekly: t('recurrenceWeekly'),
+    monthly: t('recurrenceMonthly'),
   };
 
   const isOverdue = !task.completed && new Date(task.dueDate) < new Date(new Date().toDateString());
@@ -131,6 +137,15 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
             >
               {isOverdue ? t('overdue') : isToday ? t('today') : task.dueDate}
             </span>
+            {task.recurrence && task.recurrence !== 'none' && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-task/10 text-task flex items-center gap-1">
+                <Repeat className="w-3 h-3" />
+                {recurrenceLabels[task.recurrence]}
+              </span>
+            )}
+            {task.reminder?.enabled && (
+              <Bell className="w-3 h-3 text-task" />
+            )}
           </div>
         </div>
       </div>
