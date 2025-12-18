@@ -44,6 +44,7 @@ export interface Workout {
   color: string;
   exercises: Exercise[];
   scheduledDays: number[]; // 0-6, Sunday to Saturday
+  scheduledDates?: string[]; // Specific dates in YYYY-MM-DD format
   createdAt: string;
   categoryId?: string;
   tagIds: string[];

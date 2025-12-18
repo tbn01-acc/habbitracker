@@ -341,7 +341,14 @@ export function useFitness() {
 
   const getTodayWorkouts = useCallback(() => {
     const today = new Date().getDay();
-    return workouts.filter(w => w.scheduledDays.includes(today));
+    const todayStr = new Date().toISOString().split('T')[0];
+    return workouts.filter(w => {
+      // Check if scheduled by weekday
+      if (w.scheduledDays.includes(today)) return true;
+      // Check if scheduled by specific date
+      if (w.scheduledDates && w.scheduledDates.includes(todayStr)) return true;
+      return false;
+    });
   }, [workouts]);
 
   const getTodayExercises = useCallback(() => {

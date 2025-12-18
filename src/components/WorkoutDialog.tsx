@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { Workout, Exercise, ExerciseSet, WORKOUT_ICONS, WORKOUT_COLORS, FitnessCategory, FitnessTag, ExerciseCategory } from '@/types/fitness';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 interface WorkoutDialogProps {
   open: boolean;
@@ -36,11 +40,15 @@ interface ExerciseInput {
   categoryId?: string;
 }
 
+type SchedulingMode = 'weekdays' | 'dates';
+
 export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags, exerciseCategories = [] }: WorkoutDialogProps) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState(WORKOUT_ICONS[0]);
   const [color, setColor] = useState(WORKOUT_COLORS[0]);
   const [scheduledDays, setScheduledDays] = useState<number[]>([1, 3, 5]);
+  const [scheduledDates, setScheduledDates] = useState<Date[]>([]);
+  const [schedulingMode, setSchedulingMode] = useState<SchedulingMode>('weekdays');
   const [exercises, setExercises] = useState<ExerciseInput[]>([]);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [categoryId, setCategoryId] = useState<string | undefined>();
@@ -53,6 +61,8 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
       setIcon(workout.icon);
       setColor(workout.color);
       setScheduledDays(workout.scheduledDays);
+      setScheduledDates(workout.scheduledDates?.map(d => new Date(d)) || []);
+      setSchedulingMode(workout.scheduledDates && workout.scheduledDates.length > 0 ? 'dates' : 'weekdays');
       setExercises(workout.exercises.map(e => ({ 
         id: e.id, 
         name: e.name, 
@@ -68,6 +78,8 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
       setIcon(WORKOUT_ICONS[0]);
       setColor(WORKOUT_COLORS[0]);
       setScheduledDays([1, 3, 5]);
+      setScheduledDates([]);
+      setSchedulingMode('weekdays');
       setExercises([]);
       setCategoryId(undefined);
       setTagIds([]);
@@ -77,6 +89,10 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
 
   const handleSave = () => {
     if (!name.trim() || exercises.length === 0) return;
+    
+    // Validate scheduling
+    if (schedulingMode === 'weekdays' && scheduledDays.length === 0) return;
+    if (schedulingMode === 'dates' && scheduledDates.length === 0) return;
     
     const exercisesWithDefaults: Exercise[] = exercises.map(e => ({
       id: e.id,
@@ -93,7 +109,8 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
       name: name.trim(), 
       icon, 
       color, 
-      scheduledDays,
+      scheduledDays: schedulingMode === 'weekdays' ? scheduledDays : [],
+      scheduledDates: schedulingMode === 'dates' ? scheduledDates.map(d => format(d, 'yyyy-MM-dd')) : [],
       exercises: exercisesWithDefaults,
       categoryId,
       tagIds,
@@ -107,6 +124,21 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
     } else {
       setScheduledDays([...scheduledDays, day].sort());
     }
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const exists = scheduledDates.some(d => format(d, 'yyyy-MM-dd') === dateStr);
+    if (exists) {
+      setScheduledDates(scheduledDates.filter(d => format(d, 'yyyy-MM-dd') !== dateStr));
+    } else {
+      setScheduledDates([...scheduledDates, date].sort((a, b) => a.getTime() - b.getTime()));
+    }
+  };
+
+  const removeDate = (dateToRemove: Date) => {
+    setScheduledDates(scheduledDates.filter(d => d.getTime() !== dateToRemove.getTime()));
   };
 
   const addExercise = () => {
@@ -242,28 +274,124 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
               </div>
             )}
 
-            {/* Scheduled Days */}
+            {/* Scheduling Mode Toggle */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-foreground mb-2">
-                {t('scheduledDays')}
+                {t('schedulingMode')}
               </label>
-              <div className="flex gap-1">
-                {WEEKDAYS.map((day) => (
-                  <button
-                    key={day.id}
-                    onClick={() => toggleDay(day.id)}
-                    className={cn(
-                      "flex-1 py-2 px-1 rounded-lg text-xs font-medium transition-all",
-                      scheduledDays.includes(day.id)
-                        ? "bg-fitness text-white"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    {day.short}
-                  </button>
-                ))}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSchedulingMode('weekdays')}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    schedulingMode === 'weekdays'
+                      ? "bg-fitness text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {t('byWeekdays')}
+                </button>
+                <button
+                  onClick={() => setSchedulingMode('dates')}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    schedulingMode === 'dates'
+                      ? "bg-fitness text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {t('bySpecificDates')}
+                </button>
               </div>
             </div>
+
+            {/* Scheduled Days (weekday mode) */}
+            {schedulingMode === 'weekdays' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('scheduledDays')}
+                </label>
+                <div className="flex gap-1">
+                  {WEEKDAYS.map((day) => (
+                    <button
+                      key={day.id}
+                      onClick={() => toggleDay(day.id)}
+                      className={cn(
+                        "flex-1 py-2 px-1 rounded-lg text-xs font-medium transition-all",
+                        scheduledDays.includes(day.id)
+                          ? "bg-fitness text-white"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      {day.short}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Scheduled Dates (specific dates mode) */}
+            {schedulingMode === 'dates' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('scheduledDates')}
+                </label>
+                
+                {/* Selected dates */}
+                {scheduledDates.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {scheduledDates.map((date) => (
+                      <span
+                        key={date.toISOString()}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-fitness/20 text-fitness rounded-lg text-xs font-medium"
+                      >
+                        {format(date, 'dd.MM.yyyy')}
+                        <button
+                          onClick={() => removeDate(date)}
+                          className="hover:text-fitness/70"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Date picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {t('addDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={undefined}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      locale={ru}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      modifiers={{
+                        selected: scheduledDates,
+                      }}
+                      modifiersStyles={{
+                        selected: { backgroundColor: 'hsl(262, 80%, 55%)', color: 'white' }
+                      }}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {scheduledDates.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">{t('noScheduledDates')}</p>
+                )}
+              </div>
+            )}
 
             {/* Icon Selection */}
             <div className="mb-6">
@@ -367,7 +495,12 @@ export function WorkoutDialog({ open, onClose, onSave, workout, categories, tags
             {/* Save Button */}
             <Button
               onClick={handleSave}
-              disabled={!name.trim() || exercises.length === 0 || scheduledDays.length === 0}
+              disabled={
+                !name.trim() || 
+                exercises.length === 0 || 
+                (schedulingMode === 'weekdays' && scheduledDays.length === 0) ||
+                (schedulingMode === 'dates' && scheduledDates.length === 0)
+              }
               className="w-full bg-fitness hover:bg-fitness/90 text-white"
             >
               {t('save')}

@@ -10,6 +10,7 @@ import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { WorkoutTemplates } from '@/components/WorkoutTemplates';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { RestTimer } from '@/components/RestTimer';
+import { ShareWorkoutDialog } from '@/components/ShareWorkoutDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,8 @@ export default function Fitness({ openDialog, onDialogClose }: FitnessProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [sharingWorkout, setSharingWorkout] = useState<Workout | null>(null);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const [deleteConfirmWorkout, setDeleteConfirmWorkout] = useState<Workout | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
@@ -84,6 +87,11 @@ export default function Fitness({ openDialog, onDialogClose }: FitnessProps) {
 
   const handleDeleteWorkout = (workout: Workout) => {
     setDeleteConfirmWorkout(workout);
+  };
+
+  const handleShareWorkout = (workout: Workout) => {
+    setSharingWorkout(workout);
+    setShareDialogOpen(true);
   };
 
   const confirmDelete = () => {
@@ -364,6 +372,7 @@ export default function Fitness({ openDialog, onDialogClose }: FitnessProps) {
                         onToggleExercise={(exerciseId) => toggleExerciseCompletion(workout.id, exerciseId, today)}
                         onEdit={() => handleEditWorkout(workout)}
                         onDelete={() => handleDeleteWorkout(workout)}
+                        onShare={() => handleShareWorkout(workout)}
                         showDetailedTracking={showDetailedTracking}
                       />
                     ))}
@@ -444,6 +453,22 @@ export default function Fitness({ openDialog, onDialogClose }: FitnessProps) {
         onDeleteTemplate={deleteTemplate}
         onCreateFromTemplate={createWorkoutFromTemplate}
         workouts={workouts}
+      />
+
+      <ShareWorkoutDialog
+        open={shareDialogOpen}
+        onClose={() => {
+          setShareDialogOpen(false);
+          setSharingWorkout(null);
+        }}
+        workout={sharingWorkout}
+        exerciseLogs={exerciseLogs
+          .filter(log => log.workoutId === sharingWorkout?.id)
+          .map(log => ({
+            date: log.date,
+            sets: log.sets.filter(s => s.completed).length,
+            totalWeight: log.sets.reduce((sum, s) => sum + (s.weight || 0) * s.reps, 0)
+          }))}
       />
 
       <AlertDialog open={!!deleteConfirmWorkout} onOpenChange={() => setDeleteConfirmWorkout(null)}>

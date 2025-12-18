@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, MoreVertical, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, MoreVertical, Pencil, Trash2, ChevronDown, ChevronUp, Share2, Calendar } from 'lucide-react';
 import { Workout, ExerciseSet } from '@/types/fitness';
 import { useFitness } from '@/hooks/useFitness';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { ExerciseSetTracker } from '@/components/ExerciseSetTracker';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ interface WorkoutCardProps {
   onToggleExercise: (exerciseId: string) => void;
   onEdit: () => void;
   onDelete: () => void;
+  onShare?: () => void;
   showDetailedTracking?: boolean;
 }
 
@@ -32,6 +34,7 @@ export function WorkoutCard({
   onToggleExercise, 
   onEdit, 
   onDelete,
+  onShare,
   showDetailedTracking = false 
 }: WorkoutCardProps) {
   const [isExpanded, setIsExpanded] = useState(isToday);
@@ -62,7 +65,10 @@ export function WorkoutCard({
             <div>
               <h3 className="font-medium text-foreground">{workout.name}</h3>
               <p className="text-xs text-muted-foreground">
-                {workout.exercises.length} упражнений • {workout.scheduledDays.map(d => WEEKDAYS_SHORT[d]).join(', ')}
+                {workout.exercises.length} упражнений • 
+                {workout.scheduledDates && workout.scheduledDates.length > 0 
+                  ? ` ${workout.scheduledDates.length} дат`
+                  : ` ${workout.scheduledDays.map(d => WEEKDAYS_SHORT[d]).join(', ')}`}
               </p>
             </div>
           </div>
@@ -85,6 +91,12 @@ export function WorkoutCard({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onShare && (
+                  <DropdownMenuItem onClick={onShare}>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    {t('share')}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={onEdit}>
                   <Pencil className="w-4 h-4 mr-2" />
                   {t('edit')}

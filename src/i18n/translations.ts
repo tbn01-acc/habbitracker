@@ -299,6 +299,24 @@ export const translations = {
     templateNamePlaceholder: 'Например: Моя силовая',
     saveTemplate: 'Сохранить шаблон',
 
+    // Share Workout
+    shareWorkout: 'Поделиться тренировкой',
+    shareWorkoutInvite: 'Присоединяйся к тренировкам в HabitFlow!',
+    myResults: 'Мои результаты',
+    copied: 'Скопировано',
+    copyToClipboard: 'Копировать',
+    copyFailed: 'Не удалось скопировать',
+    inviteFriendToApp: 'Пригласить в приложение',
+    setsCount: 'подходов',
+
+    // Calendar Planning
+    schedulingMode: 'Режим планирования',
+    byWeekdays: 'По дням недели',
+    bySpecificDates: 'На конкретные даты',
+    scheduledDates: 'Запланированные даты',
+    addDate: 'Добавить дату',
+    noScheduledDates: 'Нет запланированных дат',
+
     // Auth
     signIn: 'Войти',
     signUp: 'Регистрация',
@@ -617,6 +635,24 @@ export const translations = {
     templateNamePlaceholder: 'E.g.: My strength workout',
     saveTemplate: 'Save template',
 
+    // Share Workout
+    shareWorkout: 'Share Workout',
+    shareWorkoutInvite: 'Join my workouts on HabitFlow!',
+    myResults: 'My Results',
+    copied: 'Copied',
+    copyToClipboard: 'Copy to clipboard',
+    copyFailed: 'Failed to copy',
+    inviteFriendToApp: 'Invite to app',
+    setsCount: 'sets',
+
+    // Calendar Planning
+    schedulingMode: 'Scheduling mode',
+    byWeekdays: 'By weekdays',
+    bySpecificDates: 'By specific dates',
+    scheduledDates: 'Scheduled dates',
+    addDate: 'Add date',
+    noScheduledDates: 'No scheduled dates',
+
     // Auth
     signIn: 'Sign In',
     signUp: 'Sign Up',
@@ -934,6 +970,24 @@ export const translations = {
     templateName: 'Nombre de plantilla',
     templateNamePlaceholder: 'Ej: Mi fuerza',
     saveTemplate: 'Guardar plantilla',
+
+    // Share Workout
+    shareWorkout: 'Compartir entrenamiento',
+    shareWorkoutInvite: '¡Únete a mis entrenamientos en HabitFlow!',
+    myResults: 'Mis resultados',
+    copied: 'Copiado',
+    copyToClipboard: 'Copiar al portapapeles',
+    copyFailed: 'Error al copiar',
+    inviteFriendToApp: 'Invitar a la app',
+    setsCount: 'series',
+
+    // Calendar Planning
+    schedulingMode: 'Modo de planificación',
+    byWeekdays: 'Por días de la semana',
+    bySpecificDates: 'Por fechas específicas',
+    scheduledDates: 'Fechas programadas',
+    addDate: 'Añadir fecha',
+    noScheduledDates: 'Sin fechas programadas',
 
     // Auth
     signIn: 'Iniciar sesión',
