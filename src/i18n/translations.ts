@@ -2,6 +2,12 @@ export type Language = 'ru' | 'en' | 'es';
 
 export const translations = {
   ru: {
+    // Pomodoro time tracking
+    assignTimeToTask: 'Привязать время к задаче',
+    pomodoroSessionCompleted: 'Сессия Помодоро завершена',
+    skip: 'Пропустить',
+    assign: 'Привязать',
+    
     // Greetings
     goodNight: 'Доброй ночи',
     goodMorning: 'Доброе утро',
@@ -445,6 +451,12 @@ export const translations = {
     pause: 'Пауза',
   },
   en: {
+    // Pomodoro time tracking
+    assignTimeToTask: 'Assign time to task',
+    pomodoroSessionCompleted: 'Pomodoro session completed',
+    skip: 'Skip',
+    assign: 'Assign',
+    
     // Greetings
     goodNight: 'Good night',
     goodMorning: 'Good morning',
@@ -888,6 +900,12 @@ export const translations = {
     pause: 'Pause',
   },
   es: {
+    // Pomodoro time tracking
+    assignTimeToTask: 'Asignar tiempo a tarea',
+    pomodoroSessionCompleted: 'Sesión Pomodoro completada',
+    skip: 'Omitir',
+    assign: 'Asignar',
+    
     // Greetings
     goodNight: 'Buenas noches',
     goodMorning: 'Buenos días',

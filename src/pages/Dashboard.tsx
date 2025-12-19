@@ -19,7 +19,7 @@ import { WidgetSettings } from '@/components/dashboard/WidgetSettings';
 export default function Dashboard() {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(true);
+  const [isWidgetsExpanded, setIsWidgetsExpanded] = useState(false);
   const { habits, toggleHabitCompletion } = useHabits();
   const { tasks, toggleTaskCompletion, getTodayTasks } = useTasks();
   const { transactions, toggleTransactionCompletion, getTodayTransactions } = useFinance();
@@ -68,8 +68,6 @@ export default function Dashboard() {
         return <PomodoroWidget key="pomodoro" />;
       case 'time_stats':
         return <TimeStatsWidget key="time_stats" />;
-      case 'quick_services':
-        return <QuickServicesWidget key="quick_services" />;
       default:
         return null;
     }
@@ -135,8 +133,8 @@ export default function Dashboard() {
                   transition={{ duration: 0.2, ease: 'easeInOut' }}
                   className="overflow-hidden"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {enabledWidgets.map(widget => renderWidget(widget.type))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {enabledWidgets.filter(w => w.type !== 'quick_services').map(widget => renderWidget(widget.type))}
                   </div>
                 </motion.div>
               )}
@@ -197,7 +195,7 @@ export default function Dashboard() {
         {/* Section: Сделать */}
         <h2 className="text-sm font-medium text-muted-foreground mb-3">{t('toDo')}:</h2>
         
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <AnimatePresence mode="wait">
             {expandedSection === null && (
               <>

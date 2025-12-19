@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      habits: {
+        Row: {
+          category_id: string | null
+          color: string | null
+          completed_dates: string[]
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          streak: number
+          tags: string[] | null
+          target_days: number[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          color?: string | null
+          completed_dates?: string[]
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          streak?: number
+          tags?: string[] | null
+          target_days?: number[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          color?: string | null
+          completed_dates?: string[]
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          streak?: number
+          tags?: string[] | null
+          target_days?: number[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pomodoro_sessions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          duration: number
+          id: string
+          subtask_id: string | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          duration: number
+          id?: string
+          subtask_id?: string | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          duration?: number
+          id?: string
+          subtask_id?: string | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -36,6 +111,150 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          attachments: Json | null
+          category_id: string | null
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          icon: string | null
+          id: string
+          name: string
+          priority: string
+          recurrence: string | null
+          status: string
+          subtasks: Json | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          category_id?: string | null
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          priority?: string
+          recurrence?: string | null
+          status?: string
+          subtasks?: Json | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          category_id?: string | null
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          priority?: string
+          recurrence?: string | null
+          status?: string
+          subtasks?: Json | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration: number
+          end_time: string
+          id: string
+          start_time: string
+          subtask_id: string | null
+          task_id: string | null
+          task_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration: number
+          end_time: string
+          id?: string
+          start_time: string
+          subtask_id?: string | null
+          task_id?: string | null
+          task_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          subtask_id?: string | null
+          task_id?: string | null
+          task_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category_id: string | null
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          name: string
+          recurrence: string | null
+          tags: string[] | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          completed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          recurrence?: string | null
+          tags?: string[] | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          recurrence?: string | null
+          tags?: string[] | null
+          type?: string
           updated_at?: string
           user_id?: string
         }
