@@ -1,18 +1,31 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Clock } from 'lucide-react';
 import { Task, TaskCategory, TaskTag } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { format, subDays } from 'date-fns';
+
+interface TimeEntry {
+  id: string;
+  taskId: string;
+  subtaskId?: string;
+  startTime: string;
+  endTime?: string;
+  duration: number;
+  description?: string;
+}
 
 interface TaskProgressViewProps {
   tasks: Task[];
   categories: TaskCategory[];
   tags: TaskTag[];
   period: 7 | 14 | 30;
+  timeEntries?: TimeEntry[];
+  formatDuration?: (seconds: number) => string;
 }
 
-export function TaskProgressView({ tasks, categories, period }: TaskProgressViewProps) {
+export function TaskProgressView({ tasks, categories, period, timeEntries = [], formatDuration }: TaskProgressViewProps) {
   const { t } = useTranslation();
 
   const periodTasks = useMemo(() => {
@@ -247,6 +260,49 @@ export function TaskProgressView({ tasks, categories, period }: TaskProgressView
           ))}
         </div>
       </motion.div>
+
+      {/* Time Analytics */}
+      {timeEntries.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-card rounded-2xl p-4 border border-border"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-4 h-4 text-service" />
+            <h3 className="text-sm font-medium text-foreground">{t('timeByTask')}</h3>
+          </div>
+          <div className="space-y-3">
+            {tasks
+              .filter(task => timeEntries.some(e => e.taskId === task.id))
+              .slice(0, 5)
+              .map(task => {
+                const taskTime = timeEntries
+                  .filter(e => e.taskId === task.id)
+                  .reduce((sum, e) => sum + e.duration, 0);
+                return (
+                  <div key={task.id} className="flex items-center gap-3">
+                    <span className="text-lg">{task.icon}</span>
+                    <span className="text-sm text-foreground flex-1 truncate">{task.name}</span>
+                    <span className="text-sm font-medium text-service">
+                      {formatDuration ? formatDuration(taskTime) : `${Math.floor(taskTime / 60)}m`}
+                    </span>
+                  </div>
+                );
+              })}
+            <div className="pt-2 border-t border-border flex justify-between">
+              <span className="text-sm text-muted-foreground">{t('totalTimeSpent')}</span>
+              <span className="text-sm font-bold text-service">
+                {formatDuration 
+                  ? formatDuration(timeEntries.reduce((sum, e) => sum + e.duration, 0))
+                  : `${Math.floor(timeEntries.reduce((sum, e) => sum + e.duration, 0) / 60)}m`
+                }
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

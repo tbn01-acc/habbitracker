@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, CheckSquare, Wallet, Plus, Wrench } from 'lucide-react';
+import { Home, Target, CheckSquare, Wallet, Plus, Wrench, User } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface BottomNavigationProps {
@@ -20,6 +21,7 @@ export function BottomNavigation({
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { profile, user } = useAuth();
 
   const navItems = [
     { path: '/', icon: Home, label: t('home'), color: 'hsl(var(--primary))' },
@@ -145,7 +147,7 @@ export function BottomNavigation({
             </span>
           </div>
 
-          {/* Right side items: Finance, Profile */}
+          {/* Right side items: Finance, Services */}
           {rightItems.map((item) => (
             <button
               key={item.path}
@@ -162,6 +164,36 @@ export function BottomNavigation({
               <span className="text-[10px] mt-0.5 hidden sm:block">{item.label}</span>
             </button>
           ))}
+
+          {/* Profile Avatar */}
+          <button
+            onClick={() => handleNavClick('/profile')}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-2 rounded-lg transition-colors min-w-[48px]",
+              location.pathname === '/profile'
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className={cn(
+              "w-7 h-7 rounded-full flex items-center justify-center overflow-hidden border-2 transition-colors",
+              location.pathname === '/profile' 
+                ? "border-primary" 
+                : "border-muted"
+            )}>
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt="" 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <span className="text-xs font-semibold">
+                  {(profile?.display_name || user?.email || 'U')[0].toUpperCase()}
+                </span>
+              )}
+            </div>
+          </button>
         </div>
       </nav>
     </>

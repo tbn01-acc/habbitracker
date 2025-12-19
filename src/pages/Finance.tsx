@@ -10,9 +10,12 @@ import { FinanceViewTabs, FinanceViewType } from '@/components/finance/FinanceVi
 import { FinanceCalendarView } from '@/components/finance/FinanceCalendarView';
 import { FinanceProgressView } from '@/components/finance/FinanceProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
+import { ExportButtons } from '@/components/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { exportFinanceToCSV, exportFinanceToPDF } from '@/utils/exportData';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,14 +115,26 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
           title={t('myFinance')}
           subtitle={`${transactions.length} ${t('transactions').toLowerCase()}`}
           rightAction={
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-              className="w-9 h-9"
-            >
-              <Settings className="w-5 h-5 text-finance" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ExportButtons
+                onExportCSV={() => {
+                  exportFinanceToCSV(transactions, t as unknown as Record<string, string>);
+                  toast.success(t('exportSuccess'));
+                }}
+                onExportPDF={() => {
+                  exportFinanceToPDF(transactions, t as unknown as Record<string, string>);
+                }}
+                accentColor="hsl(var(--finance))"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                className="w-9 h-9"
+              >
+                <Settings className="w-5 h-5 text-finance" />
+              </Button>
+            </div>
           }
         />
 

@@ -427,6 +427,14 @@ export const translations = {
     exportToPdf: 'Экспорт в PDF',
     exportToCsv: 'Экспорт в CSV',
     exportSuccess: 'Данные экспортированы',
+    
+    // Time Tracker in Tasks
+    startTimer: 'Запустить таймер',
+    stopTimer: 'Остановить',
+    timeSpent: 'Затрачено времени',
+    timeByTask: 'Время по задачам',
+    totalTimeSpent: 'Всего затрачено',
+    noTimeData: 'Нет данных о времени',
   },
   en: {
     // Greetings
@@ -854,6 +862,14 @@ export const translations = {
     exportToPdf: 'Export to PDF',
     exportToCsv: 'Export to CSV',
     exportSuccess: 'Data exported',
+    
+    // Time Tracker in Tasks
+    startTimer: 'Start timer',
+    stopTimer: 'Stop',
+    timeSpent: 'Time spent',
+    timeByTask: 'Time by task',
+    totalTimeSpent: 'Total time spent',
+    noTimeData: 'No time data',
   },
   es: {
     // Greetings
@@ -1281,6 +1297,14 @@ export const translations = {
     exportToPdf: 'Exportar a PDF',
     exportToCsv: 'Exportar a CSV',
     exportSuccess: 'Datos exportados',
+    
+    // Time Tracker in Tasks
+    startTimer: 'Iniciar temporizador',
+    stopTimer: 'Parar',
+    timeSpent: 'Tiempo dedicado',
+    timeByTask: 'Tiempo por tarea',
+    totalTimeSpent: 'Tiempo total',
+    noTimeData: 'Sin datos de tiempo',
   },
 } as const;
 

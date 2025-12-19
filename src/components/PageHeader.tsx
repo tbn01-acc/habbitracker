@@ -38,17 +38,8 @@ export function PageHeader({ showTitle = false, icon, iconBgClass, title, subtit
         </div>
       </div>
 
-      {/* Greeting with Avatar and User Name */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={userName} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-lg font-semibold text-muted-foreground">
-              {userName.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </div>
+      {/* Greeting without avatar */}
+      <div className="mb-4">
         <p className="text-lg font-medium text-foreground">
           {getGreeting()}, {userName}!
         </p>

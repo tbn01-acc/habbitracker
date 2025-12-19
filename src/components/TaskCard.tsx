@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote } from 'lucide-react';
+import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote, Play, Square, Clock } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -16,9 +16,25 @@ interface TaskCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  activeTimer?: { taskId: string; subtaskId?: string } | null;
+  elapsedTime?: number;
+  onStartTimer?: (taskId: string, subtaskId?: string) => void;
+  onStopTimer?: () => void;
+  formatDuration?: (seconds: number) => string;
 }
 
-export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ 
+  task, 
+  index, 
+  onToggle, 
+  onEdit, 
+  onDelete, 
+  activeTimer,
+  elapsedTime = 0,
+  onStartTimer,
+  onStopTimer,
+  formatDuration
+}: TaskCardProps) {
   const { t } = useTranslation();
 
   const priorityColors = {
@@ -55,6 +71,7 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
   const isToday = task.dueDate === new Date().toISOString().split('T')[0];
   const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
+  const isTimerActive = activeTimer?.taskId === task.id;
 
   return (
     <motion.div
@@ -159,6 +176,31 @@ export function TaskCard({ task, index, onToggle, onEdit, onDelete }: TaskCardPr
             )}
             {task.notes && (
               <StickyNote className="w-3 h-3 text-amber-500" />
+            )}
+
+            {/* Timer Button */}
+            {onStartTimer && onStopTimer && !task.completed && (
+              <button
+                onClick={() => isTimerActive ? onStopTimer() : onStartTimer(task.id)}
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors",
+                  isTimerActive 
+                    ? "bg-destructive/20 text-destructive hover:bg-destructive/30" 
+                    : "bg-service/20 text-service hover:bg-service/30"
+                )}
+              >
+                {isTimerActive ? (
+                  <>
+                    <Square className="w-3 h-3" />
+                    {formatDuration ? formatDuration(elapsedTime) : '00:00'}
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    {t('startTimer')}
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>

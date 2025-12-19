@@ -4,6 +4,7 @@ import { Plus, Sparkles, CheckSquare, Settings } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
 import { useTaskReminders } from '@/hooks/useTaskReminders';
+import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { Task, TaskStatus } from '@/types/task';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDialog } from '@/components/TaskDialog';
@@ -14,8 +15,11 @@ import { TaskCalendarView } from '@/components/TaskCalendarView';
 import { TaskFilters } from '@/components/TaskFilters';
 import { PeriodSelector } from '@/components/PeriodSelector';
 import { PageHeader } from '@/components/PageHeader';
+import { ExportButtons } from '@/components/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { exportTasksToCSV, exportTasksToPDF } from '@/utils/exportData';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +43,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     addCategory, updateCategory, deleteCategory,
     addTag, updateTag, deleteTag
   } = useTasks();
+  const timeTracker = useTimeTracker();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -128,14 +133,26 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
           title={t('myTasks')}
           subtitle={`${tasks.length} ${t('tasks').toLowerCase()}`}
           rightAction={
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-              className="rounded-xl hover:bg-task/10 w-12 h-12"
-            >
-              <Settings className="w-7 h-7 text-task" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ExportButtons
+                onExportCSV={() => {
+                  exportTasksToCSV(tasks, t as unknown as Record<string, string>);
+                  toast.success(t('exportSuccess'));
+                }}
+                onExportPDF={() => {
+                  exportTasksToPDF(tasks, t as unknown as Record<string, string>);
+                }}
+                accentColor="hsl(var(--task))"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                className="rounded-xl hover:bg-task/10 w-12 h-12"
+              >
+                <Settings className="w-7 h-7 text-task" />
+              </Button>
+            </div>
           }
         />
 
@@ -205,6 +222,11 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                         onToggle={() => toggleTaskCompletion(task.id)}
                         onEdit={() => handleEditTask(task)}
                         onDelete={() => handleDeleteTask(task)}
+                        activeTimer={timeTracker.activeTimer}
+                        elapsedTime={timeTracker.elapsedTime}
+                        onStartTimer={timeTracker.startTimer}
+                        onStopTimer={timeTracker.stopTimer}
+                        formatDuration={timeTracker.formatDuration}
                       />
                     ))}
                   </div>
@@ -227,6 +249,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                 categories={categories}
                 tags={tags}
                 period={parseInt(period) as 7 | 14 | 30}
+                timeEntries={timeTracker.entries}
+                formatDuration={timeTracker.formatDuration}
               />
             )}
           </AnimatePresence>

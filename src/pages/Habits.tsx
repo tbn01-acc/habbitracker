@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sparkles, Target, Settings, Filter } from 'lucide-react';
+import { Plus, Sparkles, Target, Settings } from 'lucide-react';
 import { useHabits } from '@/hooks/useHabits';
 import { Habit, HABIT_COLORS } from '@/types/habit';
 import { HabitCard } from '@/components/HabitCard';
@@ -10,9 +10,12 @@ import { ViewTabs, ViewType } from '@/components/ViewTabs';
 import { CalendarView } from '@/components/CalendarView';
 import { ProgressView } from '@/components/ProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
+import { ExportButtons } from '@/components/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { exportHabitsToCSV, exportHabitsToPDF } from '@/utils/exportData';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,14 +105,26 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
           title={t('myHabits')}
           subtitle={`${habits.length} ${t('habits').toLowerCase()}`}
           rightAction={
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-              className="w-9 h-9"
-            >
-              <Settings className="w-5 h-5 text-habit" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ExportButtons
+                onExportCSV={() => {
+                  exportHabitsToCSV(habits, t as unknown as Record<string, string>);
+                  toast.success(t('exportSuccess'));
+                }}
+                onExportPDF={() => {
+                  exportHabitsToPDF(habits, t as unknown as Record<string, string>);
+                }}
+                accentColor="hsl(var(--habit))"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                className="w-9 h-9"
+              >
+                <Settings className="w-5 h-5 text-habit" />
+              </Button>
+            </div>
           }
         />
 
