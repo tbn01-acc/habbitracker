@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, CheckSquare, Wallet, Plus, User } from 'lucide-react';
+import { Home, Target, CheckSquare, Wallet, Plus, Wrench } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +27,7 @@ export function BottomNavigation({
     { path: '/tasks', icon: CheckSquare, label: t('tasks'), color: 'hsl(var(--task))' },
     // Plus button goes here (index 3)
     { path: '/finance', icon: Wallet, label: t('finance'), color: 'hsl(var(--finance))' },
-    { path: '/profile', icon: User, label: t('profile'), color: 'hsl(var(--muted-foreground))' },
+    { path: '/services', icon: Wrench, label: t('services'), color: 'hsl(var(--service))' },
   ];
 
   const quickAddItems = [

@@ -60,6 +60,7 @@ export default {
         finance: "hsl(var(--finance))",
         fitness: "hsl(var(--fitness))",
         habit: "hsl(var(--habit))",
+        service: "hsl(var(--service))",
       },
       borderRadius: {
         lg: "var(--radius)",

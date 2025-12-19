@@ -28,3 +28,5 @@ export function useTranslation() {
   }
   return context;
 }
+
+export { useLanguage } from '@/hooks/useLanguage';

@@ -336,6 +336,97 @@ export const translations = {
     emailAlreadyRegistered: 'Этот email уже зарегистрирован',
     checkEmail: 'Проверьте почту для подтверждения',
     signOut: 'Выйти',
+    
+    // Services
+    services: 'Сервисы',
+    myServices: 'Мои сервисы',
+    pomodoroTimer: 'Помодоро',
+    timeTracker: 'Учёт времени',
+    notes: 'Заметки',
+    currencyRates: 'Курсы валют',
+    dateCalculator: 'Калькулятор дат',
+    habitCounters: 'Счётчики',
+    randomDecision: 'Генератор решений',
+    worldTime: 'Мировое время',
+    checklists: 'Чек-листы',
+    unitConverter: 'Конвертер',
+    
+    // Pomodoro
+    work: 'Работа',
+    shortBreak: 'Короткий перерыв',
+    longBreak: 'Длинный перерыв',
+    sessionsToday: 'Сессий сегодня',
+    pomodorosCompleted: 'Помодоро выполнено',
+    pomodoroSettings: 'Настройки Помодоро',
+    workDuration: 'Длительность работы',
+    shortBreakDuration: 'Короткий перерыв',
+    longBreakDuration: 'Длинный перерыв',
+    sessionsBeforeLongBreak: 'Сессий до длинного перерыва',
+    autoStartBreaks: 'Автозапуск перерывов',
+    autoStartPomodoros: 'Автозапуск помодоро',
+    
+    // Time Tracker
+    selectTask: 'Выберите задачу',
+    noActiveTasks: 'Нет активных задач',
+    wholeTask: 'Вся задача',
+    stop: 'Стоп',
+    start: 'Старт',
+    todayTime: 'Сегодня',
+    noTimeEntriesYet: 'Записей ещё нет',
+    
+    // Notes
+    noNotesYet: 'Заметок пока нет',
+    createNote: 'Создать заметку',
+    editNote: 'Редактировать',
+    newNote: 'Новая заметка',
+    
+    // Currency
+    currencyInfo: 'Данные от ЦБ РФ',
+    updated: 'Обновлено',
+    
+    // Date Calculator
+    startDate: 'Начальная дата',
+    endDate: 'Конечная дата',
+    daysBetween: 'Дней между датами',
+    addDays: 'Добавить дней',
+    resultDate: 'Результат',
+    
+    // Habit Counters
+    water: 'Вода',
+    steps: 'Шаги',
+    cups: 'стаканов',
+    goal: 'Цель',
+    resetCounter: 'Сбросить',
+    
+    // Random Decision
+    addOption: 'Добавить вариант',
+    optionPlaceholder: 'Вариант...',
+    decide: 'Решить!',
+    result: 'Результат',
+    noOptions: 'Добавьте варианты',
+    
+    // World Time
+    addTimezone: 'Добавить часовой пояс',
+    selectTimezone: 'Выберите часовой пояс',
+    
+    // Checklists
+    noChecklistsYet: 'Чек-листов пока нет',
+    createChecklist: 'Создать чек-лист',
+    checklistName: 'Название чек-листа',
+    addItem: 'Добавить пункт',
+    resetChecklist: 'Сбросить',
+    
+    // Unit Converter
+    length: 'Длина',
+    mass: 'Масса',
+    temperature: 'Температура',
+    from: 'Из',
+    to: 'В',
+    
+    // Export
+    exportToPdf: 'Экспорт в PDF',
+    exportToCsv: 'Экспорт в CSV',
+    exportSuccess: 'Данные экспортированы',
   },
   en: {
     // Greetings
@@ -672,6 +763,97 @@ export const translations = {
     emailAlreadyRegistered: 'This email is already registered',
     checkEmail: 'Check your email for confirmation',
     signOut: 'Sign Out',
+    
+    // Services
+    services: 'Services',
+    myServices: 'My Services',
+    pomodoroTimer: 'Pomodoro',
+    timeTracker: 'Time Tracker',
+    notes: 'Notes',
+    currencyRates: 'Currency Rates',
+    dateCalculator: 'Date Calculator',
+    habitCounters: 'Counters',
+    randomDecision: 'Decision Maker',
+    worldTime: 'World Time',
+    checklists: 'Checklists',
+    unitConverter: 'Converter',
+    
+    // Pomodoro
+    work: 'Work',
+    shortBreak: 'Short Break',
+    longBreak: 'Long Break',
+    sessionsToday: 'Sessions today',
+    pomodorosCompleted: 'Pomodoros completed',
+    pomodoroSettings: 'Pomodoro Settings',
+    workDuration: 'Work duration',
+    shortBreakDuration: 'Short break',
+    longBreakDuration: 'Long break',
+    sessionsBeforeLongBreak: 'Sessions before long break',
+    autoStartBreaks: 'Auto-start breaks',
+    autoStartPomodoros: 'Auto-start pomodoros',
+    
+    // Time Tracker
+    selectTask: 'Select task',
+    noActiveTasks: 'No active tasks',
+    wholeTask: 'Whole task',
+    stop: 'Stop',
+    start: 'Start',
+    todayTime: 'Today',
+    noTimeEntriesYet: 'No entries yet',
+    
+    // Notes
+    noNotesYet: 'No notes yet',
+    createNote: 'Create note',
+    editNote: 'Edit',
+    newNote: 'New note',
+    
+    // Currency
+    currencyInfo: 'Data from Central Bank',
+    updated: 'Updated',
+    
+    // Date Calculator
+    startDate: 'Start date',
+    endDate: 'End date',
+    daysBetween: 'Days between',
+    addDays: 'Add days',
+    resultDate: 'Result',
+    
+    // Habit Counters
+    water: 'Water',
+    steps: 'Steps',
+    cups: 'cups',
+    goal: 'Goal',
+    resetCounter: 'Reset',
+    
+    // Random Decision
+    addOption: 'Add option',
+    optionPlaceholder: 'Option...',
+    decide: 'Decide!',
+    result: 'Result',
+    noOptions: 'Add options',
+    
+    // World Time
+    addTimezone: 'Add timezone',
+    selectTimezone: 'Select timezone',
+    
+    // Checklists
+    noChecklistsYet: 'No checklists yet',
+    createChecklist: 'Create checklist',
+    checklistName: 'Checklist name',
+    addItem: 'Add item',
+    resetChecklist: 'Reset',
+    
+    // Unit Converter
+    length: 'Length',
+    mass: 'Mass',
+    temperature: 'Temperature',
+    from: 'From',
+    to: 'To',
+    
+    // Export
+    exportToPdf: 'Export to PDF',
+    exportToCsv: 'Export to CSV',
+    exportSuccess: 'Data exported',
   },
   es: {
     // Greetings
@@ -1008,6 +1190,97 @@ export const translations = {
     emailAlreadyRegistered: 'Este email ya está registrado',
     checkEmail: 'Revisa tu correo para confirmar',
     signOut: 'Cerrar sesión',
+    
+    // Services
+    services: 'Servicios',
+    myServices: 'Mis Servicios',
+    pomodoroTimer: 'Pomodoro',
+    timeTracker: 'Cronómetro',
+    notes: 'Notas',
+    currencyRates: 'Tipos de cambio',
+    dateCalculator: 'Calculadora de fechas',
+    habitCounters: 'Contadores',
+    randomDecision: 'Generador de decisiones',
+    worldTime: 'Hora mundial',
+    checklists: 'Listas de control',
+    unitConverter: 'Convertidor',
+    
+    // Pomodoro
+    work: 'Trabajo',
+    shortBreak: 'Descanso corto',
+    longBreak: 'Descanso largo',
+    sessionsToday: 'Sesiones hoy',
+    pomodorosCompleted: 'Pomodoros completados',
+    pomodoroSettings: 'Configuración Pomodoro',
+    workDuration: 'Duración del trabajo',
+    shortBreakDuration: 'Descanso corto',
+    longBreakDuration: 'Descanso largo',
+    sessionsBeforeLongBreak: 'Sesiones antes del descanso largo',
+    autoStartBreaks: 'Iniciar descansos automáticamente',
+    autoStartPomodoros: 'Iniciar pomodoros automáticamente',
+    
+    // Time Tracker
+    selectTask: 'Seleccionar tarea',
+    noActiveTasks: 'Sin tareas activas',
+    wholeTask: 'Toda la tarea',
+    stop: 'Parar',
+    start: 'Iniciar',
+    todayTime: 'Hoy',
+    noTimeEntriesYet: 'Sin entradas aún',
+    
+    // Notes
+    noNotesYet: 'Sin notas aún',
+    createNote: 'Crear nota',
+    editNote: 'Editar',
+    newNote: 'Nueva nota',
+    
+    // Currency
+    currencyInfo: 'Datos del Banco Central',
+    updated: 'Actualizado',
+    
+    // Date Calculator
+    startDate: 'Fecha inicial',
+    endDate: 'Fecha final',
+    daysBetween: 'Días entre fechas',
+    addDays: 'Añadir días',
+    resultDate: 'Resultado',
+    
+    // Habit Counters
+    water: 'Agua',
+    steps: 'Pasos',
+    cups: 'vasos',
+    goal: 'Meta',
+    resetCounter: 'Reiniciar',
+    
+    // Random Decision
+    addOption: 'Añadir opción',
+    optionPlaceholder: 'Opción...',
+    decide: '¡Decidir!',
+    result: 'Resultado',
+    noOptions: 'Añade opciones',
+    
+    // World Time
+    addTimezone: 'Añadir zona horaria',
+    selectTimezone: 'Seleccionar zona horaria',
+    
+    // Checklists
+    noChecklistsYet: 'Sin listas de control aún',
+    createChecklist: 'Crear lista de control',
+    checklistName: 'Nombre de la lista',
+    addItem: 'Añadir elemento',
+    resetChecklist: 'Reiniciar',
+    
+    // Unit Converter
+    length: 'Longitud',
+    mass: 'Masa',
+    temperature: 'Temperatura',
+    from: 'De',
+    to: 'A',
+    
+    // Export
+    exportToPdf: 'Exportar a PDF',
+    exportToCsv: 'Exportar a CSV',
+    exportSuccess: 'Datos exportados',
   },
 } as const;
 

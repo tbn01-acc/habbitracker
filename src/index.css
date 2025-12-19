@@ -45,6 +45,7 @@
     --task: 200 80% 50%;
     --finance: 160 30% 45%;
     --fitness: 262 80% 55%;
+    --service: 270 70% 55%;
 
     --gradient-primary: linear-gradient(135deg, hsl(168, 80%, 40%), hsl(180, 70%, 45%));
     --gradient-accent: linear-gradient(135deg, hsl(35, 95%, 55%), hsl(25, 90%, 50%));
@@ -94,6 +95,7 @@
     --task: 200 75% 50%;
     --finance: 160 25% 45%;
     --fitness: 262 75% 55%;
+    --service: 270 65% 55%;
 
     --gradient-primary: linear-gradient(135deg, hsl(168, 75%, 45%), hsl(180, 65%, 50%));
     --gradient-accent: linear-gradient(135deg, hsl(35, 90%, 55%), hsl(25, 85%, 50%));

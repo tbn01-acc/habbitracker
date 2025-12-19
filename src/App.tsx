@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Habits from "./pages/Habits";
 import Tasks from "./pages/Tasks";
 import Finance from "./pages/Finance";
+import Services from "./pages/Services";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -52,6 +53,7 @@ const AppContent = () => {
             />
           } 
         />
+        <Route path="/services" element={<Services />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="*" element={<NotFound />} />
