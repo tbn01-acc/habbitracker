@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, CheckSquare, Wallet, Dumbbell, Plus, X, User } from 'lucide-react';
+import { Home, Target, CheckSquare, Wallet, Plus, User } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -9,14 +9,12 @@ interface BottomNavigationProps {
   onAddHabit: () => void;
   onAddTask: () => void;
   onAddTransaction: () => void;
-  onAddWorkout: () => void;
 }
 
 export function BottomNavigation({ 
   onAddHabit, 
   onAddTask, 
-  onAddTransaction, 
-  onAddWorkout 
+  onAddTransaction 
 }: BottomNavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -29,7 +27,6 @@ export function BottomNavigation({
     { path: '/tasks', icon: CheckSquare, label: t('tasks'), color: 'hsl(var(--task))' },
     // Plus button goes here (index 3)
     { path: '/finance', icon: Wallet, label: t('finance'), color: 'hsl(var(--finance))' },
-    { path: '/fitness', icon: Dumbbell, label: t('fitness'), color: 'hsl(var(--fitness))' },
     { path: '/profile', icon: User, label: t('profile'), color: 'hsl(var(--muted-foreground))' },
   ];
 
@@ -37,7 +34,6 @@ export function BottomNavigation({
     { label: t('habit'), icon: Target, color: 'hsl(var(--habit))', action: onAddHabit, path: '/habits' },
     { label: t('task'), icon: CheckSquare, color: 'hsl(var(--task))', action: onAddTask, path: '/tasks' },
     { label: t('transaction'), icon: Wallet, color: 'hsl(var(--finance))', action: onAddTransaction, path: '/finance' },
-    { label: t('workout'), icon: Dumbbell, color: 'hsl(var(--fitness))', action: onAddWorkout, path: '/fitness' },
   ];
 
   const handleQuickAdd = (item: typeof quickAddItems[0]) => {
@@ -53,7 +49,7 @@ export function BottomNavigation({
   };
 
   const leftItems = navItems.slice(0, 3); // Home, Habits, Tasks
-  const rightItems = navItems.slice(3); // Finance, Fitness, Profile
+  const rightItems = navItems.slice(3); // Finance, Profile
 
   return (
     <>
@@ -77,7 +73,7 @@ export function BottomNavigation({
             <div className="relative w-0 h-0">
               {quickAddItems.map((item, index) => {
                 const totalItems = quickAddItems.length;
-                const angleSpread = 120;
+                const angleSpread = 100;
                 const startAngle = -180 + (180 - angleSpread) / 2;
                 const angleStep = angleSpread / (totalItems - 1);
                 const angle = startAngle + (index * angleStep);
@@ -149,7 +145,7 @@ export function BottomNavigation({
             </span>
           </div>
 
-          {/* Right side items: Finance, Fitness, Profile */}
+          {/* Right side items: Finance, Profile */}
           {rightItems.map((item) => (
             <button
               key={item.path}

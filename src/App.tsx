@@ -10,7 +10,6 @@ import Dashboard from "./pages/Dashboard";
 import Habits from "./pages/Habits";
 import Tasks from "./pages/Tasks";
 import Finance from "./pages/Finance";
-import Fitness from "./pages/Fitness";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -21,7 +20,6 @@ const AppContent = () => {
   const [habitDialogOpen, setHabitDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
-  const [workoutDialogOpen, setWorkoutDialogOpen] = useState(false);
 
   return (
     <>
@@ -54,15 +52,6 @@ const AppContent = () => {
             />
           } 
         />
-        <Route 
-          path="/fitness" 
-          element={
-            <Fitness 
-              openDialog={workoutDialogOpen} 
-              onDialogClose={() => setWorkoutDialogOpen(false)} 
-            />
-          } 
-        />
         <Route path="/profile" element={<Profile />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="*" element={<NotFound />} />
@@ -71,7 +60,6 @@ const AppContent = () => {
         onAddHabit={() => setHabitDialogOpen(true)}
         onAddTask={() => setTaskDialogOpen(true)}
         onAddTransaction={() => setTransactionDialogOpen(true)}
-        onAddWorkout={() => setWorkoutDialogOpen(true)}
       />
     </>
   );

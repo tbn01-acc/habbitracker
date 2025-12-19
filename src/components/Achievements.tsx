@@ -1,10 +1,9 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Award, Target, Flame, Dumbbell, CheckCircle2, Lock, Share2 } from 'lucide-react';
+import { Award, Target, Flame, CheckCircle2, Lock, Share2 } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useHabits } from '@/hooks/useHabits';
 import { useTasks } from '@/hooks/useTasks';
-import { useFitness } from '@/hooks/useFitness';
 import { format, subMonths, startOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ type BadgePeriod = 1 | 3 | 6 | 12;
 
 interface Badge {
   id: string;
-  type: 'habits' | 'tasks' | 'exercises';
+  type: 'habits' | 'tasks';
   period: BadgePeriod;
   target: number;
   earned: boolean;
@@ -25,7 +24,6 @@ export function Achievements() {
   const { t } = useTranslation();
   const { habits } = useHabits();
   const { tasks } = useTasks();
-  const { workouts, completions } = useFitness();
   const earnedBadgesRef = useRef<Set<string>>(new Set());
   const isFirstRender = useRef(true);
 
@@ -72,32 +70,15 @@ export function Achievements() {
         progress: Math.min(100, Math.round((tasksCompleted / tasksTarget) * 100)),
         icon: CheckCircle2,
       });
-
-      // Exercises badge
-      const exercisesCompleted = completions.filter(c => {
-        const date = parseISO(c.date);
-        return isWithinInterval(date, interval);
-      }).reduce((sum, c) => sum + c.completedExercises.length, 0);
-      const exercisesTarget = period * 40;
-      result.push({
-        id: `exercises-${period}`,
-        type: 'exercises',
-        period,
-        target: exercisesTarget,
-        earned: exercisesCompleted >= exercisesTarget,
-        progress: Math.min(100, Math.round((exercisesCompleted / exercisesTarget) * 100)),
-        icon: Dumbbell,
-      });
     });
 
     return result;
-  }, [habits, tasks, completions]);
+  }, [habits, tasks]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'habits': return 'habit';
       case 'tasks': return 'task';
-      case 'exercises': return 'fitness';
       default: return 'primary';
     }
   };
@@ -106,7 +87,6 @@ export function Achievements() {
     switch (type) {
       case 'habits': return t('habits');
       case 'tasks': return t('tasks');
-      case 'exercises': return t('exercises');
       default: return '';
     }
   };
@@ -194,7 +174,7 @@ export function Achievements() {
       </div>
 
       {/* Badges Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {badges.map((badge, index) => {
           const color = getTypeColor(badge.type);
           const Icon = badge.icon;

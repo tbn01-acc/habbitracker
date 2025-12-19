@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Target, CheckSquare, Wallet, Dumbbell, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Target, CheckSquare, Wallet, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHabits, getTodayString } from '@/hooks/useHabits';
 import { useTasks } from '@/hooks/useTasks';
 import { useFinance } from '@/hooks/useFinance';
-import { useFitness } from '@/hooks/useFitness';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { ProgressBar } from '@/components/dashboard/ProgressBar';
 import { TodoSection } from '@/components/dashboard/TodoSection';
@@ -18,7 +17,6 @@ export default function Dashboard() {
   const { habits, toggleHabitCompletion } = useHabits();
   const { tasks, toggleTaskCompletion, getTodayTasks } = useTasks();
   const { transactions, toggleTransactionCompletion, getTodayTransactions } = useFinance();
-  const { getTodayExercises, toggleExerciseCompletion } = useFitness();
   const { t, language } = useTranslation();
   const { weather, loading: weatherLoading } = useWeather();
 
@@ -37,13 +35,9 @@ export default function Dashboard() {
   const todayTransactions = getTodayTransactions();
   const completedTransactions = todayTransactions.filter(t => t.completed);
 
-  // Exercises for today
-  const todayExercises = getTodayExercises();
-  const completedExercises = todayExercises.filter(e => e.completed);
-
   // Calculate Day Quality (0-100)
-  const totalItems = todayHabits.length + todayTasks.length + todayTransactions.length + todayExercises.length;
-  const completedItems = completedHabits.length + completedTasks.length + completedTransactions.length + completedExercises.length;
+  const totalItems = todayHabits.length + todayTasks.length + todayTransactions.length;
+  const completedItems = completedHabits.length + completedTasks.length + completedTransactions.length;
   const dayQuality = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   // Format date
@@ -57,7 +51,6 @@ export default function Dashboard() {
     habits: 'hsl(var(--habit))',
     tasks: 'hsl(var(--task))',
     finance: 'hsl(var(--finance))',
-    fitness: 'hsl(var(--fitness))',
   };
 
   const isLoading = false;
@@ -138,13 +131,6 @@ export default function Dashboard() {
                     label={t('operationsLabel')}
                     color={colors.finance}
                   />
-                  <ProgressBar
-                    icon={<Dumbbell className="w-4 h-4" />}
-                    completed={completedExercises.length}
-                    total={todayExercises.length}
-                    label={t('exercisesLabel')}
-                    color={colors.fitness}
-                  />
                 </div>
               </motion.div>
             )}
@@ -154,7 +140,7 @@ export default function Dashboard() {
         {/* Section: Сделать */}
         <h2 className="text-sm font-medium text-muted-foreground mb-3">{t('toDo')}:</h2>
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <AnimatePresence mode="wait">
             {expandedSection === null && (
               <>
@@ -200,24 +186,6 @@ export default function Dashboard() {
                   onToggle={toggleTransactionCompletion}
                   isExpanded={false}
                   onExpand={() => setExpandedSection('finance')}
-                />
-                
-                <TodoSection
-                  title={t('fitness')}
-                  items={todayExercises.map(e => ({
-                    id: `${e.workoutId}-${e.id}`,
-                    name: e.name,
-                    completed: e.completed,
-                  }))}
-                  color={colors.fitness}
-                  icon={<Dumbbell className="w-4 h-4" />}
-                  onToggle={(id) => {
-                    const [workoutId, exerciseId] = id.split('-');
-                    toggleExerciseCompletion(workoutId, exerciseId, today);
-                  }}
-                  emptyMessage={t('recoveryDay')}
-                  isExpanded={false}
-                  onExpand={() => setExpandedSection('fitness')}
                 />
               </>
             )}
@@ -279,32 +247,7 @@ export default function Dashboard() {
                 onToggle={toggleTransactionCompletion}
                 isExpanded={true}
                 onCollapse={() => setExpandedSection(null)}
-                onSwipeLeft={() => setExpandedSection('fitness')}
                 onSwipeRight={() => setExpandedSection('tasks')}
-                hasPrev={true}
-                hasNext={true}
-              />
-            )}
-
-            {expandedSection === 'fitness' && (
-              <TodoSection
-                key="fitness-expanded"
-                title={t('fitness')}
-                items={todayExercises.map(e => ({
-                  id: `${e.workoutId}-${e.id}`,
-                  name: e.name,
-                  completed: e.completed,
-                }))}
-                color={colors.fitness}
-                icon={<Dumbbell className="w-4 h-4" />}
-                onToggle={(id) => {
-                  const [workoutId, exerciseId] = id.split('-');
-                  toggleExerciseCompletion(workoutId, exerciseId, today);
-                }}
-                emptyMessage={t('recoveryDay')}
-                isExpanded={true}
-                onCollapse={() => setExpandedSection(null)}
-                onSwipeRight={() => setExpandedSection('finance')}
                 hasPrev={true}
                 hasNext={false}
               />

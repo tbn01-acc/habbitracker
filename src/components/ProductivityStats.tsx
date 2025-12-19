@@ -4,7 +4,6 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContai
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useHabits } from '@/hooks/useHabits';
 import { useTasks } from '@/hooks/useTasks';
-import { useFitness } from '@/hooks/useFitness';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { format, subDays, startOfDay, parseISO, subMonths, subYears } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -22,7 +21,6 @@ export function ProductivityStats() {
   const { t } = useTranslation();
   const { habits } = useHabits();
   const { tasks } = useTasks();
-  const { workouts, completions } = useFitness();
   const [period, setPeriod] = useState<Period>('week');
 
   const periodDays = PERIOD_DAYS[period];
@@ -49,26 +47,16 @@ export function ProductivityStats() {
       ).length;
       const tasksTotal = tasks.filter(t => t.dueDate.split('T')[0] === date).length;
 
-      const dayOfWeek = new Date(date).getDay();
-      const todayWorkouts = workouts.filter(w => w.scheduledDays.includes(dayOfWeek));
-      const totalExercises = todayWorkouts.reduce((sum, w) => sum + w.exercises.length, 0);
-      const completedExercises = todayWorkouts.reduce((sum, w) => {
-        const completion = completions.find(c => c.workoutId === w.id && c.date === date);
-        return sum + (completion?.completedExercises.length || 0);
-      }, 0);
-
       const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
       const taskScore = tasksTotal > 0 ? (tasksCompleted / tasksTotal) * 100 : 0;
-      const exerciseScore = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
       const weights = [
         habitsTotal > 0 ? 1 : 0,
         tasksTotal > 0 ? 1 : 0,
-        totalExercises > 0 ? 1 : 0,
       ];
       const totalWeight = weights.reduce((a, b) => a + b, 0);
       const productivity = totalWeight > 0
-        ? (habitScore * weights[0] + taskScore * weights[1] + exerciseScore * weights[2]) / totalWeight
+        ? (habitScore * weights[0] + taskScore * weights[1]) / totalWeight
         : 0;
 
       return {
@@ -78,8 +66,6 @@ export function ProductivityStats() {
         habitsTotal,
         tasks: tasksCompleted,
         tasksTotal,
-        exercises: completedExercises,
-        exercisesTotal: totalExercises,
         productivity: Math.round(productivity),
       };
     });
@@ -88,8 +74,8 @@ export function ProductivityStats() {
   const dateRange = useMemo(() => getDateRange(periodDays, 0), [periodDays]);
   const previousDateRange = useMemo(() => getDateRange(periodDays, 1), [periodDays]);
 
-  const dailyStats = useMemo(() => calculateStats(dateRange), [dateRange, habits, tasks, workouts, completions]);
-  const previousStats = useMemo(() => calculateStats(previousDateRange), [previousDateRange, habits, tasks, workouts, completions]);
+  const dailyStats = useMemo(() => calculateStats(dateRange), [dateRange, habits, tasks]);
+  const previousStats = useMemo(() => calculateStats(previousDateRange), [previousDateRange, habits, tasks]);
 
   // Summary stats
   const getSummary = (stats: typeof dailyStats) => {
@@ -97,8 +83,6 @@ export function ProductivityStats() {
     const totalHabitsTarget = stats.reduce((sum, d) => sum + d.habitsTotal, 0);
     const totalTasks = stats.reduce((sum, d) => sum + d.tasks, 0);
     const totalTasksTarget = stats.reduce((sum, d) => sum + d.tasksTotal, 0);
-    const totalExercises = stats.reduce((sum, d) => sum + d.exercises, 0);
-    const totalExercisesTarget = stats.reduce((sum, d) => sum + d.exercisesTotal, 0);
     const avgProductivity = stats.length > 0 
       ? Math.round(stats.reduce((sum, d) => sum + d.productivity, 0) / stats.length) 
       : 0;
@@ -106,7 +90,6 @@ export function ProductivityStats() {
     return {
       habits: { completed: totalHabits, total: totalHabitsTarget },
       tasks: { completed: totalTasks, total: totalTasksTarget },
-      exercises: { completed: totalExercises, total: totalExercisesTarget },
       productivity: avgProductivity,
     };
   };
@@ -123,7 +106,6 @@ export function ProductivityStats() {
   const growth = {
     habits: calculateGrowth(summary.habits.completed, previousSummary.habits.completed),
     tasks: calculateGrowth(summary.tasks.completed, previousSummary.tasks.completed),
-    exercises: calculateGrowth(summary.exercises.completed, previousSummary.exercises.completed),
     productivity: summary.productivity - previousSummary.productivity,
   };
 
@@ -151,13 +133,11 @@ export function ProductivityStats() {
   const pieData = [
     { name: t('habits'), value: summary.habits.completed, color: 'hsl(var(--habit))' },
     { name: t('tasks'), value: summary.tasks.completed, color: 'hsl(var(--task))' },
-    { name: t('fitness'), value: summary.exercises.completed, color: 'hsl(var(--fitness))' },
   ];
 
   const chartConfig = {
     habits: { label: t('habits'), color: 'hsl(var(--habit))' },
     tasks: { label: t('tasks'), color: 'hsl(var(--task))' },
-    exercises: { label: t('fitness'), color: 'hsl(var(--fitness))' },
     productivity: { label: t('productivity'), color: 'hsl(var(--primary))' },
   };
 
@@ -188,7 +168,7 @@ export function ProductivityStats() {
       </div>
 
       {/* Summary Cards with Growth */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,19 +198,6 @@ export function ProductivityStats() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="p-4 rounded-xl bg-fitness/10 border border-fitness/20"
-        >
-          <div className="flex justify-between items-start">
-            <div className="text-2xl font-bold text-fitness">{summary.exercises.completed}</div>
-            <GrowthIndicator value={growth.exercises} />
-          </div>
-          <div className="text-xs text-muted-foreground">{t('exercises')}</div>
-          <div className="text-xs text-fitness/70">{summary.exercises.total} {t('planned')}</div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
           className="p-4 rounded-xl bg-primary/10 border border-primary/20"
         >
           <div className="flex justify-between items-start">
@@ -246,7 +213,7 @@ export function ProductivityStats() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.3 }}
         className="p-4 rounded-xl bg-card border border-border"
       >
         <h3 className="text-sm font-semibold text-foreground mb-4">{t('productivityTrend')}</h3>
@@ -272,7 +239,7 @@ export function ProductivityStats() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.4 }}
         className="p-4 rounded-xl bg-card border border-border"
       >
         <h3 className="text-sm font-semibold text-foreground mb-4">{t('activityByDay')}</h3>
@@ -284,7 +251,6 @@ export function ProductivityStats() {
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="habits" fill="hsl(var(--habit))" radius={[2, 2, 0, 0]} />
               <Bar dataKey="tasks" fill="hsl(var(--task))" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="exercises" fill="hsl(var(--fitness))" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -297,10 +263,6 @@ export function ProductivityStats() {
             <div className="w-3 h-3 rounded-sm bg-task" />
             <span className="text-xs text-muted-foreground">{t('tasks')}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-fitness" />
-            <span className="text-xs text-muted-foreground">{t('fitness')}</span>
-          </div>
         </div>
       </motion.div>
 
@@ -308,7 +270,7 @@ export function ProductivityStats() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.5 }}
         className="p-4 rounded-xl bg-card border border-border"
       >
         <h3 className="text-sm font-semibold text-foreground mb-4">{t('activityDistribution')}</h3>
