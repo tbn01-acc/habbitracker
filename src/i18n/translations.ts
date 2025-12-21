@@ -462,6 +462,19 @@ export const translations = {
     syncFailed: 'Не удалось синхронизировать данные',
     syncData: 'Синхронизировать',
     lastSync: 'Последняя синхронизация',
+    
+    // Finance widget
+    balance: 'Баланс',
+    
+    // Sync history
+    syncHistory: 'История синхронизации',
+    syncStats: 'Статистика синхронизации',
+    totalSyncs: 'Всего синхронизаций',
+    habitsCount: 'Привычек',
+    tasksCount: 'Задач',
+    transactionsCount: 'Транзакций',
+    noSyncHistory: 'Нет истории синхронизации',
+    syncedItems: 'Синхронизировано элементов',
   },
   en: {
     // Pomodoro time tracking
@@ -924,6 +937,19 @@ export const translations = {
     syncFailed: 'Failed to sync data',
     syncData: 'Sync',
     lastSync: 'Last sync',
+    
+    // Finance widget
+    balance: 'Balance',
+    
+    // Sync history
+    syncHistory: 'Sync history',
+    syncStats: 'Sync statistics',
+    totalSyncs: 'Total syncs',
+    habitsCount: 'Habits',
+    tasksCount: 'Tasks',
+    transactionsCount: 'Transactions',
+    noSyncHistory: 'No sync history',
+    syncedItems: 'Synced items',
   },
   es: {
     // Pomodoro time tracking
@@ -1386,6 +1412,19 @@ export const translations = {
     syncFailed: 'No se pudieron sincronizar los datos',
     syncData: 'Sincronizar',
     lastSync: 'Última sincronización',
+    
+    // Finance widget
+    balance: 'Saldo',
+    
+    // Sync history
+    syncHistory: 'Historial de sincronización',
+    syncStats: 'Estadísticas de sincronización',
+    totalSyncs: 'Total de sincronizaciones',
+    habitsCount: 'Hábitos',
+    tasksCount: 'Tareas',
+    transactionsCount: 'Transacciones',
+    noSyncHistory: 'Sin historial de sincronización',
+    syncedItems: 'Elementos sincronizados',
   },
 } as const;
 

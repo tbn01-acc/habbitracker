@@ -7,13 +7,13 @@ import { useFinance } from "@/hooks/useFinance";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
 import { TodoSection } from "@/components/dashboard/TodoSection";
+import { FinanceWidget } from "@/components/dashboard/FinanceWidget";
 import { PageHeader } from "@/components/PageHeader";
 import { DayQualityRing } from "@/components/dashboard/DayQualityRing";
 import { useWeather, getWeatherIcon } from "@/hooks/useWeather";
 import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import { PomodoroWidget } from "@/components/dashboard/PomodoroWidget";
 import { TimeStatsWidget } from "@/components/dashboard/TimeStatsWidget";
-import { QuickServicesWidget } from "@/components/dashboard/QuickServicesWidget";
 import { WidgetSettings } from "@/components/dashboard/WidgetSettings";
 
 export default function Dashboard() {
@@ -41,6 +41,14 @@ export default function Dashboard() {
   // Transactions for today
   const todayTransactions = getTodayTransactions();
   const completedTransactions = todayTransactions.filter((t) => t.completed);
+  
+  // Calculate today's income and expense
+  const todayIncome = todayTransactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const todayExpense = todayTransactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
 
   // Calculate Day Quality (0-100)
   const totalItems = todayHabits.length + todayTasks.length + todayTransactions.length;
@@ -190,51 +198,47 @@ export default function Dashboard() {
         {/* Section: Сделать */}
         <h2 className="text-sm font-medium text-muted-foreground mb-3">{t("toDo")}:</h2>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="space-y-3">
           <AnimatePresence mode="wait">
             {expandedSection === null && (
               <>
-                <TodoSection
-                  title={t("habits")}
-                  items={todayHabits.map((h) => ({
-                    id: h.id,
-                    name: h.name,
-                    icon: h.icon,
-                    completed: h.completedDates.includes(today),
-                  }))}
-                  color={colors.habits}
-                  icon={<Target className="w-4 h-4" />}
-                  onToggle={(id) => toggleHabitCompletion(id, today)}
-                  isExpanded={false}
-                  onExpand={() => setExpandedSection("habits")}
-                />
+                {/* Row 1: Habits and Tasks */}
+                <div className="grid grid-cols-2 gap-3">
+                  <TodoSection
+                    title={t("habits")}
+                    items={todayHabits.map((h) => ({
+                      id: h.id,
+                      name: h.name,
+                      icon: h.icon,
+                      completed: h.completedDates.includes(today),
+                    }))}
+                    color={colors.habits}
+                    icon={<Target className="w-4 h-4" />}
+                    onToggle={(id) => toggleHabitCompletion(id, today)}
+                    isExpanded={false}
+                    onExpand={() => setExpandedSection("habits")}
+                  />
 
-                <TodoSection
-                  title={t("tasks")}
-                  items={todayTasks.map((t) => ({
-                    id: t.id,
-                    name: t.name,
-                    icon: t.icon,
-                    completed: t.completed,
-                  }))}
-                  color={colors.tasks}
-                  icon={<CheckSquare className="w-4 h-4" />}
-                  onToggle={toggleTaskCompletion}
-                  isExpanded={false}
-                  onExpand={() => setExpandedSection("tasks")}
-                />
+                  <TodoSection
+                    title={t("tasks")}
+                    items={todayTasks.map((t) => ({
+                      id: t.id,
+                      name: t.name,
+                      icon: t.icon,
+                      completed: t.completed,
+                    }))}
+                    color={colors.tasks}
+                    icon={<CheckSquare className="w-4 h-4" />}
+                    onToggle={toggleTaskCompletion}
+                    isExpanded={false}
+                    onExpand={() => setExpandedSection("tasks")}
+                  />
+                </div>
 
-                <TodoSection
-                  title={t("finance")}
-                  items={todayTransactions.map((t) => ({
-                    id: t.id,
-                    name: `${t.type === "income" ? "+" : "-"}${t.amount}₽ ${t.name}`,
-                    completed: t.completed,
-                  }))}
-                  color={colors.finance}
-                  icon={<Wallet className="w-4 h-4" />}
-                  onToggle={toggleTransactionCompletion}
-                  isExpanded={false}
+                {/* Row 2: Finance Widget (full width) */}
+                <FinanceWidget
+                  income={todayIncome}
+                  expense={todayExpense}
                   onExpand={() => setExpandedSection("finance")}
                 />
               </>

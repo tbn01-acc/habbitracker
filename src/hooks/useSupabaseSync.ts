@@ -12,12 +12,48 @@ const HABITS_KEY = 'habitflow_habits';
 const TASKS_KEY = 'habitflow_tasks';
 const FINANCE_KEY = 'habitflow_finance';
 const TIME_ENTRIES_KEY = 'habitflow_time_entries';
+const SYNC_HISTORY_KEY = 'habitflow_sync_history';
+
+interface SyncHistoryEntry {
+  id: string;
+  timestamp: string;
+  habitsCount: number;
+  tasksCount: number;
+  transactionsCount: number;
+}
 
 export function useSupabaseSync() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>([]);
+
+  // Load sync history on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(SYNC_HISTORY_KEY);
+    if (stored) {
+      try {
+        setSyncHistory(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse sync history:', e);
+      }
+    }
+  }, []);
+
+  const addSyncHistoryEntry = useCallback((entry: Omit<SyncHistoryEntry, 'id' | 'timestamp'>) => {
+    const newEntry: SyncHistoryEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      ...entry,
+    };
+    
+    const newHistory = [newEntry, ...syncHistory].slice(0, 20);
+    setSyncHistory(newHistory);
+    localStorage.setItem(SYNC_HISTORY_KEY, JSON.stringify(newHistory));
+    
+    return newEntry;
+  }, [syncHistory]);
 
   // Sync habits to Supabase
   const syncHabitsToSupabase = useCallback(async () => {
@@ -280,6 +316,22 @@ export function useSupabaseSync() {
         syncTimeEntriesToSupabase(),
       ]);
       
+      // Get counts for history
+      const habitsStored = localStorage.getItem(HABITS_KEY);
+      const tasksStored = localStorage.getItem(TASKS_KEY);
+      const financeStored = localStorage.getItem(FINANCE_KEY);
+      
+      const habitsCount = habitsStored ? JSON.parse(habitsStored).length : 0;
+      const tasksCount = tasksStored ? JSON.parse(tasksStored).length : 0;
+      const transactionsCount = financeStored ? JSON.parse(financeStored).length : 0;
+      
+      // Add to sync history
+      addSyncHistoryEntry({
+        habitsCount,
+        tasksCount,
+        transactionsCount,
+      });
+      
       setLastSyncTime(new Date().toISOString());
       toast({
         title: '✅ Данные синхронизированы',
@@ -295,7 +347,7 @@ export function useSupabaseSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [user, isSyncing, loadHabitsFromSupabase, loadTasksFromSupabase, loadTransactionsFromSupabase, syncHabitsToSupabase, syncTasksToSupabase, syncTransactionsToSupabase, syncTimeEntriesToSupabase, toast]);
+  }, [user, isSyncing, loadHabitsFromSupabase, loadTasksFromSupabase, loadTransactionsFromSupabase, syncHabitsToSupabase, syncTasksToSupabase, syncTransactionsToSupabase, syncTimeEntriesToSupabase, addSyncHistoryEntry, toast]);
 
   // Auto-sync on login
   useEffect(() => {
@@ -307,6 +359,7 @@ export function useSupabaseSync() {
   return {
     isSyncing,
     lastSyncTime,
+    syncHistory,
     syncAll,
     syncHabitsToSupabase,
     syncTasksToSupabase,

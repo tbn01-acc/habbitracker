@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ProductivityStats } from '@/components/ProductivityStats';
 import { Achievements } from '@/components/Achievements';
+import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -14,7 +15,7 @@ export default function Profile() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
-  const { isSyncing, syncAll, lastSyncTime } = useSupabaseSync();
+  const { isSyncing, syncAll, lastSyncTime, syncHistory } = useSupabaseSync();
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,25 +56,15 @@ export default function Profile() {
               <h2 className="text-xl font-semibold text-foreground mb-2">
                 {profile?.display_name || user.email?.split('@')[0]}
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
+              <p className="text-sm text-muted-foreground mb-6">{user.email}</p>
               
-              {/* Sync Button */}
-              <div className="flex flex-col items-center gap-2 mb-4">
-                <Button 
-                  variant="outline" 
-                  onClick={syncAll} 
-                  disabled={isSyncing}
-                  className="gap-2"
-                >
-                  <Cloud className="w-4 h-4" />
-                  <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {t('syncData')}
-                </Button>
-                {lastSyncTime && (
-                  <p className="text-xs text-muted-foreground">
-                    {t('lastSync')}: {new Date(lastSyncTime).toLocaleTimeString()}
-                  </p>
-                )}
+              {/* Sync History Panel */}
+              <div className="w-full max-w-md mb-6">
+                <SyncHistoryPanel 
+                  history={syncHistory}
+                  onSync={syncAll}
+                  isSyncing={isSyncing}
+                />
               </div>
 
               <Button variant="outline" onClick={handleSignOut} className="gap-2">
