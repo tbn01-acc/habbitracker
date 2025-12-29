@@ -7,6 +7,8 @@ interface Profile {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  referral_code: string | null;
+  referred_by: string | null;
 }
 
 export function useAuth() {

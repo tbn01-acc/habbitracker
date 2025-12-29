@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, LogIn, BarChart3, Award, RefreshCw, Cloud } from 'lucide-react';
+import { User, LogOut, LogIn, BarChart3, Award } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ProductivityStats } from '@/components/ProductivityStats';
 import { Achievements } from '@/components/Achievements';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
+import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
+import { ReferralSection } from '@/components/profile/ReferralSection';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -15,7 +18,8 @@ export default function Profile() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
-  const { isSyncing, syncAll, lastSyncTime, syncHistory } = useSupabaseSync();
+  const { isSyncing, syncAll, syncHistory } = useSupabaseSync();
+  const { subscription, referralStats, currentPlan, referralCode } = useSubscription();
 
   const handleSignOut = async () => {
     await signOut();
@@ -88,6 +92,28 @@ export default function Profile() {
             </>
           )}
         </div>
+
+        {/* Subscription Section */}
+        {user && (
+          <div className="mt-8">
+            <SubscriptionSection 
+              currentPlan={currentPlan}
+              expiresAt={subscription?.expires_at}
+              bonusDays={subscription?.bonus_days}
+            />
+          </div>
+        )}
+
+        {/* Referral Section */}
+        {user && (
+          <div className="mt-8">
+            <ReferralSection 
+              referralCode={referralCode}
+              currentPlan={currentPlan}
+              referralStats={referralStats}
+            />
+          </div>
+        )}
 
         {/* Achievements */}
         <div className="mt-8">

@@ -95,6 +95,8 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
           user_id: string
         }
@@ -103,6 +105,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
           user_id: string
         }
@@ -111,6 +115,68 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_has_paid: boolean
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_has_paid?: boolean
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_has_paid?: boolean
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          bonus_days: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          period: Database["public"]["Enums"]["subscription_period"] | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bonus_days?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          period?: Database["public"]["Enums"]["subscription_period"] | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bonus_days?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          period?: Database["public"]["Enums"]["subscription_period"] | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string
           updated_at?: string
           user_id?: string
         }
@@ -268,7 +334,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_period:
+        | "monthly"
+        | "quarterly"
+        | "semiannual"
+        | "annual"
+        | "biennial"
+        | "lifetime"
+      subscription_plan: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -395,6 +468,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_period: [
+        "monthly",
+        "quarterly",
+        "semiannual",
+        "annual",
+        "biennial",
+        "lifetime",
+      ],
+      subscription_plan: ["free", "pro"],
+    },
   },
 } as const
