@@ -1,5 +1,6 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, LogIn, BarChart3, Award } from 'lucide-react';
+import { User, LogOut, LogIn, BarChart3, Award, Edit2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { ProductivityStats } from '@/components/ProductivityStats';
@@ -7,6 +8,8 @@ import { Achievements } from '@/components/Achievements';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
 import { ReferralSection } from '@/components/profile/ReferralSection';
+import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
+import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -19,7 +22,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, signOut, loading } = useAuth();
   const { isSyncing, syncAll, syncHistory } = useSupabaseSync();
-  const { subscription, referralStats, currentPlan, referralCode } = useSubscription();
+  const { subscription, referralStats, currentPlan, referralCode, isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -28,6 +32,11 @@ export default function Profile() {
   const handleSignIn = () => {
     navigate('/auth');
   };
+
+  // Force re-fetch profile on update
+  const handleProfileUpdate = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   if (loading) {
     return (
@@ -51,16 +60,35 @@ export default function Profile() {
         <div className="flex flex-col items-center justify-center py-8">
           {user ? (
             <>
-              <Avatar className="w-24 h-24 mb-4">
-                <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                  {(profile?.display_name || user.email)?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative mb-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                    {(profile?.display_name || user.email)?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => setEditDialogOpen(true)}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
               <h2 className="text-xl font-semibold text-foreground mb-2">
                 {profile?.display_name || user.email?.split('@')[0]}
               </h2>
               <p className="text-sm text-muted-foreground mb-6">{user.email}</p>
+              
+              {/* Trial Status Card */}
+              {isInTrial && (
+                <div className="w-full max-w-md mb-6">
+                  <TrialStatusCard 
+                    isInTrial={isInTrial}
+                    trialDaysLeft={trialDaysLeft}
+                    trialBonusMonths={trialBonusMonths}
+                  />
+                </div>
+              )}
               
               {/* Sync History Panel */}
               <div className="w-full max-w-md mb-6">
@@ -75,6 +103,16 @@ export default function Profile() {
                 <LogOut className="w-4 h-4" />
                 {t('signOut')}
               </Button>
+              
+              {/* Profile Edit Dialog */}
+              <ProfileEditDialog 
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                currentDisplayName={profile?.display_name || null}
+                currentAvatarUrl={profile?.avatar_url || null}
+                userId={user.id}
+                onUpdate={handleProfileUpdate}
+              />
             </>
           ) : (
             <>

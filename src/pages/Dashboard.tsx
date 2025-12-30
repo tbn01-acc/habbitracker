@@ -15,7 +15,9 @@ import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { ShareButtons } from "@/components/ShareButtons";
+import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { useAuth } from "@/hooks/useAuth";
+import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,6 +30,9 @@ export default function Dashboard() {
   const { t, language } = useTranslation();
   const { weather, loading: weatherLoading } = useWeather();
   const { profile, user } = useAuth();
+  
+  // Initialize trial notifications
+  useTrialNotifications();
 
   const today = getTodayString();
   const dayOfWeek = new Date().getDay();
@@ -93,6 +98,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Guest Mode Banner */}
+        <GuestModeBanner />
+        
         {/* Controls Row - Top */}
         <div className="flex items-center justify-between mb-3">
           <ShareButtons />

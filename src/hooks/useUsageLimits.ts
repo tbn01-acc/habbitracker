@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { useSubscription } from './useSubscription';
+import { useGuestMode } from './useGuestMode';
+import { useAuth } from './useAuth';
 
 export interface UsageLimits {
   habits: { current: number; max: number; canAdd: boolean };
@@ -20,9 +22,21 @@ const PRO_LIMITS = {
 };
 
 export function useUsageLimits() {
-  const { isProActive } = useSubscription();
+  const { user } = useAuth();
+  const { isProActive, isInTrial } = useSubscription();
+  const { isActive: isGuestModeActive } = useGuestMode();
 
-  const limits = useMemo(() => isProActive ? PRO_LIMITS : FREE_LIMITS, [isProActive]);
+  // PRO access: either paid PRO, in trial, or guest mode active (24h)
+  const hasProAccess = useMemo(() => {
+    // Logged in users: check subscription/trial
+    if (user) {
+      return isProActive || isInTrial;
+    }
+    // Guest users: check 24h guest mode
+    return isGuestModeActive;
+  }, [user, isProActive, isInTrial, isGuestModeActive]);
+
+  const limits = useMemo(() => hasProAccess ? PRO_LIMITS : FREE_LIMITS, [hasProAccess]);
 
   const checkLimit = (type: 'habits' | 'tasks' | 'transactions', currentCount: number): UsageLimits[typeof type] => {
     const max = limits[type];
@@ -39,7 +53,8 @@ export function useUsageLimits() {
 
   return {
     limits,
-    isProActive,
+    hasProAccess,
+    isProActive: hasProAccess,
     getHabitsLimit,
     getTasksLimit,
     getTransactionsLimit,

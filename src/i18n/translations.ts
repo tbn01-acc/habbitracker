@@ -484,6 +484,14 @@ export const translations = {
     doneTab: 'Выполнено',
     waterCounter: 'Счётчик воды',
     stepsCounter: 'Счётчик шагов',
+    
+    // Profile
+    editProfile: 'Редактировать профиль',
+    chooseAvatar: 'Выбрать аватар',
+    trialPeriod: 'Пробный период',
+    trialDaysLeft: 'Осталось дней',
+    guestMode: 'Гостевой режим',
+    guestModeDescription: 'PRO на 24 часа без сохранения данных',
   },
   en: {
     // Pomodoro time tracking
@@ -968,6 +976,14 @@ export const translations = {
     doneTab: 'Done',
     waterCounter: 'Water counter',
     stepsCounter: 'Steps counter',
+    
+    // Profile
+    editProfile: 'Edit Profile',
+    chooseAvatar: 'Choose Avatar',
+    trialPeriod: 'Trial Period',
+    trialDaysLeft: 'Days left',
+    guestMode: 'Guest Mode',
+    guestModeDescription: 'PRO for 24 hours without saving data',
   },
   es: {
     // Pomodoro time tracking
@@ -1452,6 +1468,14 @@ export const translations = {
     doneTab: 'Hecho',
     waterCounter: 'Contador de agua',
     stepsCounter: 'Contador de pasos',
+    
+    // Profile
+    editProfile: 'Editar perfil',
+    chooseAvatar: 'Elegir avatar',
+    trialPeriod: 'Período de prueba',
+    trialDaysLeft: 'Días restantes',
+    guestMode: 'Modo invitado',
+    guestModeDescription: 'PRO por 24 horas sin guardar datos',
   },
 } as const;
 
