@@ -331,7 +331,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_referral_bonus: {
+        Args: { referrer_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       subscription_period:
