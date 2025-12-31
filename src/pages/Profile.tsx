@@ -8,6 +8,7 @@ import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
 import { ReferralSection } from '@/components/profile/ReferralSection';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
+import { CommonTagsManager } from '@/components/profile/CommonTagsManager';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -170,9 +171,7 @@ export default function Profile() {
             </div>
             <h2 className="text-lg font-semibold text-foreground">{t('commonTags')}</h2>
           </div>
-          <div className="p-4 rounded-xl bg-card border border-border">
-            <p className="text-sm text-muted-foreground">{t('commonTagsDescription')}</p>
-          </div>
+          <CommonTagsManager />
         </div>
       </div>
     </div>

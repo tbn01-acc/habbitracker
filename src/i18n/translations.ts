@@ -360,6 +360,19 @@ export const translations = {
     commonTags: 'Общие теги',
     commonTagsDescription: 'Создавайте теги для сквозной работы между задачами, привычками и финансами',
     
+    // Avatar upload
+    avatarGallery: 'Галерея',
+    uploadPhoto: 'Загрузить',
+    selectPhoto: 'Выбрать фото',
+    maxFileSize: 'Максимум 5 МБ',
+    invalidFileType: 'Неверный тип файла',
+    fileTooLarge: 'Файл слишком большой',
+    avatarUploaded: 'Аватар загружен',
+    
+    // Tags
+    tagAlreadyExists: 'Тег с таким именем уже существует',
+    tagCreated: 'Тег создан',
+    
     // Pomodoro
     work: 'Работа',
     shortBreak: 'Короткий перерыв',
@@ -855,7 +868,18 @@ export const translations = {
     commonTags: 'Common Tags',
     commonTagsDescription: 'Create tags for cross-work between tasks, habits, and finances',
     
-    // Pomodoro
+    // Avatar upload
+    avatarGallery: 'Gallery',
+    uploadPhoto: 'Upload',
+    selectPhoto: 'Select photo',
+    maxFileSize: 'Max 5 MB',
+    invalidFileType: 'Invalid file type',
+    fileTooLarge: 'File is too large',
+    avatarUploaded: 'Avatar uploaded',
+    
+    // Tags
+    tagAlreadyExists: 'Tag with this name already exists',
+    tagCreated: 'Tag created',
     work: 'Work',
     shortBreak: 'Short Break',
     longBreak: 'Long Break',
@@ -1350,7 +1374,18 @@ export const translations = {
     commonTags: 'Etiquetas comunes',
     commonTagsDescription: 'Crea etiquetas para trabajo transversal entre tareas, hábitos y finanzas',
     
-    // Pomodoro
+    // Avatar upload
+    avatarGallery: 'Galería',
+    uploadPhoto: 'Subir',
+    selectPhoto: 'Seleccionar foto',
+    maxFileSize: 'Máx 5 MB',
+    invalidFileType: 'Tipo de archivo inválido',
+    fileTooLarge: 'El archivo es demasiado grande',
+    avatarUploaded: 'Avatar subido',
+    
+    // Tags
+    tagAlreadyExists: 'Ya existe una etiqueta con este nombre',
+    tagCreated: 'Etiqueta creada',
     work: 'Trabajo',
     shortBreak: 'Descanso corto',
     longBreak: 'Descanso largo',
