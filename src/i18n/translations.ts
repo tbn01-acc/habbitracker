@@ -516,6 +516,38 @@ export const translations = {
     noTagsCreated: 'Теги ещё не созданы',
     createTagsInProfile: 'Создайте теги в профиле',
     tagStatistics: 'Статистика по тегам',
+    
+    // Settings and About
+    settings: 'Настройки',
+    aboutApp: 'О приложении',
+    termsOfService: 'Условия использования',
+    privacyPolicy: 'Политика конфиденциальности',
+    dataProcessingPolicy: 'Политика обработки персональных данных',
+    userPermissions: 'Управление разрешениями',
+    userPermissionsDesc: 'Настройте разрешения для работы приложения',
+    analyticsPermission: 'Аналитика',
+    analyticsPermissionDesc: 'Сбор анонимной статистики использования',
+    notificationsPermission: 'Уведомления',
+    notificationsPermissionDesc: 'Получение push-уведомлений',
+    personalizedAdsPermission: 'Персонализированная реклама',
+    personalizedAdsPermissionDesc: 'Показ рекламы на основе ваших интересов',
+    dataSharingPermission: 'Передача данных',
+    dataSharingPermissionDesc: 'Передача данных партнёрам для улучшения сервиса',
+    loading: 'Загрузка...',
+    title: 'Заголовок',
+    content: 'Содержание',
+    version: 'Версия',
+    
+    // Detail view
+    details: 'Подробности',
+    createdAt: 'Создано',
+    itemsWithTag: 'Элементы с тегом',
+    viewAll: 'Посмотреть все',
+    
+    // Charts
+    trendsChart: 'Тренды',
+    categoryBreakdown: 'По категориям',
+    completionTrend: 'Тренд выполнения',
   },
   en: {
     // Pomodoro time tracking
@@ -1030,6 +1062,38 @@ export const translations = {
     noTagsCreated: 'No tags created yet',
     createTagsInProfile: 'Create tags in your profile',
     tagStatistics: 'Tag Statistics',
+    
+    // Settings and About
+    settings: 'Settings',
+    aboutApp: 'About App',
+    termsOfService: 'Terms of Service',
+    privacyPolicy: 'Privacy Policy',
+    dataProcessingPolicy: 'Data Processing Policy',
+    userPermissions: 'User Permissions',
+    userPermissionsDesc: 'Configure app permissions',
+    analyticsPermission: 'Analytics',
+    analyticsPermissionDesc: 'Collect anonymous usage statistics',
+    notificationsPermission: 'Notifications',
+    notificationsPermissionDesc: 'Receive push notifications',
+    personalizedAdsPermission: 'Personalized Ads',
+    personalizedAdsPermissionDesc: 'Show ads based on your interests',
+    dataSharingPermission: 'Data Sharing',
+    dataSharingPermissionDesc: 'Share data with partners to improve service',
+    loading: 'Loading...',
+    title: 'Title',
+    content: 'Content',
+    version: 'Version',
+    
+    // Detail view
+    details: 'Details',
+    createdAt: 'Created',
+    itemsWithTag: 'Items with tag',
+    viewAll: 'View all',
+    
+    // Charts
+    trendsChart: 'Trends',
+    categoryBreakdown: 'By Category',
+    completionTrend: 'Completion Trend',
   },
   es: {
     // Pomodoro time tracking
@@ -1544,6 +1608,38 @@ export const translations = {
     noTagsCreated: 'Aún no hay etiquetas',
     createTagsInProfile: 'Crea etiquetas en tu perfil',
     tagStatistics: 'Estadísticas de etiquetas',
+    
+    // Settings and About
+    settings: 'Configuración',
+    aboutApp: 'Acerca de la App',
+    termsOfService: 'Términos de Servicio',
+    privacyPolicy: 'Política de Privacidad',
+    dataProcessingPolicy: 'Política de Procesamiento de Datos',
+    userPermissions: 'Permisos de Usuario',
+    userPermissionsDesc: 'Configura los permisos de la aplicación',
+    analyticsPermission: 'Analíticas',
+    analyticsPermissionDesc: 'Recopilar estadísticas de uso anónimas',
+    notificationsPermission: 'Notificaciones',
+    notificationsPermissionDesc: 'Recibir notificaciones push',
+    personalizedAdsPermission: 'Anuncios Personalizados',
+    personalizedAdsPermissionDesc: 'Mostrar anuncios según tus intereses',
+    dataSharingPermission: 'Compartir Datos',
+    dataSharingPermissionDesc: 'Compartir datos con socios para mejorar el servicio',
+    loading: 'Cargando...',
+    title: 'Título',
+    content: 'Contenido',
+    version: 'Versión',
+    
+    // Detail view
+    details: 'Detalles',
+    createdAt: 'Creado',
+    itemsWithTag: 'Elementos con etiqueta',
+    viewAll: 'Ver todos',
+    
+    // Charts
+    trendsChart: 'Tendencias',
+    categoryBreakdown: 'Por Categoría',
+    completionTrend: 'Tendencia de Completado',
   },
 } as const;
 

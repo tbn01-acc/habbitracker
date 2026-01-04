@@ -59,6 +59,36 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_documents: {
+        Row: {
+          content: string
+          id: string
+          title: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          content: string
+          id?: string
+          title: string
+          type: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          content?: string
+          id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       pomodoro_sessions: {
         Row: {
           completed_at: string
@@ -335,6 +365,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          analytics_enabled: boolean
+          created_at: string
+          data_sharing: boolean
+          id: string
+          notifications_enabled: boolean
+          personalized_ads: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analytics_enabled?: boolean
+          created_at?: string
+          data_sharing?: boolean
+          id?: string
+          notifications_enabled?: boolean
+          personalized_ads?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analytics_enabled?: boolean
+          created_at?: string
+          data_sharing?: boolean
+          id?: string
+          notifications_enabled?: boolean
+          personalized_ads?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_tags: {
         Row: {
           color: string | null
@@ -371,8 +455,16 @@ export type Database = {
         Args: { referrer_user_id: string }
         Returns: number
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       subscription_period:
         | "monthly"
         | "quarterly"
@@ -508,6 +600,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       subscription_period: [
         "monthly",
         "quarterly",

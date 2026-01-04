@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Tag, CheckSquare, Repeat, Wallet } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Tag, CheckSquare, Repeat, Wallet, TrendingUp, Eye } from 'lucide-react';
 import { useUserTags } from '@/hooks/useUserTags';
 import { useTasks } from '@/hooks/useTasks';
 import { useHabits } from '@/hooks/useHabits';
@@ -7,6 +7,9 @@ import { useFinance } from '@/hooks/useFinance';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { TagItemsDialog } from './TagItemsDialog';
 
 interface TagStats {
   id: string;
@@ -24,6 +27,7 @@ export function TagStatistics() {
   const { habits } = useHabits();
   const { transactions } = useFinance();
   const { t } = useTranslation();
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
 
   const stats = useMemo<TagStats[]>(() => {
     return tags.map(tag => {
@@ -62,6 +66,43 @@ export function TagStatistics() {
       transactions: stats.reduce((sum, s) => sum + s.transactionsCount, 0),
     };
   }, [stats]);
+
+  // Pie chart data
+  const pieData = useMemo(() => {
+    return stats.filter(s => s.totalCount > 0).map(s => ({
+      name: s.name,
+      value: s.totalCount,
+      color: s.color,
+    }));
+  }, [stats]);
+
+  // Trend data (last 7 days)
+  const trendData = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayTasks = tasks.filter(task => 
+        task.createdAt.split('T')[0] === dateStr
+      ).length;
+      
+      const dayHabits = habits.filter(habit => 
+        habit.completedDates.includes(dateStr)
+      ).length;
+      
+      days.push({
+        date: date.toLocaleDateString('ru', { weekday: 'short' }),
+        tasks: dayTasks,
+        habits: dayHabits,
+        total: dayTasks + dayHabits,
+      });
+    }
+    return days;
+  }, [tasks, habits]);
+
+  const selectedTag = selectedTagId ? tags.find(t => t.id === selectedTagId) : null;
 
   if (loading) {
     return (
@@ -112,6 +153,109 @@ export function TagStatistics() {
         </Card>
       </div>
 
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Pie Chart - Category Breakdown */}
+        {pieData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Tag className="w-4 h-4 text-primary" />
+                {t('categoryBreakdown')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [value, name]}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                {pieData.slice(0, 4).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1 text-xs">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-muted-foreground">{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Line Chart - Completion Trend */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              {t('completionTrend')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="tasks" 
+                    stroke="hsl(var(--task))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--task))' }}
+                    name={t('tasksLabel')}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="habits" 
+                    stroke="hsl(var(--habit))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--habit))' }}
+                    name={t('habitsLabel')}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Tag Details */}
       <div className="space-y-3">
         {stats.map(stat => (
@@ -126,6 +270,14 @@ export function TagStatistics() {
                 <span className="text-sm text-muted-foreground">
                   {stat.totalCount} {t('total')}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTagId(stat.id)}
+                  className="h-7 px-2"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
               </div>
               
               <Progress 
@@ -151,6 +303,16 @@ export function TagStatistics() {
           </Card>
         ))}
       </div>
+
+      {/* Tag Items Dialog */}
+      <TagItemsDialog
+        open={!!selectedTagId}
+        onOpenChange={(open) => !open && setSelectedTagId(null)}
+        tag={selectedTag}
+        tasks={tasks.filter(t => t.tagIds?.includes(selectedTagId || ''))}
+        habits={habits.filter(h => h.tagIds?.includes(selectedTagId || ''))}
+        transactions={transactions.filter(tr => tr.tagIds?.includes(selectedTagId || ''))}
+      />
     </div>
   );
 }

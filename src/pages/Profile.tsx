@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, LogIn, Edit2, Bell, Tags } from 'lucide-react';
+import { User, LogOut, LogIn, Edit2, Tags } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
-import { NotificationSettings } from '@/components/NotificationSettings';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
 import { ReferralSection } from '@/components/profile/ReferralSection';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
 import { CommonTagsManager } from '@/components/profile/CommonTagsManager';
+import { SettingsSection } from '@/components/profile/SettingsSection';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -32,7 +32,6 @@ export default function Profile() {
     navigate('/auth');
   };
 
-  // Force re-fetch profile on update
   const handleProfileUpdate = useCallback(() => {
     window.location.reload();
   }, []);
@@ -40,7 +39,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">{t('loading')}</div>
       </div>
     );
   }
@@ -78,7 +77,6 @@ export default function Profile() {
               </h2>
               <p className="text-sm text-muted-foreground mb-6">{user.email}</p>
               
-              {/* Trial Status Card */}
               {isInTrial && (
                 <div className="w-full max-w-md mb-6">
                   <TrialStatusCard 
@@ -89,7 +87,6 @@ export default function Profile() {
                 </div>
               )}
               
-              {/* Sync History Panel */}
               <div className="w-full max-w-md mb-6">
                 <SyncHistoryPanel 
                   history={syncHistory}
@@ -103,7 +100,6 @@ export default function Profile() {
                 {t('signOut')}
               </Button>
               
-              {/* Profile Edit Dialog */}
               <ProfileEditDialog 
                 open={editDialogOpen}
                 onOpenChange={setEditDialogOpen}
@@ -130,40 +126,23 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Subscription Section */}
         {user && (
-          <div className="mt-8">
+          <>
             <SubscriptionSection 
               currentPlan={currentPlan}
               expiresAt={subscription?.expires_at}
               bonusDays={subscription?.bonus_days}
             />
-          </div>
-        )}
-
-        {/* Referral Section */}
-        {user && (
-          <div className="mt-8">
-            <ReferralSection 
-              referralCode={referralCode}
-              currentPlan={currentPlan}
-              referralStats={referralStats}
-            />
-          </div>
-        )}
-
-        {/* Notification Settings */}
-        <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Bell className="w-4 h-4 text-primary" />
+            <div className="mt-8">
+              <ReferralSection 
+                referralCode={referralCode}
+                currentPlan={currentPlan}
+                referralStats={referralStats}
+              />
             </div>
-            <h2 className="text-lg font-semibold text-foreground">{t('notificationSettings')}</h2>
-          </div>
-          <NotificationSettings />
-        </div>
+          </>
+        )}
 
-        {/* Common Tags Section */}
         <div className="mt-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -172,6 +151,10 @@ export default function Profile() {
             <h2 className="text-lg font-semibold text-foreground">{t('commonTags')}</h2>
           </div>
           <CommonTagsManager />
+        </div>
+
+        <div className="mt-8">
+          <SettingsSection />
         </div>
       </div>
     </div>
