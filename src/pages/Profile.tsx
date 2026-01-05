@@ -9,6 +9,7 @@ import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
 import { CommonTagsManager } from '@/components/profile/CommonTagsManager';
 import { SettingsSection } from '@/components/profile/SettingsSection';
+import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -46,6 +47,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <AppHeader />
       <div className="max-w-4xl mx-auto px-4 py-6">
         <PageHeader 
           showTitle

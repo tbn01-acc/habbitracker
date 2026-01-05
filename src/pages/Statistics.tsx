@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { ProductivityStats } from '@/components/ProductivityStats';
 import { Achievements } from '@/components/Achievements';
 import { TagStatistics } from '@/components/TagStatistics';
+import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function Statistics() {
@@ -10,6 +11,7 @@ export default function Statistics() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <AppHeader />
       <div className="max-w-4xl mx-auto px-4 py-6">
         <PageHeader 
           showTitle

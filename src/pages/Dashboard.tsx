@@ -10,15 +10,11 @@ import { ProgressBar } from "@/components/dashboard/ProgressBar";
 import { TodoSection } from "@/components/dashboard/TodoSection";
 import { FinanceWidget } from "@/components/dashboard/FinanceWidget";
 import { DayQualityRing } from "@/components/dashboard/DayQualityRing";
-import { useWeather, getWeatherIcon } from "@/hooks/useWeather";
 import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { ShareButtons } from "@/components/ShareButtons";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
+import { AppHeader } from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
@@ -28,7 +24,6 @@ export default function Dashboard() {
   const { tasks, toggleTaskCompletion, getTodayTasks } = useTasks();
   const { transactions, toggleTransactionCompletion, getTodayTransactions } = useFinance();
   const { t, language } = useTranslation();
-  const { weather, loading: weatherLoading } = useWeather();
   const { profile, user } = useAuth();
   
   // Initialize trial notifications
@@ -97,45 +92,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Guest Mode Banner */}
         <GuestModeBanner />
-        
-        {/* Controls Row - Top */}
-        <div className="flex items-center justify-between mb-3">
-          <ShareButtons />
-          <div className="flex items-center gap-1">
-            <LanguageSelector />
-            <ThemeToggle />
-          </div>
-        </div>
-
-        {/* Avatar + Greeting */}
-        <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => navigate("/profile")} className="shrink-0">
-            <Avatar className="w-12 h-12 border-2 border-primary/20 hover:border-primary/50 transition-colors">
-              <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary font-medium">{userInitials}</AvatarFallback>
-            </Avatar>
-          </button>
-          <p className="text-lg font-medium text-foreground">
-            {getGreeting()}, {userName}!
-          </p>
-        </div>
 
         {/* Section: Сегодня with Day Quality Ring */}
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("today")}</h1>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
-              {!weatherLoading && weather && (
-                <span className="text-sm text-muted-foreground">
-                  {getWeatherIcon(weather.weatherCode, weather.isDay)}
-                  {weather.temperature}°
-                </span>
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
           </div>
           <DayQualityRing value={dayQuality} />
         </div>
@@ -289,7 +256,7 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Top Widgets Section (2 widgets, expanded by default) - no margin/gap below */}
+        {/* Top Widgets Section */}
         <TopWidgetsSection />
       </div>
     </div>

@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Settings, Bell, Globe, Info, FileText, Shield, Lock, ChevronRight, HelpCircle, ScrollText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Settings, Bell, Globe, Info, FileText, Shield, Lock, ChevronRight, HelpCircle, ScrollText, Crown } from 'lucide-react';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { LegalDocumentDialog } from './LegalDocumentDialog';
 import { UserPermissionsDialog } from './UserPermissionsDialog';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,11 +18,15 @@ import {
 import type { LegalDocumentType } from '@/hooks/useLegalDocuments';
 
 export function SettingsSection() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const navigate = useNavigate();
+  const { isAdmin } = useLegalDocuments();
   const [legalDialogOpen, setLegalDialogOpen] = useState(false);
   const [legalDocType, setLegalDocType] = useState<LegalDocumentType>('terms');
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(true);
+
+  const isRussian = language === 'ru';
 
   const openLegalDoc = (type: LegalDocumentType) => {
     setLegalDocType(type);
@@ -139,7 +146,7 @@ export function SettingsSection() {
 
             <Button
               variant="ghost"
-              className="w-full justify-between p-4 h-auto rounded-none"
+              className="w-full justify-between p-4 h-auto rounded-none border-b border-border"
               onClick={() => setPermissionsDialogOpen(true)}
             >
               <div className="flex items-center gap-3">
@@ -148,6 +155,26 @@ export function SettingsSection() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Button>
+
+            {/* Admin Panel Link - Only for admins */}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className="w-full justify-between p-4 h-auto rounded-none"
+                onClick={() => navigate('/admin')}
+              >
+                <div className="flex items-center gap-3">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <span className="text-sm font-medium">
+                    {isRussian ? 'Панель администратора' : 'Admin Panel'}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">
+                    Admin
+                  </Badge>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

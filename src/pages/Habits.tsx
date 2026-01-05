@@ -14,6 +14,7 @@ import { ProgressView } from '@/components/ProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { ExportButtons } from '@/components/ExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
+import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -112,6 +113,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <AppHeader />
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <PageHeader

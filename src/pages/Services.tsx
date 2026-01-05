@@ -5,6 +5,7 @@ import {
   Calculator, Droplets, Shuffle, Globe, CheckCircle, Scale 
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { PomodoroTimer } from '@/components/services/PomodoroTimer';
 import { TimeTracker } from '@/components/services/TimeTracker';
@@ -76,6 +77,7 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <AppHeader />
       <div className="max-w-lg mx-auto px-4 py-6">
         <PageHeader
           showTitle
