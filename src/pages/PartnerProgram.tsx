@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, ArrowLeft, Copy, Check, Gift, Trophy, Crown, Medal,
   Wallet, Calculator, TrendingUp, Clock, ChevronRight, Info,
-  DollarSign, Target, Zap, Award, BarChart3
+  DollarSign, Target, Zap, Award, BarChart3, Share2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
@@ -21,6 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { ReferralProgressChart } from '@/components/referral/ReferralProgressChart';
+import { EarningsCalculator } from '@/components/referral/EarningsCalculator';
+import { ReferralModal } from '@/components/ReferralModal';
 
 export default function PartnerProgram() {
   const { language } = useTranslation();
@@ -31,6 +34,7 @@ export default function PartnerProgram() {
   const isRussian = language === 'ru';
 
   const [copied, setCopied] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [calcReferrals, setCalcReferrals] = useState(10);
   const [calcPaidReferrals, setCalcPaidReferrals] = useState(5);
 
