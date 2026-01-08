@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Crown, Search, AlertTriangle } from 'lucide-react';
+import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { AdminReferrals } from '@/components/admin/AdminReferrals';
 import {
   Select,
   SelectContent,
@@ -207,10 +208,14 @@ export default function Admin() {
         />
 
         <Tabs defaultValue="users" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
               {isRussian ? 'Пользователи' : 'Users'}
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="gap-2">
+              <Wallet className="w-4 h-4" />
+              {isRussian ? 'Рефералы' : 'Referrals'}
             </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="w-4 h-4" />
@@ -305,6 +310,11 @@ export default function Admin() {
                 </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Referrals Tab */}
+          <TabsContent value="referrals" className="mt-4">
+            <AdminReferrals />
           </TabsContent>
 
           {/* Documents Tab */}

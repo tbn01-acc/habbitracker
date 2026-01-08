@@ -129,7 +129,7 @@ export default function Profile() {
             title={isRussian ? 'Награды' : 'Rewards'}
             subtitle={isRussian ? 'Достижения и бейджи' : 'Achievements & badges'}
             gradient="from-amber-500 to-yellow-500"
-            onClick={() => handleTileClick('/profile/achievements', true)}
+            onClick={() => handleTileClick('/achievements', true)}
             locked={!user}
             delay={0.1}
           />
@@ -139,7 +139,7 @@ export default function Profile() {
             title={isRussian ? 'Партнёрская программа' : 'Partner Program'}
             subtitle={isRussian ? 'Приглашай и зарабатывай' : 'Invite & earn'}
             gradient="from-purple-500 to-pink-500"
-            onClick={() => navigate('/profile/partner')}
+            onClick={() => navigate('/partner-program')}
             delay={0.2}
           />
 
@@ -160,7 +160,7 @@ export default function Profile() {
           transition={{ delay: 0.4 }}
           className="mt-6"
         >
-          <Link to="/profile/about">
+          <Link to="/about">
             <Button
               variant="ghost"
               className="w-full justify-between p-4 h-auto"
