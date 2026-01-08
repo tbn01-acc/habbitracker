@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Users, ArrowLeft, Copy, Check, Gift, Trophy, Crown, Medal,
-  Wallet, Calculator, TrendingUp, Clock, ChevronRight, Info,
-  DollarSign, Target, Zap, Award, BarChart3, Share2
+  Users, ArrowLeft, Copy, Check, Gift, Crown,
+  Wallet, TrendingUp, Clock, Info,
+  DollarSign, Zap, BarChart3, Share2, Calculator
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
@@ -18,8 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ReferralProgressChart } from '@/components/referral/ReferralProgressChart';
 import { EarningsCalculator } from '@/components/referral/EarningsCalculator';
@@ -35,8 +33,6 @@ export default function PartnerProgram() {
 
   const [copied, setCopied] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [calcReferrals, setCalcReferrals] = useState(10);
-  const [calcPaidReferrals, setCalcPaidReferrals] = useState(5);
 
   const referralCode = profile?.referral_code;
   const referralLink = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : '';
@@ -63,39 +59,6 @@ export default function PartnerProgram() {
       toast.error(isRussian ? 'Не удалось скопировать' : 'Failed to copy');
     }
   };
-
-  // Calculator logic
-  const calculateEarnings = () => {
-    const activeRefs = calcReferrals;
-    const paidRefs = calcPaidReferrals;
-
-    if (isPro || isLifetime) {
-      const weeks = activeRefs * 2;
-      let percent = 0;
-      if (paidRefs >= 26) percent = 15;
-      else if (paidRefs >= 11) percent = 10;
-      else if (paidRefs >= 1) percent = 5;
-
-      const avgPayment = 2988; // Annual plan average
-      const commission = (avgPayment * percent / 100) * paidRefs;
-
-      return { weeks, commission, percent };
-    } else {
-      let weeks = activeRefs; // 1 week per active
-      // Paid bonuses
-      if (paidRefs >= 26) {
-        weeks += 10 * 2 + 15 * 3 + (paidRefs - 25) * 4;
-      } else if (paidRefs >= 11) {
-        weeks += 10 * 2 + (paidRefs - 10) * 3;
-      } else if (paidRefs >= 1) {
-        weeks += paidRefs * 2;
-      }
-
-      return { weeks, commission: 0, percent: 0 };
-    }
-  };
-
-  const calcResults = calculateEarnings();
 
   if (loading) {
     return (
@@ -159,7 +122,7 @@ export default function PartnerProgram() {
           </Card>
         </motion.div>
 
-        {/* Referral Link */}
+        {/* Invite Button & Referral Link */}
         {user ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -187,11 +150,13 @@ export default function PartnerProgram() {
                         {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {isRussian 
-                        ? 'Реферал получает 14 дней PRO при регистрации!'
-                        : 'Referral gets 14 days PRO on signup!'}
-                    </p>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      {isRussian ? 'Пригласить друзей' : 'Invite Friends'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -523,64 +488,7 @@ export default function PartnerProgram() {
 
           {/* Calculator Tab */}
           <TabsContent value="calculator" className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calculator className="w-4 h-4 text-purple-500" />
-                  {isRussian ? 'Калькулятор доходности' : 'Earnings Calculator'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm">
-                      {isRussian ? 'Активных рефералов' : 'Active referrals'}
-                    </Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={1000}
-                      value={calcReferrals}
-                      onChange={(e) => setCalcReferrals(Number(e.target.value))}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">
-                      {isRussian ? 'Оплативших PRO' : 'Paid for PRO'}
-                    </Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={calcReferrals}
-                      value={calcPaidReferrals}
-                      onChange={(e) => setCalcPaidReferrals(Math.min(Number(e.target.value), calcReferrals))}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30">
-                  <div className="text-center">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {isRussian ? 'Ваш доход' : 'Your earnings'}
-                    </div>
-                    <div className="text-3xl font-bold text-foreground mb-1">
-                      +{calcResults.weeks} {isRussian ? 'недель' : 'weeks'}
-                    </div>
-                    {calcResults.commission > 0 && (
-                      <div className="text-lg text-amber-500 font-medium">
-                        +{calcResults.commission.toLocaleString()} ₽ ({calcResults.percent}%)
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  {isRussian 
-                    ? 'Расчёт на основе средней стоимости годового тарифа (2 988 ₽)'
-                    : 'Calculation based on average annual plan cost'}
-                </p>
-              </CardContent>
-            </Card>
+            <EarningsCalculator isPro={isPro} />
           </TabsContent>
 
           {/* Wallet Tab */}
@@ -718,6 +626,9 @@ export default function PartnerProgram() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Referral Modal */}
+        <ReferralModal open={showInviteModal} onOpenChange={setShowInviteModal} />
       </div>
     </div>
   );

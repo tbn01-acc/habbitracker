@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, LogOut, LogIn, Edit2, Tags, ArrowLeft, Cloud, Settings } from 'lucide-react';
+import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings } from 'lucide-react';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
-import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
 import { CommonTagsManager } from '@/components/profile/CommonTagsManager';
@@ -141,19 +140,6 @@ export default function ProfileSettings() {
             history={syncHistory}
             onSync={syncAll}
             isSyncing={isSyncing}
-          />
-        </motion.div>
-
-        {/* Subscription */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <SubscriptionSection 
-            currentPlan={currentPlan}
-            expiresAt={subscription?.expires_at}
-            bonusDays={subscription?.bonus_days}
           />
         </motion.div>
 
