@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, DollarSign, Clock, Check, X, Search, TrendingUp, Wallet, Calendar, Award } from 'lucide-react';
+import { Users, DollarSign, Clock, Check, X, Search, TrendingUp, Wallet, Calendar, Award, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { exportReferralsToCSV, exportWithdrawalsToCSV } from '@/utils/exportReferralData';
 
 interface ReferralData {
   id: string;
@@ -327,6 +328,14 @@ export function AdminReferrals() {
                     <SelectItem value="paid">{isRussian ? 'Оплатившие' : 'Paid'}</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => exportReferralsToCSV(filteredReferrals, isRussian)}
+                  title={isRussian ? 'Экспорт в CSV' : 'Export to CSV'}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -396,6 +405,14 @@ export function AdminReferrals() {
                     <SelectItem value="rejected">{isRussian ? 'Отклонено' : 'Rejected'}</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => exportWithdrawalsToCSV(filteredWithdrawals, isRussian)}
+                  title={isRussian ? 'Экспорт в CSV' : 'Export to CSV'}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>

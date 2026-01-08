@@ -45,7 +45,7 @@ export default function TagPage() {
   // Initialize goal notifications
   useTagGoalNotifications();
 
-  const tag = tags.find(t => t.id === tagId);
+  const tag = useMemo(() => tags.find(t => t.id === tagId), [tags, tagId]);
   const today = getTodayString();
   const locale = language === 'ru' ? ru : language === 'es' ? es : enUS;
 
@@ -188,7 +188,9 @@ export default function TagPage() {
 
   const COLORS = ['hsl(var(--habit))', 'hsl(var(--task))', 'hsl(var(--finance))'];
 
-  if (tagsLoading) {
+  // Show loading while tags are loading OR if we have a tagId but haven't found the tag yet
+  // This prevents flashing "not found" when tags are still being fetched
+  if (tagsLoading || (tagId && tags.length === 0)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">{t('loading')}</div>

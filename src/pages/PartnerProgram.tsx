@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { ReferralProgressChart } from '@/components/referral/ReferralProgressChart';
 import { EarningsCalculator } from '@/components/referral/EarningsCalculator';
 import { ReferralModal } from '@/components/ReferralModal';
+import { WithdrawalForm } from '@/components/referral/WithdrawalForm';
 
 export default function PartnerProgram() {
   const { language } = useTranslation();
@@ -491,124 +492,9 @@ export default function PartnerProgram() {
             <EarningsCalculator isPro={isPro} />
           </TabsContent>
 
-          {/* Wallet Tab */}
           <TabsContent value="wallet" className="space-y-4">
             {user ? (
-              <>
-                {/* Balance */}
-                <Card className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent">
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <Wallet className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                      <div className="text-sm text-muted-foreground mb-1">
-                        {isRussian ? 'Доступно к выводу' : 'Available for withdrawal'}
-                      </div>
-                      <div className="text-4xl font-bold text-foreground">
-                        {(wallet?.balance_rub || 0).toLocaleString()} ₽
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Wallet Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="pt-4 text-center">
-                      <div className="text-2xl font-bold text-foreground">
-                        {(wallet?.total_earned_rub || 0).toLocaleString()} ₽
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {isRussian ? 'Всего заработано' : 'Total earned'}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 text-center">
-                      <div className="text-2xl font-bold text-foreground">
-                        {wallet?.bonus_weeks_earned || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {isRussian ? 'Бонусных недель' : 'Bonus weeks'}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Withdrawal Options */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">
-                      {isRussian ? 'Вывод средств' : 'Withdrawal'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="p-3 rounded-lg border border-border flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <DollarSign className="w-5 h-5 text-green-500" />
-                        <div>
-                          <div className="font-medium text-sm">
-                            {isRussian ? 'На карту' : 'To card'}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {isRussian ? 'Мин. 1000 ₽' : 'Min. 1000 ₽'}
-                          </div>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        disabled={(wallet?.balance_rub || 0) < 1000}
-                      >
-                        {isRussian ? 'Вывести' : 'Withdraw'}
-                      </Button>
-                    </div>
-
-                    <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Crown className="w-5 h-5 text-amber-500" />
-                        <div>
-                          <div className="font-medium text-sm">
-                            {isRussian ? 'Оплатить подписку' : 'Pay subscription'}
-                          </div>
-                          <div className="text-xs text-amber-500">
-                            {isRussian ? 'Коэф. 1:2 (выгодно!)' : 'Rate 1:2 (profitable!)'}
-                          </div>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="border-amber-500/30 text-amber-500"
-                        disabled={(wallet?.balance_rub || 0) < 100}
-                      >
-                        {isRussian ? 'Оплатить' : 'Pay'}
-                      </Button>
-                    </div>
-
-                    <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Gift className="w-5 h-5 text-purple-500" />
-                        <div>
-                          <div className="font-medium text-sm">
-                            {isRussian ? 'Подарочный сертификат' : 'Gift certificate'}
-                          </div>
-                          <div className="text-xs text-purple-500">
-                            {isRussian ? 'Коэф. 1:2' : 'Rate 1:2'}
-                          </div>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="border-purple-500/30 text-purple-500"
-                        disabled={(wallet?.balance_rub || 0) < 100}
-                      >
-                        {isRussian ? 'Создать' : 'Create'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+              <WithdrawalForm />
             ) : (
               <Card>
                 <CardContent className="pt-6 text-center">

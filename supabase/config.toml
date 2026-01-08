@@ -1,1 +1,16 @@
 project_id = "jexrtsyokhegjxnvqjur"
+
+[functions.robokassa-create-payment]
+verify_jwt = false
+
+[functions.robokassa-success]
+verify_jwt = false
+
+[functions.robokassa-fail]
+verify_jwt = false
+
+[functions.robokassa-webhook]
+verify_jwt = false
+
+[functions.send-referral-notification]
+verify_jwt = false
