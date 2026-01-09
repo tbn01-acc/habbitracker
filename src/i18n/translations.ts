@@ -104,6 +104,11 @@ export const translations = {
     profile: "Профиль",
     profileSettings: "Настройки профиля",
     guest: "Гость",
+    rating: "Рейтинг",
+    rewardsShop: "Магазин наград",
+    stars: "Звёзды",
+    leaderboard: "ТОП-100",
+    achievementsFeed: "Лента достижений",
     profileDescription: "Войдите в аккаунт для синхронизации данных между устройствами",
 
     // Navigation
@@ -739,6 +744,11 @@ export const translations = {
     profile: "Profile",
     profileSettings: "Profile Settings",
     guest: "Guest",
+    rating: "Rating",
+    rewardsShop: "Rewards Shop",
+    stars: "Stars",
+    leaderboard: "TOP-100",
+    achievementsFeed: "Achievements Feed",
     profileDescription: "Sign in to sync your data across devices",
 
     // Navigation
@@ -1370,6 +1380,11 @@ export const translations = {
     profile: "Perfil",
     profileSettings: "Configuración del perfil",
     guest: "Invitado",
+    rating: "Clasificación",
+    rewardsShop: "Tienda de recompensas",
+    stars: "Estrellas",
+    leaderboard: "TOP-100",
+    achievementsFeed: "Feed de logros",
     profileDescription: "Inicia sesión para sincronizar tus datos entre dispositivos",
 
     // Navigation

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift } from 'lucide-react';
+import { Gift, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useWeather, getWeatherIcon } from '@/hooks/useWeather';
@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ReferralModal } from '@/components/ReferralModal';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function AppHeader() {
   const navigate = useNavigate();
@@ -46,8 +47,24 @@ export function AppHeader() {
               </div>
             )}
 
-            {/* Right: Theme + Invite */}
-            <div className="flex items-center gap-2">
+            {/* Right: Rating + Theme + Invite */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/rating')}
+                    className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
+                  >
+                    <Trophy className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t('rating') || 'Рейтинг'}
+                </TooltipContent>
+              </Tooltip>
+              
               <ThemeToggle />
               
               <motion.div
