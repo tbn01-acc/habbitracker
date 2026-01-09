@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { 
   Users, ArrowLeft, Copy, Check, Gift, Crown,
   Wallet, TrendingUp, Clock, Info,
-  DollarSign, Zap, BarChart3, Share2, Calculator
+  DollarSign, Zap, BarChart3, Share2, Calculator,
+  Star, Award, Target
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
@@ -12,14 +13,13 @@ import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useReferralProgram } from '@/hooks/useReferralProgram';
+import { useAffiliateV2 } from '@/hooks/useAffiliateV2';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ReferralProgressChart } from '@/components/referral/ReferralProgressChart';
 import { EarningsCalculator } from '@/components/referral/EarningsCalculator';
 import { ReferralModal } from '@/components/ReferralModal';
 import { WithdrawalForm } from '@/components/referral/WithdrawalForm';
@@ -29,7 +29,7 @@ export default function PartnerProgram() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isProActive, subscription } = useSubscription();
-  const { stats, periodStats, wallet, calculateBonus, getNextReferralBonus, loading } = useReferralProgram();
+  const { stats, loading, getProgressToNextMilestone, getConversionBonus, calculatePotentialEarnings } = useAffiliateV2();
   const isRussian = language === 'ru';
 
   const [copied, setCopied] = useState(false);
@@ -40,8 +40,6 @@ export default function PartnerProgram() {
 
   const isPro = isProActive && !subscription?.is_trial;
   const isLifetime = subscription?.period === 'lifetime';
-  const { bonusWeeks, commissionPercent } = calculateBonus();
-  const nextBonus = getNextReferralBonus();
 
   const handleCopy = async () => {
     if (!referralLink) return;
@@ -61,7 +59,7 @@ export default function PartnerProgram() {
     }
   };
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">
@@ -70,6 +68,8 @@ export default function PartnerProgram() {
       </div>
     );
   }
+
+  const progress = getProgressToNextMilestone();
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -86,37 +86,53 @@ export default function PartnerProgram() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                {isRussian ? 'Партнёрская программа' : 'Partner Program'}
+                {isRussian ? 'Партнёрская программа 2.0' : 'Partner Program 2.0'}
               </h1>
             </div>
           </div>
         </div>
 
-        {/* User Type Badge */}
+        {/* Level Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <Card className={`border-2 ${isPro ? 'border-amber-500/50 bg-gradient-to-br from-amber-500/10 to-transparent' : 'border-blue-500/50 bg-gradient-to-br from-blue-500/10 to-transparent'}`}>
+          <Card className={`border-2 ${stats.currentLevel === 2 || stats.isVIP ? 'border-amber-500/50 bg-gradient-to-br from-amber-500/10 to-transparent' : 'border-purple-500/50 bg-gradient-to-br from-purple-500/10 to-transparent'}`}>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isPro ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}>
-                    {isPro ? <Crown className="w-6 h-6 text-amber-500" /> : <Users className="w-6 h-6 text-blue-500" />}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${stats.isVIP ? 'bg-gradient-to-br from-amber-500 to-orange-500' : stats.currentLevel === 2 ? 'bg-amber-500/20' : 'bg-purple-500/20'}`}>
+                    {stats.isVIP ? (
+                      <Star className="w-6 h-6 text-white" />
+                    ) : stats.currentLevel === 2 ? (
+                      <Crown className="w-6 h-6 text-amber-500" />
+                    ) : (
+                      <Users className="w-6 h-6 text-purple-500" />
+                    )}
                   </div>
                   <div>
                     <div className="font-semibold text-foreground flex items-center gap-2">
-                      {isPro ? (isRussian ? 'PRO Партнёр' : 'PRO Partner') : (isRussian ? 'Партнёр' : 'Partner')}
-                      {isLifetime && <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs">Lifetime</Badge>}
+                      {stats.isVIP ? (
+                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">VIP Partner</Badge>
+                      ) : (
+                        <>
+                          {isRussian ? `Уровень ${stats.currentLevel}` : `Level ${stats.currentLevel}`}
+                          {isLifetime && <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs">Lifetime</Badge>}
+                        </>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {isPro 
-                        ? (isRussian ? 'Получайте до 15% с оплат рефералов' : 'Earn up to 15% from referral payments')
-                        : (isRussian ? 'Получайте недели PRO за рефералов' : 'Earn PRO weeks for referrals')
+                      {stats.currentLevel === 1 
+                        ? (isRussian ? '20% комиссия с платежей' : '20% commission on payments')
+                        : (isRussian ? '30% комиссия с платежей' : '30% commission on payments')
                       }
                     </p>
                   </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-primary">{stats.commissionPercent}%</div>
+                  <div className="text-xs text-muted-foreground">{isRussian ? 'комиссия' : 'commission'}</div>
                 </div>
               </div>
             </CardContent>
@@ -199,101 +215,73 @@ export default function PartnerProgram() {
           {/* Stats Tab */}
           <TabsContent value="stats" className="space-y-4">
             {/* Current Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <Card>
                 <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-bold text-foreground mb-1">{stats.activeReferrals}</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.totalReferrals}</div>
                   <div className="text-xs text-muted-foreground">
-                    {isRussian ? 'Активных рефералов' : 'Active Referrals'}
+                    {isRussian ? 'Всего' : 'Total'}
                   </div>
-                  <Badge variant="outline" className="mt-2 text-xs text-green-500 border-green-500/30">
-                    <Gift className="w-3 h-3 mr-1" />
-                    +{isPro ? stats.activeReferrals * 2 : stats.activeReferrals} {isRussian ? 'нед.' : 'weeks'}
-                  </Badge>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-bold text-foreground mb-1">{stats.paidReferrals}</div>
+                  <div className="text-2xl font-bold text-green-500">{stats.activeReferrals}</div>
                   <div className="text-xs text-muted-foreground">
-                    {isRussian ? 'Оплативших PRO' : 'Paid for PRO'}
+                    {isRussian ? 'Активных' : 'Active'}
                   </div>
-                  {isPro && commissionPercent > 0 && (
-                    <Badge variant="outline" className="mt-2 text-xs text-amber-500 border-amber-500/30">
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      {commissionPercent}% {isRussian ? 'комиссия' : 'commission'}
-                    </Badge>
-                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 text-center">
+                  <div className="text-2xl font-bold text-amber-500">{stats.paidReferrals}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isRussian ? 'Оплатили' : 'Paid'}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Pending Activation */}
-            <Card>
+            {/* Earnings Summary */}
+            <Card className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent">
               <CardContent className="pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">
-                    {isRussian ? 'Ожидают активации' : 'Pending Activation'}
-                  </span>
-                  <span className="font-semibold">{stats.pendingActivation}</span>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-xl font-bold text-green-500">{stats.totalEarned.toLocaleString()}₽</div>
+                    <div className="text-xs text-muted-foreground">{isRussian ? 'Заработано' : 'Earned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-foreground">{stats.pendingBalance.toLocaleString()}₽</div>
+                    <div className="text-xs text-muted-foreground">{isRussian ? 'Баланс' : 'Balance'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-muted-foreground">{stats.withdrawnTotal.toLocaleString()}₽</div>
+                    <div className="text-xs text-muted-foreground">{isRussian ? 'Выведено' : 'Withdrawn'}</div>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {isRussian 
-                    ? 'Реферал становится активным после 7 дней и 30 минут в приложении'
-                    : 'Referral becomes active after 7 days and 30 minutes in the app'}
-                </p>
               </CardContent>
             </Card>
 
-            {/* Period Stats */}
-            {periodStats && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
-                    {isRussian ? 'Статистика по периодам' : 'Period Statistics'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {isRussian ? 'Месяц' : 'Month'}
-                      </div>
-                      <div className="font-bold">{periodStats.month.totalReferrals}</div>
-                      <div className="text-xs text-green-500">+{periodStats.month.activeReferrals} акт.</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {isRussian ? 'Квартал' : 'Quarter'}
-                      </div>
-                      <div className="font-bold">{periodStats.quarter.totalReferrals}</div>
-                      <div className="text-xs text-green-500">+{periodStats.quarter.activeReferrals} акт.</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {isRussian ? 'Год' : 'Year'}
-                      </div>
-                      <div className="font-bold">{periodStats.year.totalReferrals}</div>
-                      <div className="text-xs text-green-500">+{periodStats.year.activeReferrals} акт.</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Total Bonus */}
-            <Card className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent">
+            {/* Conversion Bonus Info */}
+            <Card className="border-purple-500/30">
               <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      {isRussian ? 'Ваш бонус PRO' : 'Your PRO Bonus'}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">
+                      {isRussian ? 'Коэффициент 1:1.5' : '1:1.5 Conversion'}
                     </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      +{bonusWeeks} {isRussian ? 'недель' : 'weeks'}
+                    <div className="text-xs text-muted-foreground">
+                      {isRussian 
+                        ? 'При оплате подписки или покупке подарочного кода'
+                        : 'When paying for subscription or gift code'}
                     </div>
                   </div>
-                  <Gift className="w-10 h-10 text-green-500 opacity-50" />
+                  <Badge variant="outline" className="text-purple-500 border-purple-500/30">
+                    +50%
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
@@ -301,161 +289,150 @@ export default function PartnerProgram() {
 
           {/* Levels Tab */}
           <TabsContent value="levels" className="space-y-4">
-            {/* Progress to Next Level */}
-            {nextBonus.type === 'commission' ? (
+            {/* Progress to Next Milestone */}
+            {stats.nextMilestone && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-amber-500" />
-                    {isRussian ? 'Прогресс комиссии' : 'Commission Progress'}
+                    <Target className="w-4 h-4 text-amber-500" />
+                    {isRussian ? 'До следующего бонуса' : 'Next Milestone'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">{isRussian ? 'Текущая комиссия:' : 'Current:'}</span>
-                      <Badge className="bg-amber-500 text-black">{nextBonus.currentPercent}%</Badge>
-                    </div>
-                    {nextBonus.refsToNext > 0 && (
-                      <>
-                        <Progress value={((stats.paidReferrals % (nextBonus.refsToNext + stats.paidReferrals)) / (nextBonus.refsToNext + stats.paidReferrals)) * 100} className="h-2" />
-                        <p className="text-sm text-muted-foreground">
-                          {isRussian 
-                            ? `Ещё ${nextBonus.refsToNext} оплативших до ${nextBonus.nextPercent}%`
-                            : `${nextBonus.refsToNext} more paid referrals to ${nextBonus.nextPercent}%`}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-500" />
-                    {isRussian ? 'Прогресс бонусов' : 'Bonus Progress'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">{isRussian ? 'За оплатившего:' : 'Per paid:'}</span>
-                      <Badge variant="outline" className="text-green-500 border-green-500/30">
-                        +{nextBonus.currentWeeks} {isRussian ? 'нед.' : 'weeks'}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{stats.paidReferrals} / {stats.nextMilestone.threshold}</span>
+                      <Badge className="bg-amber-500 text-black">
+                        +{stats.nextMilestone.bonus}₽
                       </Badge>
                     </div>
-                    {nextBonus.refsToNext > 0 && (
-                      <>
-                        <Progress value={((stats.paidReferrals % 10) / 10) * 100} className="h-2" />
-                        <p className="text-sm text-muted-foreground">
-                          {isRussian 
-                            ? `Ещё ${nextBonus.refsToNext} оплативших до +${nextBonus.nextWeeks} нед./реферал`
-                            : `${nextBonus.refsToNext} more to +${nextBonus.nextWeeks} weeks/referral`}
-                        </p>
-                      </>
+                    <Progress value={progress.progress} className="h-3" />
+                    <p className="text-xs text-muted-foreground">
+                      {isRussian 
+                        ? `Ещё ${progress.remaining} оплативших до бонуса`
+                        : `${progress.remaining} more paid referrals to bonus`}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* VIP Status */}
+            {stats.paidReferrals >= 150 && (
+              <Card className={`border-2 ${stats.isVIP ? 'border-amber-500 bg-gradient-to-br from-amber-500/20 to-orange-500/20' : 'border-dashed border-amber-500/50'}`}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Star className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold flex items-center gap-2">
+                        VIP Status
+                        {stats.isVIP && <Check className="w-4 h-4 text-green-500" />}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.isVIP 
+                          ? (isRussian ? 'Индивидуальные условия активны' : 'Individual terms active')
+                          : (isRussian ? `${200 - stats.paidReferrals} оплативших до VIP` : `${200 - stats.paidReferrals} paid referrals to VIP`)
+                        }
+                      </p>
+                    </div>
+                    {stats.isVIP && !stats.vipBonusClaimed && (
+                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500">
+                        +5000₽
+                      </Badge>
                     )}
                   </div>
+                  {!stats.isVIP && (
+                    <Progress 
+                      value={(stats.paidReferrals / 200) * 100} 
+                      className="h-2 mt-3" 
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Bonus Tiers - FREE Users */}
-            {!isPro && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
+            {/* Level 1 Commission Structure */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Award className="w-4 h-4 text-purple-500" />
+                  {isRussian ? 'Уровень 1: 1-50 рефералов' : 'Level 1: 1-50 Referrals'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                  <span className="font-medium">
+                    {isRussian ? 'Комиссия' : 'Commission'}
+                  </span>
+                  <Badge className="bg-purple-500 text-white text-lg px-3">20%</Badge>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Gift className="w-4 h-4 text-green-500" />
-                    {isRussian ? 'Бонусы FREE пользователей' : 'FREE User Bonuses'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">
-                      {isRussian ? 'За активных рефералов:' : 'For active referrals:'}
-                    </h4>
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <div className="text-lg font-bold text-green-500">+1 {isRussian ? 'неделя' : 'week'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {isRussian ? 'за каждого активного реферала' : 'per active referral'}
-                      </div>
-                    </div>
+                    {isRussian ? 'Денежные бонусы:' : 'Cash Bonuses:'}
+                  </h4>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[10, 20, 30, 40, 50].map((threshold) => {
+                      const achieved = stats.paidReferrals >= threshold;
+                      const bonus = threshold === 50 ? 1000 : 500;
+                      return (
+                        <div 
+                          key={threshold}
+                          className={`text-center p-2 rounded-lg ${achieved ? 'bg-green-500/20 border border-green-500/50' : 'bg-muted/50'}`}
+                        >
+                          <div className="text-xs font-medium">{threshold}</div>
+                          <div className={`text-sm font-bold ${achieved ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            +{bonus}₽
+                          </div>
+                          {achieved && <Check className="w-3 h-3 mx-auto text-green-500 mt-1" />}
+                        </div>
+                      );
+                    })}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">
-                      {isRussian ? 'За оплативших рефералов:' : 'For paid referrals:'}
-                    </h4>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 1 && stats.paidReferrals < 11 ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">1-10</div>
-                        <div className="text-green-500 mt-1">+2 нед.</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 11 && stats.paidReferrals < 26 ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">11-25</div>
-                        <div className="text-green-500 mt-1">+3 нед.</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 26 ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">26+</div>
-                        <div className="text-green-500 mt-1">+4 нед.</div>
-                      </div>
-                    </div>
+            {/* Level 2 Commission Structure */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  {isRussian ? 'Уровень 2: 51+ рефералов' : 'Level 2: 51+ Referrals'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <span className="font-medium">
+                    {isRussian ? 'Комиссия' : 'Commission'}
+                  </span>
+                  <Badge className="bg-amber-500 text-black text-lg px-3">30%</Badge>
+                </div>
+                
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-medium">
+                      {isRussian ? 'Бонус каждые 25 рефералов' : 'Bonus every 25 referrals'}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Bonus Tiers - PRO Users */}
-            {isPro && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-500" />
-                    {isRussian ? 'Бонусы PRO пользователей' : 'PRO User Bonuses'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">
-                      {isRussian ? 'За активных рефералов:' : 'For active referrals:'}
-                    </h4>
-                    <div className="p-3 rounded-lg bg-amber-500/10 text-center border border-amber-500/30">
-                      <div className="text-lg font-bold text-amber-500">+2 {isRussian ? 'недели' : 'weeks'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {isRussian ? 'за каждого активного реферала' : 'per active referral'}
-                      </div>
-                    </div>
+                  <div className="text-lg font-bold text-amber-500">+1000₽</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isRussian ? 'За 75, 100, 125, 150...' : 'At 75, 100, 125, 150...'}
                   </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">
-                      {isRussian ? 'Комиссия с оплат:' : 'Payment commission:'}
-                    </h4>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 1 && stats.paidReferrals < 11 ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">1-10</div>
-                        <div className="text-amber-500 mt-1">5%</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 11 && stats.paidReferrals < 26 ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">11-25</div>
-                        <div className="text-amber-500 mt-1">10%</div>
-                      </div>
-                      <div className={`text-center p-2 rounded ${stats.paidReferrals >= 26 ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-muted/50'}`}>
-                        <div className="font-medium">26+</div>
-                        <div className="text-amber-500 mt-1">15%</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Activation Conditions */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Info className="w-4 h-4 text-blue-500" />
-                  {isRussian ? 'Условия активации реферала' : 'Referral Activation'}
+                  {isRussian ? 'Условия активации' : 'Activation Conditions'}
                 </CardTitle>
               </CardHeader>
               <CardContent>

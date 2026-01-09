@@ -5,7 +5,7 @@ import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
 import { useStars } from '@/hooks/useStars';
 import { AppHeader } from '@/components/AppHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
