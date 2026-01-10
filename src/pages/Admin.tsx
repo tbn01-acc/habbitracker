@@ -96,11 +96,15 @@ export default function Admin() {
   const [limitSettingsOpen, setLimitSettingsOpen] = useState(false);
 
   const isRussian = language === 'ru';
+  const [adminChecked, setAdminChecked] = useState(false);
 
-  // Check if user is admin
+  // Check if user is admin - wait for docs to load first
   useEffect(() => {
-    if (!isAdmin && !docsLoading) {
-      navigate('/');
+    if (!docsLoading) {
+      setAdminChecked(true);
+      if (!isAdmin) {
+        navigate('/');
+      }
     }
   }, [isAdmin, docsLoading, navigate]);
 
@@ -273,12 +277,16 @@ export default function Admin() {
     }
   };
 
-  if (docsLoading || !isAdmin) {
+  if (docsLoading || !adminChecked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">{t('loading')}</div>
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (

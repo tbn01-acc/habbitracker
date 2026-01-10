@@ -148,29 +148,67 @@ export function WeatherModal({ open, onOpenChange }: WeatherModalProps) {
     if (!weatherDetails) return [];
     const recs: string[] = [];
     
-    if (weatherDetails.uvIndex && weatherDetails.uvIndex > 5) {
-      recs.push(isRussian ? '☀️ Используйте солнцезащитный крем' : '☀️ Use sunscreen');
-    }
-    if (weatherDetails.temperature < 0) {
+    // Temperature-based recommendations
+    if (weatherDetails.temperature < -10) {
+      recs.push(isRussian ? '🧥 Наденьте тёплую куртку и шапку' : '🧥 Wear a warm jacket and hat');
+      recs.push(isRussian ? '🧤 Не забудьте перчатки' : '🧤 Don\'t forget gloves');
+    } else if (weatherDetails.temperature < 0) {
       recs.push(isRussian ? '🧣 Одевайтесь теплее' : '🧣 Dress warmly');
-    }
-    if (weatherDetails.temperature > 25) {
+    } else if (weatherDetails.temperature > 30) {
+      recs.push(isRussian ? '🥵 Избегайте прямых солнечных лучей' : '🥵 Avoid direct sunlight');
+      recs.push(isRussian ? '💧 Пейте много воды' : '💧 Drink plenty of water');
+    } else if (weatherDetails.temperature > 25) {
       recs.push(isRussian ? '💧 Пейте больше воды' : '💧 Stay hydrated');
-    }
-    if (weatherDetails.precipitation && weatherDetails.precipitation > 0) {
-      recs.push(isRussian ? '☔ Возьмите зонт' : '☔ Take an umbrella');
-    }
-    if (weatherDetails.windSpeed > 15) {
-      recs.push(isRussian ? '💨 Ожидается сильный ветер' : '💨 Strong wind expected');
-    }
-    if (weatherDetails.humidity > 80) {
-      recs.push(isRussian ? '💦 Высокая влажность' : '💦 High humidity');
-    }
-    if (recs.length === 0) {
-      recs.push(isRussian ? '✨ Отличная погода для прогулки!' : '✨ Great weather for a walk!');
+      recs.push(isRussian ? '👕 Оденьтесь легко' : '👕 Wear light clothing');
     }
     
-    return recs;
+    // UV recommendations
+    if (weatherDetails.uvIndex && weatherDetails.uvIndex > 7) {
+      recs.push(isRussian ? '☀️ Высокий УФ-индекс! Используйте крем SPF 50+' : '☀️ High UV! Use SPF 50+ sunscreen');
+      recs.push(isRussian ? '🕶️ Носите солнцезащитные очки' : '🕶️ Wear sunglasses');
+    } else if (weatherDetails.uvIndex && weatherDetails.uvIndex > 5) {
+      recs.push(isRussian ? '☀️ Используйте солнцезащитный крем' : '☀️ Use sunscreen');
+    }
+    
+    // Precipitation recommendations
+    if (weatherDetails.precipitation && weatherDetails.precipitation > 5) {
+      recs.push(isRussian ? '☔ Возьмите зонт, ожидаются осадки' : '☔ Take an umbrella, rain expected');
+    } else if (weatherDetails.precipitation && weatherDetails.precipitation > 0) {
+      recs.push(isRussian ? '🌧️ Возможен небольшой дождь' : '🌧️ Light rain possible');
+    }
+    
+    // Wind recommendations
+    if (weatherDetails.windSpeed > 25) {
+      recs.push(isRussian ? '💨 Сильный ветер, будьте осторожны' : '💨 Strong wind, be careful');
+    } else if (weatherDetails.windSpeed > 15) {
+      recs.push(isRussian ? '💨 Ожидается ветреная погода' : '💨 Windy weather expected');
+    }
+    
+    // Humidity recommendations
+    if (weatherDetails.humidity > 85) {
+      recs.push(isRussian ? '💦 Очень высокая влажность' : '💦 Very high humidity');
+    } else if (weatherDetails.humidity > 70) {
+      recs.push(isRussian ? '💦 Повышенная влажность' : '💦 High humidity');
+    } else if (weatherDetails.humidity < 30) {
+      recs.push(isRussian ? '🏜️ Сухой воздух, увлажняйте кожу' : '🏜️ Dry air, moisturize your skin');
+    }
+    
+    // Activity recommendations based on weather code
+    if (weatherDetails.weatherCode === 0 || weatherDetails.weatherCode === 1) {
+      if (weatherDetails.temperature > 10 && weatherDetails.temperature < 28) {
+        recs.push(isRussian ? '🚶 Отличная погода для прогулки!' : '🚶 Great weather for a walk!');
+      }
+      if (weatherDetails.temperature > 15 && weatherDetails.temperature < 25) {
+        recs.push(isRussian ? '🏃 Идеально для пробежки' : '🏃 Perfect for jogging');
+      }
+    }
+    
+    // Default if no specific recommendations
+    if (recs.length === 0) {
+      recs.push(isRussian ? '✨ Приятного дня!' : '✨ Have a nice day!');
+    }
+    
+    return recs.slice(0, 5); // Limit to 5 recommendations
   };
 
   const getDayName = (dateStr: string): string => {
@@ -200,9 +238,25 @@ export function WeatherModal({ open, onOpenChange }: WeatherModalProps) {
 
         {loading ? (
           <div className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-40 w-full" />
+            {/* Current weather skeleton */}
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Skeleton className="w-4 h-4 rounded" />
+              <Skeleton className="w-32 h-4" />
+            </div>
+            <Skeleton className="h-36 w-full rounded-xl" />
+            
+            {/* Recommendations skeleton */}
+            <Skeleton className="h-24 w-full rounded-xl" />
+            
+            {/* Hourly forecast skeleton */}
+            <Skeleton className="h-28 w-full rounded-xl" />
+            
+            {/* Daily forecast skeleton */}
+            <Skeleton className="h-48 w-full rounded-xl" />
+            
+            <p className="text-xs text-center text-muted-foreground animate-pulse">
+              {isRussian ? 'Загрузка прогноза погоды...' : 'Loading weather forecast...'}
+            </p>
           </div>
         ) : weatherDetails ? (
           <div className="space-y-4">

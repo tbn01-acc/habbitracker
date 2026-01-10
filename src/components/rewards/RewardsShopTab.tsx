@@ -41,6 +41,11 @@ import frameNeon from '@/assets/rewards/frame-neon.png';
 import frameDiamond from '@/assets/rewards/frame-diamond.png';
 import avatarPro from '@/assets/rewards/avatar-pro.png';
 import avatarRobot from '@/assets/rewards/avatar-robot.png';
+import avatarOwl from '@/assets/rewards/avatar-owl.png';
+import avatarNinja from '@/assets/rewards/avatar-ninja.png';
+import iconLightning from '@/assets/rewards/icon-lightning.png';
+import iconHeart from '@/assets/rewards/icon-heart.png';
+import iconRocket from '@/assets/rewards/icon-rocket.png';
 
 // HD image mapping by reward_value id
 const REWARD_IMAGES: Record<string, string> = {
@@ -63,8 +68,19 @@ const REWARD_IMAGES: Record<string, string> = {
   // Avatars
   'avatar_pro': avatarPro,
   'avatar_robot': avatarRobot,
+  'avatar_owl': avatarOwl,
+  'avatar_ninja': avatarNinja,
   'pro': avatarPro,
   'robot': avatarRobot,
+  'owl': avatarOwl,
+  'ninja': avatarNinja,
+  // Icons
+  'icon_lightning': iconLightning,
+  'icon_heart': iconHeart,
+  'icon_rocket': iconRocket,
+  'lightning': iconLightning,
+  'heart': iconHeart,
+  'rocket': iconRocket,
 };
 
 // Category filter config
