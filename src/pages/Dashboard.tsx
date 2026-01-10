@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Target, CheckSquare, Wallet, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -11,13 +11,16 @@ import { TodoSection } from "@/components/dashboard/TodoSection";
 import { FinanceWidget } from "@/components/dashboard/FinanceWidget";
 import { DayQualityRing } from "@/components/dashboard/DayQualityRing";
 import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
+import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { AppHeader } from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
+import { useOverdueTasks } from "@/hooks/useOverdueTasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { startOfDay, parseISO, isBefore } from "date-fns";
 
 export default function Dashboard() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -72,6 +75,36 @@ export default function Dashboard() {
   const todayIncome = todayTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
   const todayExpense = todayTransactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
 
+  // Calculate overdue items
+  const overdueStats = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    
+    // Overdue habits (not completed yesterday when scheduled)
+    const overdueHabits = habits.filter(h => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayDayOfWeek = yesterday.getDay();
+      return h.targetDays.includes(yesterdayDayOfWeek) && !h.completedDates.includes(yesterdayStr);
+    }).length;
+
+    // Overdue tasks
+    const overdueTasks = tasks.filter(t => {
+      if (t.completed || t.status === 'done') return false;
+      const dueDate = startOfDay(parseISO(t.dueDate));
+      return isBefore(dueDate, todayStart);
+    }).length;
+
+    // Overdue transactions
+    const overdueTransactions = transactions.filter(t => {
+      if (t.completed) return false;
+      const transDate = startOfDay(parseISO(t.date));
+      return isBefore(transDate, todayStart);
+    }).length;
+
+    return { overdueHabits, overdueTasks, overdueTransactions };
+  }, [habits, tasks, transactions]);
+
   // Calculate Day Quality (0-100)
   const totalItems = todayHabits.length + todayTasks.length + todayTransactions.length;
   const completedItems = completedHabits.length + completedTasks.length + completedTransactions.length;
@@ -109,6 +142,13 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Guest Mode Banner */}
         <GuestModeBanner />
+
+        {/* Overdue Widget */}
+        <OverdueWidget 
+          overdueHabits={overdueStats.overdueHabits}
+          overdueTasks={overdueStats.overdueTasks}
+          overdueTransactions={overdueStats.overdueTransactions}
+        />
 
         {/* Section: Сегодня with Day Quality Ring */}
         <div className="flex items-center justify-between mb-3">

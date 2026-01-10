@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { AdminReferrals } from '@/components/admin/AdminReferrals';
+import { usePromoCodes } from '@/hooks/usePromoCodes';
 import {
   Select,
   SelectContent,
@@ -61,16 +62,6 @@ interface AppStats {
   rewardsSpent: number;
 }
 
-interface PromoCode {
-  id: string;
-  code: string;
-  discount_percent: number;
-  valid_until: string;
-  max_uses: number;
-  current_uses: number;
-  is_active: boolean;
-}
-
 export default function Admin() {
   const { t, language } = useTranslation();
   const navigate = useNavigate();
@@ -93,9 +84,12 @@ export default function Admin() {
   const [docTitle, setDocTitle] = useState('');
   const [docContent, setDocContent] = useState('');
   
-  // Promo codes (mock data for now)
-  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
-  const [promoLoading, setPromoLoading] = useState(false);
+  // Promo codes
+  const { promoCodes, loading: promoLoading, createPromoCode, deletePromoCode, togglePromoCode } = usePromoCodes();
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoDiscount, setNewPromoDiscount] = useState('');
+  const [newPromoValidUntil, setNewPromoValidUntil] = useState('');
+  const [newPromoMaxUses, setNewPromoMaxUses] = useState('');
   
   // Settings sections
   const [bonusSettingsOpen, setBonusSettingsOpen] = useState(false);
@@ -655,33 +649,99 @@ export default function Admin() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder={isRussian ? 'Код' : 'Code'} />
-                    <Input type="number" placeholder={isRussian ? 'Скидка %' : 'Discount %'} />
+                    <Input 
+                      placeholder={isRussian ? 'Код (например, PROMO2024)' : 'Code (e.g., PROMO2024)'} 
+                      value={newPromoCode}
+                      onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                    />
+                    <Input 
+                      type="number" 
+                      placeholder={isRussian ? 'Скидка %' : 'Discount %'} 
+                      value={newPromoDiscount}
+                      onChange={(e) => setNewPromoDiscount(e.target.value)}
+                      min="0"
+                      max="100"
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <Input type="date" placeholder={isRussian ? 'Действует до' : 'Valid until'} />
-                    <Input type="number" placeholder={isRussian ? 'Макс. использований' : 'Max uses'} />
+                    <Input 
+                      type="date" 
+                      value={newPromoValidUntil}
+                      onChange={(e) => setNewPromoValidUntil(e.target.value)}
+                    />
+                    <Input 
+                      type="number" 
+                      placeholder={isRussian ? 'Макс. использований' : 'Max uses'} 
+                      value={newPromoMaxUses}
+                      onChange={(e) => setNewPromoMaxUses(e.target.value)}
+                      min="1"
+                    />
                   </div>
-                  <Button className="w-full">
+                  <Button 
+                    className="w-full"
+                    disabled={!newPromoCode || !newPromoDiscount}
+                    onClick={async () => {
+                      const success = await createPromoCode({
+                        code: newPromoCode,
+                        discount_percent: parseInt(newPromoDiscount) || 0,
+                        valid_until: newPromoValidUntil || null,
+                        max_uses: newPromoMaxUses ? parseInt(newPromoMaxUses) : null,
+                      });
+                      if (success) {
+                        setNewPromoCode('');
+                        setNewPromoDiscount('');
+                        setNewPromoValidUntil('');
+                        setNewPromoMaxUses('');
+                      }
+                    }}
+                  >
                     {isRussian ? 'Создать промо-код' : 'Create Promo Code'}
                   </Button>
                 </div>
                 
-                {promoCodes.length > 0 && (
+                {promoLoading ? (
+                  <div className="mt-4 flex justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : promoCodes.length > 0 ? (
                   <div className="mt-4 space-y-2">
                     {promoCodes.map(code => (
-                      <div key={code.id} className="flex items-center justify-between p-3 rounded-lg border">
-                        <div>
-                          <p className="font-mono font-bold">{code.code}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {code.discount_percent}% • {code.current_uses}/{code.max_uses}
+                      <div key={code.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono font-bold text-sm">{code.code}</p>
+                            <Badge variant="outline" className="text-xs">
+                              -{code.discount_percent}%
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {isRussian ? 'Использовано' : 'Used'}: {code.current_uses}
+                            {code.max_uses !== null ? `/${code.max_uses}` : ''}
+                            {code.valid_until && (
+                              <> • {isRussian ? 'до' : 'until'} {format(new Date(code.valid_until), 'dd.MM.yyyy')}</>
+                            )}
                           </p>
                         </div>
-                        <Badge variant={code.is_active ? 'default' : 'secondary'}>
-                          {code.is_active ? (isRussian ? 'Активен' : 'Active') : (isRussian ? 'Неактивен' : 'Inactive')}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={code.is_active}
+                            onCheckedChange={(checked) => togglePromoCode(code.id, checked)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => deletePromoCode(code.id)}
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 text-center py-6 text-muted-foreground text-sm">
+                    {isRussian ? 'Нет промо-кодов' : 'No promo codes'}
                   </div>
                 )}
               </CardContent>
