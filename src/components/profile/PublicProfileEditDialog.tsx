@@ -21,6 +21,7 @@ interface PublicProfileEditDialogProps {
     avatar_url: string | null;
     bio: string | null;
     telegram_username: string | null;
+    public_email: string | null;
   };
   onUpdate: () => void;
 }
@@ -36,6 +37,7 @@ export function PublicProfileEditDialog({
   const [avatarUrl, setAvatarUrl] = useState(currentData.avatar_url || '');
   const [bio, setBio] = useState(currentData.bio || '');
   const [telegramUsername, setTelegramUsername] = useState(currentData.telegram_username || '');
+  const [publicEmail, setPublicEmail] = useState(currentData.public_email || '');
   const [showGallery, setShowGallery] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -47,6 +49,7 @@ export function PublicProfileEditDialog({
       setAvatarUrl(currentData.avatar_url || '');
       setBio(currentData.bio || '');
       setTelegramUsername(currentData.telegram_username || '');
+      setPublicEmail(currentData.public_email || '');
     }
   }, [currentData, open]);
 
@@ -130,6 +133,14 @@ export function PublicProfileEditDialog({
         cleanTelegram = cleanTelegram.split('t.me/')[1];
       }
 
+      // Validate email format if provided
+      const cleanEmail = publicEmail.trim();
+      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        toast.error('Неверный формат email');
+        setSaving(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -137,6 +148,7 @@ export function PublicProfileEditDialog({
           avatar_url: avatarUrl || null,
           bio: bio.trim() || null,
           telegram_username: cleanTelegram || null,
+          public_email: cleanEmail || null,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId);
@@ -287,6 +299,26 @@ export function PublicProfileEditDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Введите username без @
+            </p>
+          </div>
+
+          {/* Email */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email для контактов</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                value={publicEmail}
+                onChange={(e) => setPublicEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="pl-9"
+                maxLength={100}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Виден только PRO-пользователям
             </p>
           </div>
         </div>

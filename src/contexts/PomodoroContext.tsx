@@ -17,6 +17,7 @@ interface PomodoroState {
   isRunning: boolean;
   currentTaskId?: string;
   currentSubtaskId?: string;
+  currentHabitId?: string;
   sessionStart?: string;
 }
 
@@ -29,7 +30,8 @@ interface PomodoroContextType {
   completedSessions: number;
   currentTaskId?: string;
   currentSubtaskId?: string;
-  start: (taskId?: string, subtaskId?: string) => void;
+  currentHabitId?: string;
+  start: (taskId?: string, subtaskId?: string, habitId?: string) => void;
   pause: () => void;
   reset: () => void;
   skip: () => void;
@@ -53,6 +55,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [completedSessions, setCompletedSessions] = useState(0);
   const [currentTaskId, setCurrentTaskId] = useState<string | undefined>();
   const [currentSubtaskId, setCurrentSubtaskId] = useState<string | undefined>();
+  const [currentHabitId, setCurrentHabitId] = useState<string | undefined>();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionStartRef = useRef<string | null>(null);
@@ -84,9 +87,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       try {
         const state: PomodoroState = JSON.parse(storedState);
         setCurrentPhase(state.currentPhase);
-        setIsRunning(state.isRunning);
-        setCurrentTaskId(state.currentTaskId);
-        setCurrentSubtaskId(state.currentSubtaskId);
+          setIsRunning(state.isRunning);
+          setCurrentTaskId(state.currentTaskId);
+          setCurrentSubtaskId(state.currentSubtaskId);
+          setCurrentHabitId(state.currentHabitId);
         
         if (state.isRunning && state.sessionStart) {
           sessionStartRef.current = state.sessionStart;
@@ -119,6 +123,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       isRunning,
       currentTaskId,
       currentSubtaskId,
+      currentHabitId,
       sessionStart: sessionStartRef.current || undefined,
     };
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -128,7 +133,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       key: STATE_KEY,
       newValue: JSON.stringify(state),
     }));
-  }, [currentPhase, timeLeft, isRunning, currentTaskId, currentSubtaskId]);
+  }, [currentPhase, timeLeft, isRunning, currentTaskId, currentSubtaskId, currentHabitId]);
 
   // Listen for storage changes from other components
   useEffect(() => {
@@ -141,6 +146,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
           setIsRunning(state.isRunning);
           setCurrentTaskId(state.currentTaskId);
           setCurrentSubtaskId(state.currentSubtaskId);
+          setCurrentHabitId(state.currentHabitId);
           if (state.sessionStart) {
             sessionStartRef.current = state.sessionStart;
           }
@@ -243,7 +249,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       saveSessions([...sessions, newSession]);
       
       // Award stars for completed pomodoro session (minimum 5 minutes)
-      if (durationMinutes >= 5 && currentTaskId) {
+      const referenceId = currentTaskId || currentHabitId;
+      const transactionType = currentHabitId ? 'habit_completion' : 'task_completion';
+      
+      if (durationMinutes >= 5 && referenceId) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
@@ -258,18 +267,20 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             
             const currentCount = dailyData?.verified_count || 0;
             if (currentCount < 10) {
-              // Award stars: 1 star per 5 minutes, max 5 per task
+              // Award stars: 1 star per 5 minutes, max 5 per session
               const starsToAward = Math.min(Math.floor(durationMinutes / 5), 5);
               
               if (starsToAward > 0) {
                 // Insert star transaction
                 await supabase.from('star_transactions').insert({
                   user_id: user.id,
-                  transaction_type: 'task_completion',
+                  transaction_type: transactionType,
                   amount: starsToAward,
-                  reference_id: currentTaskId,
+                  reference_id: referenceId,
                   timer_minutes: durationMinutes,
-                  description: `Pomodoro: ${durationMinutes} min`
+                  description: currentHabitId 
+                    ? `Pomodoro привычка: ${durationMinutes} мин` 
+                    : `Pomodoro: ${durationMinutes} min`
                 });
                 
                 // Update user stars
@@ -296,7 +307,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                   verified_count: currentCount + 1
                 }, { onConflict: 'user_id,activity_date' });
                 
-                console.log(`Awarded ${starsToAward} stars for ${durationMinutes} min pomodoro`);
+                console.log(`Awarded ${starsToAward} stars for ${durationMinutes} min pomodoro (${transactionType})`);
               }
             }
           }
@@ -306,7 +317,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       }
     }
     sessionStartRef.current = null;
-  }, [currentPhase, currentTaskId, currentSubtaskId, sessions, saveSessions]);
+  }, [currentPhase, currentTaskId, currentSubtaskId, currentHabitId, sessions, saveSessions]);
 
   const nextPhase = useCallback(() => {
     completeSession();
@@ -385,11 +396,12 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   // Save state when running state changes
   useEffect(() => {
     saveState();
-  }, [isRunning, currentPhase, currentTaskId, saveState]);
+  }, [isRunning, currentPhase, currentTaskId, currentHabitId, saveState]);
 
-  const start = useCallback((taskId?: string, subtaskId?: string) => {
+  const start = useCallback((taskId?: string, subtaskId?: string, habitId?: string) => {
     setCurrentTaskId(taskId);
     setCurrentSubtaskId(subtaskId);
+    setCurrentHabitId(habitId);
     sessionStartRef.current = new Date().toISOString();
     setIsRunning(true);
   }, []);
@@ -516,6 +528,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       completedSessions,
       currentTaskId,
       currentSubtaskId,
+      currentHabitId,
       start,
       pause,
       reset,

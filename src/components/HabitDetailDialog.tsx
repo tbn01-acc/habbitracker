@@ -1,7 +1,8 @@
-import { Calendar, Flame, Tag, Edit2, Trash2 } from 'lucide-react';
+import { Calendar, Flame, Tag, Edit2, Trash2, Timer } from 'lucide-react';
 import { Habit } from '@/types/habit';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
+import { usePomodoro } from '@/contexts/PomodoroContext';
 import { ProgressRing } from './ProgressRing';
 import { getTodayString, getWeekDates } from '@/hooks/useHabits';
 import {
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 
 interface HabitDetailDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ interface HabitDetailDialogProps {
 export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete, onTagClick }: HabitDetailDialogProps) {
   const { t } = useTranslation();
   const { tags: userTags } = useUserTags();
+  const { start: startPomodoro, isRunning } = usePomodoro();
   const weekDates = getWeekDates();
   
   const weekProgress = weekDates.filter(date => {
@@ -39,6 +42,16 @@ export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete,
   
   const progressPercent = weekTarget > 0 ? (weekProgress / weekTarget) * 100 : 0;
   const habitTags = userTags.filter(tag => habit.tagIds?.includes(tag.id));
+
+  const handleStartPomodoro = () => {
+    if (isRunning) {
+      toast.error('Pomodoro уже запущен');
+      return;
+    }
+    startPomodoro(undefined, undefined, habit.id);
+    toast.success('Pomodoro запущен!', { description: habit.name });
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,6 +154,16 @@ export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete,
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
+
+        <Button 
+          variant="outline" 
+          className="w-full mt-2"
+          onClick={handleStartPomodoro}
+          disabled={isRunning}
+        >
+          <Timer className="w-4 h-4 mr-2" />
+          Запустить Pomodoro
+        </Button>
       </DialogContent>
     </Dialog>
   );

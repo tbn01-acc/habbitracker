@@ -338,6 +338,7 @@ export type Database = {
           id: string
           is_banned: boolean | null
           is_public: boolean | null
+          public_email: string | null
           read_only_until: string | null
           referral_code: string | null
           referred_by: string | null
@@ -355,6 +356,7 @@ export type Database = {
           id?: string
           is_banned?: boolean | null
           is_public?: boolean | null
+          public_email?: string | null
           read_only_until?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           id?: string
           is_banned?: boolean | null
           is_public?: boolean | null
+          public_email?: string | null
           read_only_until?: string | null
           referral_code?: string | null
           referred_by?: string | null

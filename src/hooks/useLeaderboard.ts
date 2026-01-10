@@ -18,6 +18,7 @@ export interface PublicProfile {
   avatar_url: string | null;
   bio: string | null;
   telegram_username: string | null;
+  public_email: string | null;
   total_stars: number;
   current_streak_days: number;
   total_referrals: number;
@@ -35,7 +36,7 @@ export function useLeaderboard() {
     try {
       setLoading(true);
 
-      // Fetch top 100 users with stars
+      // Fetch more than 100 to account for banned users that will be filtered out
       const { data: starsData, error: starsError } = await supabase
         .from('user_stars')
         .select(`
@@ -44,7 +45,7 @@ export function useLeaderboard() {
           current_streak_days
         `)
         .order('total_stars', { ascending: false })
-        .limit(100);
+        .limit(200); // Fetch extra to ensure we have 100 after filtering
 
       if (starsError) throw starsError;
 
@@ -71,6 +72,7 @@ export function useLeaderboard() {
           const profile = profilesMap[s.user_id];
           return profile && !profile.is_banned;
         })
+        .slice(0, 100) // Take only first 100 after filtering banned users
         .map((s, index) => {
           const profile = profilesMap[s.user_id] || {};
           return {
@@ -145,7 +147,7 @@ export function useLeaderboard() {
       ] = await Promise.all([
         supabase
           .from('profiles')
-          .select('user_id, display_name, avatar_url, bio, telegram_username, is_public, is_banned')
+          .select('user_id, display_name, avatar_url, bio, telegram_username, public_email, is_public, is_banned')
           .eq('user_id', userId)
           .single(),
         supabase
@@ -167,6 +169,7 @@ export function useLeaderboard() {
         avatar_url: profile.avatar_url,
         bio: profile.bio,
         telegram_username: profile.telegram_username,
+        public_email: (profile as any).public_email || null,
         total_stars: stars?.total_stars || 0,
         current_streak_days: stars?.current_streak_days || 0,
         total_referrals: referrals?.length || 0,

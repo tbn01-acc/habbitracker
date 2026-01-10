@@ -462,6 +462,7 @@ export default function Rating() {
         open={showContactsDialog}
         onOpenChange={setShowContactsDialog}
         telegramUsername={contactsProfile?.telegram_username || null}
+        email={contactsProfile?.public_email || null}
         displayName={contactsProfile?.display_name || null}
       />
 
@@ -540,10 +541,11 @@ export default function Rating() {
           onOpenChange={setShowProfileEditDialog}
           userId={user.id}
           currentData={{
-            display_name: profile.display_name,
-            avatar_url: profile.avatar_url,
-            bio: (profile as any).bio || null,
-            telegram_username: (profile as any).telegram_username || null
+            display_name: profile.display_name || '',
+            avatar_url: profile.avatar_url || '',
+            bio: (profile as any).bio || '',
+            telegram_username: (profile as any).telegram_username || '',
+            public_email: (profile as any).public_email || ''
           }}
           onUpdate={() => {
             // Refetch profile data
