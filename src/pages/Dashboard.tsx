@@ -152,6 +152,12 @@ export default function Dashboard() {
           overdueHabits={overdueStats.overdueHabits}
           overdueTasks={overdueStats.overdueTasks}
           overdueTransactions={overdueStats.overdueTransactions}
+          habits={habits}
+          tasks={tasks}
+          transactions={transactions}
+          onCompleteHabit={toggleHabitCompletion}
+          onCompleteTask={toggleTaskCompletion}
+          onCompleteTransaction={toggleTransactionCompletion}
         />
 
         {/* Section: Сегодня with Day Quality Ring */}
