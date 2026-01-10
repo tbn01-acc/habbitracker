@@ -14,14 +14,12 @@ interface CalendarViewNewProps {
   habits: Habit[];
   onToggle: (habitId: string, date: string) => void;
   initialPeriod?: Period;
-  firstDayOfWeek?: 0 | 1; // 0 = Sunday, 1 = Monday
 }
 
 export function CalendarViewNew({ 
   habits, 
   onToggle, 
-  initialPeriod = '7',
-  firstDayOfWeek = 1 
+  initialPeriod = '7'
 }: CalendarViewNewProps) {
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const [viewStartDate, setViewStartDate] = useState<Date>(new Date());
@@ -29,6 +27,9 @@ export function CalendarViewNew({
   const { profile } = useAuth();
 
   const locale = language === 'ru' ? ru : language === 'es' ? es : enUS;
+  
+  // Get first day of week from user profile (default to Monday = 1)
+  const firstDayOfWeek = ((profile as any)?.first_day_of_week ?? 1) as 0 | 1;
 
   // Get user registration date (minimum date)
   const registrationDate = useMemo(() => {

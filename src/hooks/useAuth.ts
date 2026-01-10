@@ -61,6 +61,12 @@ export function useAuth() {
     }
   };
 
+  const refetchProfile = () => {
+    if (user?.id) {
+      fetchProfile(user.id);
+    }
+  };
+
   const signInWithEmail = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -122,5 +128,6 @@ export function useAuth() {
     signInWithGoogle,
     signInWithGitHub,
     signOut,
+    refetchProfile,
   };
 }

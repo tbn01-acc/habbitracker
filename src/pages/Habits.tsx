@@ -282,7 +282,6 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                   habits={filteredHabits} 
                   onToggle={toggleHabitCompletion}
                   initialPeriod="7"
-                  firstDayOfWeek={1}
                 />
               </motion.div>
             )}

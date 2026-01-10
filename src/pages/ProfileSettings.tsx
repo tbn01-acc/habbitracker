@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings } from 'lucide-react';
+import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings, Sliders } from 'lucide-react';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
 import { CommonTagsManager } from '@/components/profile/CommonTagsManager';
 import { SettingsSection } from '@/components/profile/SettingsSection';
 import { ThemeSwitcher } from '@/components/profile/ThemeSwitcher';
+import { ProfilePreferencesSection } from '@/components/profile/ProfilePreferencesSection';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -152,6 +153,24 @@ export default function ProfileSettings() {
           className="mt-8"
         >
           <ThemeSwitcher />
+        </motion.div>
+
+        {/* Profile Preferences (First day of week, Frames, Badges) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+          className="mt-8"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+              <Sliders className="w-4 h-4 text-indigo-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {isRussian ? 'Персонализация' : 'Personalization'}
+            </h2>
+          </div>
+          <ProfilePreferencesSection />
         </motion.div>
 
         {/* Common Tags */}

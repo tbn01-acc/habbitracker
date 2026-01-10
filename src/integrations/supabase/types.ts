@@ -329,12 +329,15 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_badges: string[] | null
+          active_frame: string | null
           avatar_url: string | null
           ban_count: number | null
           ban_until: string | null
           bio: string | null
           created_at: string
           display_name: string | null
+          first_day_of_week: number | null
           id: string
           is_banned: boolean | null
           is_public: boolean | null
@@ -347,12 +350,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_badges?: string[] | null
+          active_frame?: string | null
           avatar_url?: string | null
           ban_count?: number | null
           ban_until?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          first_day_of_week?: number | null
           id?: string
           is_banned?: boolean | null
           is_public?: boolean | null
@@ -365,12 +371,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_badges?: string[] | null
+          active_frame?: string | null
           avatar_url?: string | null
           ban_count?: number | null
           ban_until?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          first_day_of_week?: number | null
           id?: string
           is_banned?: boolean | null
           is_public?: boolean | null
