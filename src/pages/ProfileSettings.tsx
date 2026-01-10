@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings, Sliders } from 'lucide-react';
+import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings, Sliders, Volume2, Sparkles } from 'lucide-react';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { ProfileEditDialog } from '@/components/profile/ProfileEditDialog';
@@ -14,9 +14,12 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useCelebrationSettings } from '@/hooks/useCelebrationSettings';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export default function ProfileSettings() {
   const { t, language } = useTranslation();
@@ -24,6 +27,7 @@ export default function ProfileSettings() {
   const { user, profile, signOut, loading } = useAuth();
   const { isSyncing, syncAll, syncHistory } = useSupabaseSync();
   const { subscription, currentPlan, isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
+  const { soundEnabled, confettiEnabled, setSoundEnabled, setConfettiEnabled } = useCelebrationSettings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const isRussian = language === 'ru';
 
@@ -171,6 +175,53 @@ export default function ProfileSettings() {
             </h2>
           </div>
           <ProfilePreferencesSection />
+        </motion.div>
+
+        {/* Celebration Settings */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.24 }}
+          className="mt-8"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-yellow-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {isRussian ? 'Эффекты' : 'Effects'}
+            </h2>
+          </div>
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Volume2 className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="sound-enabled" className="text-sm font-medium">
+                    {isRussian ? 'Звуковые эффекты' : 'Sound effects'}
+                  </Label>
+                </div>
+                <Switch
+                  id="sound-enabled"
+                  checked={soundEnabled}
+                  onCheckedChange={setSoundEnabled}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="confetti-enabled" className="text-sm font-medium">
+                    {isRussian ? 'Анимация конфетти' : 'Confetti animation'}
+                  </Label>
+                </div>
+                <Switch
+                  id="confetti-enabled"
+                  checked={confettiEnabled}
+                  onCheckedChange={setConfettiEnabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Common Tags */}

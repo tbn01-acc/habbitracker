@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Info, FileText, Shield, Lock, ScrollText, HelpCircle, Settings, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Info, FileText, Shield, Lock, ScrollText, HelpCircle, Settings, ChevronRight, Newspaper } from 'lucide-react';
 import { LegalDocumentDialog } from '@/components/profile/LegalDocumentDialog';
 import { UserPermissionsDialog } from '@/components/profile/UserPermissionsDialog';
 import { AppHeader } from '@/components/AppHeader';
@@ -60,6 +60,21 @@ export default function AboutApp() {
         >
           <Card>
             <CardContent className="p-0">
+              {/* News Link */}
+              <Button
+                variant="ghost"
+                className="w-full justify-between p-4 h-auto rounded-none border-b border-border"
+                onClick={() => navigate('/news')}
+              >
+                <div className="flex items-center gap-3">
+                  <Newspaper className="w-5 h-5 text-blue-500" />
+                  <span className="text-sm font-medium">
+                    {isRussian ? 'Новости Top-Focus' : 'Top-Focus News'}
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Button>
+
               {legalItems.map((item, idx) => (
                 <Button
                   key={item.type}

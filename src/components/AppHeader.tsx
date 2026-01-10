@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Trophy, Star, Flame } from 'lucide-react';
+import { Gift, Trophy, Newspaper, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useWeather, getWeatherIcon } from '@/hooks/useWeather';
@@ -45,7 +45,7 @@ export function AppHeader() {
               <UserBadges badgeIds={activeBadges} maxDisplay={2} size="sm" />
             </div>
 
-            {/* Center: Weather + Stars */}
+            {/* Center: Weather + Streak */}
             <div className="flex items-center gap-3">
               {!weatherLoading && weather && (
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -54,30 +54,33 @@ export function AppHeader() {
                 </div>
               )}
               
-              {/* Stars & Streak Display */}
-              {userStars && (
-                <motion.div 
-                  className="flex items-center gap-2 cursor-pointer"
-                  onClick={() => navigate('/star-history')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Badge variant="secondary" className="gap-1 px-2 py-1">
-                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="font-semibold text-sm">{userStars.total_stars}</span>
-                  </Badge>
-                  {userStars.current_streak_days > 0 && (
-                    <Badge variant="outline" className="gap-1 px-2 py-1 border-orange-500/50">
-                      <Flame className="h-3.5 w-3.5 text-orange-500" />
-                      <span className="font-semibold text-sm">{userStars.current_streak_days}</span>
-                    </Badge>
-                  )}
-                </motion.div>
+              {/* Streak Display only */}
+              {userStars && userStars.current_streak_days > 0 && (
+                <Badge variant="outline" className="gap-1 px-2 py-1 border-orange-500/50">
+                  <Flame className="h-3.5 w-3.5 text-orange-500" />
+                  <span className="font-semibold text-sm">{userStars.current_streak_days}</span>
+                </Badge>
               )}
             </div>
 
-            {/* Right: Rating + Theme + Invite */}
+            {/* Right: News + Rating + Theme + Invite */}
             <div className="flex items-center gap-1 sm:gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/news')}
+                    className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                  >
+                    <Newspaper className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Новости
+                </TooltipContent>
+              </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

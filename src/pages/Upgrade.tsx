@@ -45,6 +45,15 @@ const proFeatures = [
   { ru: 'Все 10 мини-приложений', en: 'All 10 mini-apps' },
 ];
 
+const freeFeatures = [
+  { ru: 'До 3 привычек', en: 'Up to 3 habits', limit: true },
+  { ru: 'До 10 задач', en: 'Up to 10 tasks', limit: true },
+  { ru: 'До 20 финансовых операций', en: 'Up to 20 transactions', limit: true },
+  { ru: 'Локальное хранение данных', en: 'Local data storage' },
+  { ru: 'Базовая статистика', en: 'Basic statistics' },
+  { ru: '3 мини-приложения', en: '3 mini-apps' },
+];
+
 export default function Upgrade() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -124,7 +133,33 @@ export default function Upgrade() {
           </motion.div>
         )}
 
-        {/* Features */}
+        {/* FREE Plan */}
+        <Card className="mb-6 border-muted">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                🆓 FREE
+              </span>
+              <Badge variant="outline">
+                {isRussian ? 'Текущий' : 'Current'}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2">
+              {freeFeatures.map((feature, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-sm">
+                  <span className={`w-4 h-4 flex-shrink-0 ${feature.limit ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                    {feature.limit ? '⚠️' : '✓'}
+                  </span>
+                  <span className="text-muted-foreground">{isRussian ? feature.ru : feature.en}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PRO Features */}
         <Card className="mb-6 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">

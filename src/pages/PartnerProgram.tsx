@@ -223,7 +223,7 @@ export default function PartnerProgram() {
             <div className="grid grid-cols-2 gap-3">
               <Card 
                 className="cursor-pointer hover:ring-2 hover:ring-green-500/30 transition-all"
-                onClick={() => stats.activeReferrals > 0 && setShowActiveList(true)}
+                onClick={() => setShowActiveList(true)}
               >
                 <CardContent className="pt-4 text-center">
                   <div className="text-2xl font-bold text-green-500">{stats.activeReferrals}</div>
@@ -234,7 +234,7 @@ export default function PartnerProgram() {
               </Card>
               <Card 
                 className="cursor-pointer hover:ring-2 hover:ring-amber-500/30 transition-all"
-                onClick={() => stats.paidReferrals > 0 && setShowPaidList(true)}
+                onClick={() => setShowPaidList(true)}
               >
                 <CardContent className="pt-4 text-center">
                   <div className="text-2xl font-bold text-amber-500">{stats.paidReferrals}</div>
@@ -496,6 +496,8 @@ function ReferralsListModal({
   filterType: 'active' | 'paid';
 }) {
   const navigate = useNavigate();
+  const { language } = useTranslation();
+  const isRussian = language === 'ru';
   const [referrals, setReferrals] = useState<Array<{ id: string; displayName: string; userId: string }>>([]);
   const [loading, setLoading] = useState(false);
 
@@ -569,14 +571,49 @@ function ReferralsListModal({
         </div>
         
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          <div className="text-center py-8 text-muted-foreground">
+            {isRussian ? 'Загрузка...' : 'Loading...'}
+          </div>
         ) : referrals.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No referrals</div>
+          <div className="text-center py-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground mb-4">
+              {filterType === 'active' 
+                ? (isRussian ? 'Пока нет активных рефералов' : 'No active referrals yet')
+                : (isRussian ? 'Пока никто не оплатил подписку' : 'No paid referrals yet')
+              }
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {isRussian 
+                ? '🚀 Приглашайте друзей и зарабатывайте до 30% с каждой их оплаты!' 
+                : '🚀 Invite friends and earn up to 30% from their payments!'}
+            </p>
+            <div className="p-4 rounded-lg bg-muted/50 text-left space-y-2 text-sm">
+              <p className="font-medium">{isRussian ? 'Правила программы:' : 'Program rules:'}</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>• {isRussian ? '20% комиссия (1-50 рефералов)' : '20% commission (1-50 referrals)'}</li>
+                <li>• {isRussian ? '30% комиссия (51+ рефералов)' : '30% commission (51+ referrals)'}</li>
+                <li>• {isRussian ? '+500₽ за каждые 10 оплативших' : '+500₽ for every 10 paid'}</li>
+                <li>• {isRussian ? '+1000₽ за 50 оплативших' : '+1000₽ for 50 paid'}</li>
+              </ul>
+              <button 
+                onClick={() => { onClose(); navigate('/partner-program?tab=calculator'); }}
+                className="mt-3 text-primary underline text-sm"
+              >
+                {isRussian ? '📊 Открыть калькулятор дохода' : '📊 Open earnings calculator'}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
-            {referrals.map(referral => (
-              <button
+            {referrals.map((referral, index) => (
+              <motion.button
                 key={referral.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
                 onClick={() => handleReferralClick(referral.userId)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors text-left"
               >
@@ -584,7 +621,7 @@ function ReferralsListModal({
                   <Users className="w-5 h-5 text-primary" />
                 </div>
                 <span className="font-medium">{referral.displayName}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
         )}

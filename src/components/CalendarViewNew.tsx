@@ -237,18 +237,18 @@ export function CalendarViewNew({
                     const isDisabled = isBeforeRegistration(day);
                     const isFuture = isBefore(new Date(), day) && !isSameDay(new Date(), day);
                     
-                    return (
+                      return (
                       <button
                         key={day.toISOString()}
                         onClick={() => !isDisabled && handleToggle(habit.id, day)}
                         disabled={isDisabled}
                         title={format(day, 'd MMM')}
                         className={cn(
-                          "w-[10px] h-[10px] rounded-sm transition-all mx-auto border",
-                          "hover:scale-125 active:scale-95",
+                          "w-[25px] h-[25px] rounded-full transition-all mx-auto border-2",
+                          "hover:scale-110 active:scale-95",
                           isDisabled && "opacity-30 cursor-not-allowed",
                           isCompleted
-                            ? "bg-primary border-primary shadow-sm shadow-primary/30"
+                            ? "bg-primary border-primary shadow-md shadow-primary/30"
                             : isToday
                             ? "bg-primary/20 border-primary"
                             : isFuture

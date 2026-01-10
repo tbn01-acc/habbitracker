@@ -138,11 +138,15 @@ export function RewardsShopTab({
   };
 
   const handleItemPreview = (reward: ShopReward) => {
-    const rewardValue = reward.reward_value as { frame_id?: string; badge_id?: string } | null;
+    const rewardValue = reward.reward_value as { frame_id?: string; badge_id?: string; icon_id?: string; avatar_id?: string } | null;
     if (reward.reward_type === 'frame' && rewardValue?.frame_id) {
       setPreviewItem({ type: 'frame', id: rewardValue.frame_id });
     } else if (reward.reward_type === 'badge' && rewardValue?.badge_id) {
       setPreviewItem({ type: 'badge', id: rewardValue.badge_id });
+    } else if (reward.reward_type === 'icon') {
+      setPreviewItem({ type: 'frame', id: 'icon_preview' });
+    } else if (reward.reward_type === 'avatar') {
+      setPreviewItem({ type: 'frame', id: 'avatar_preview' });
     }
   };
 
@@ -225,7 +229,7 @@ export function RewardsShopTab({
               {filteredRewards.map((reward, index) => {
                 const canAfford = userStars >= reward.price_stars;
                 const isTheme = reward.reward_type === 'theme';
-                const isFrameOrBadge = reward.reward_type === 'frame' || reward.reward_type === 'badge';
+                const isPreviewable = ['frame', 'badge', 'icon', 'avatar'].includes(reward.reward_type);
                 
                 return (
                   <motion.div
@@ -243,7 +247,7 @@ export function RewardsShopTab({
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              {isTheme || isFrameOrBadge ? (
+                              {isTheme || isPreviewable ? (
                                 <button
                                   className="font-semibold hover:text-primary transition-colors text-left"
                                   onClick={() => isTheme ? handleThemePreview(reward) : handleItemPreview(reward)}
@@ -253,7 +257,7 @@ export function RewardsShopTab({
                               ) : (
                                 <h3 className="font-semibold truncate">{reward.name}</h3>
                               )}
-                              {(isTheme || isFrameOrBadge) && (
+                              {(isTheme || isPreviewable) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"

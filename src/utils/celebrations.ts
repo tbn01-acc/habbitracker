@@ -1,4 +1,5 @@
 import confetti from 'canvas-confetti';
+import { getCelebrationSettings } from '@/hooks/useCelebrationSettings';
 
 // Sound effects URLs (using base64 for small sounds or CDN)
 const SOUNDS = {
@@ -18,6 +19,9 @@ function getAudio(soundType: keyof typeof SOUNDS): HTMLAudioElement {
 }
 
 export function playSuccessSound() {
+  const settings = getCelebrationSettings();
+  if (!settings.soundEnabled) return;
+  
   try {
     const audio = getAudio('success');
     audio.currentTime = 0;
@@ -28,6 +32,9 @@ export function playSuccessSound() {
 }
 
 export function playPurchaseSound() {
+  const settings = getCelebrationSettings();
+  if (!settings.soundEnabled) return;
+  
   try {
     const audio = getAudio('purchase');
     audio.currentTime = 0;
@@ -38,30 +45,48 @@ export function playPurchaseSound() {
 }
 
 export function triggerCompletionCelebration() {
-  playSuccessSound();
+  const settings = getCelebrationSettings();
   
-  confetti({
-    particleCount: 50,
-    spread: 60,
-    origin: { y: 0.7 },
-    colors: ['#10b981', '#22c55e', '#4ade80'],
-    scalar: 0.8,
-  });
+  if (settings.soundEnabled) {
+    playSuccessSound();
+  }
+  
+  if (settings.confettiEnabled) {
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.7 },
+      colors: ['#10b981', '#22c55e', '#4ade80'],
+      scalar: 0.8,
+    });
+  }
 }
 
 export function triggerPurchaseCelebration() {
-  playPurchaseSound();
+  const settings = getCelebrationSettings();
   
-  confetti({
-    particleCount: 80,
-    spread: 70,
-    origin: { y: 0.6 },
-    colors: ['#fbbf24', '#8b5cf6', '#10b981', '#3b82f6'],
-  });
+  if (settings.soundEnabled) {
+    playPurchaseSound();
+  }
+  
+  if (settings.confettiEnabled) {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#fbbf24', '#8b5cf6', '#10b981', '#3b82f6'],
+    });
+  }
 }
 
 export function triggerBigCelebration() {
-  playSuccessSound();
+  const settings = getCelebrationSettings();
+  
+  if (settings.soundEnabled) {
+    playSuccessSound();
+  }
+  
+  if (!settings.confettiEnabled) return;
   
   const duration = 1500;
   const end = Date.now() + duration;

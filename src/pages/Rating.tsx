@@ -120,6 +120,21 @@ export default function Rating() {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Stars History Link */}
+            {userStars && (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="cursor-pointer"
+                onClick={() => window.location.href = '/star-history'}
+              >
+                <Badge variant="secondary" className="text-lg px-3 py-1 gap-1">
+                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  {userStars.total_stars}
+                </Badge>
+              </motion.div>
+            )}
+
             {user && (
               <Button
                 variant="outline"
@@ -128,13 +143,6 @@ export default function Rating() {
               >
                 <Settings className="h-4 w-4" />
               </Button>
-            )}
-            
-            {userStars && (
-              <Badge variant="secondary" className="text-lg px-3 py-1">
-                <Star className="h-4 w-4 mr-1 text-yellow-500 fill-yellow-500" />
-                {userStars.total_stars}
-              </Badge>
             )}
           </div>
         </div>

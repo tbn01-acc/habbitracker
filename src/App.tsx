@@ -20,6 +20,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import Achievements from "./pages/Achievements";
 import PartnerProgram from "./pages/PartnerProgram";
 import AboutApp from "./pages/AboutApp";
+import News from "./pages/News";
 import Auth from "./pages/Auth";
 import Upgrade from "./pages/Upgrade";
 import Admin from "./pages/Admin";
@@ -78,6 +79,7 @@ const AppContent = () => {
         <Route path="/achievements" element={<Achievements />} />
         <Route path="/partner-program" element={<PartnerProgram />} />
         <Route path="/about" element={<AboutApp />} />
+        <Route path="/news" element={<News />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/upgrade" element={<Upgrade />} />
         <Route path="/admin" element={<Admin />} />
