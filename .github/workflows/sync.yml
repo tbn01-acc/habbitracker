@@ -1,20 +1,32 @@
-name: Sync to Project B
+name: Force Sync to Main Repo
 on:
   push:
     branches:
-      - main
+      - main  # Запускается при каждом пуше в основную ветку
 
 jobs:
-  sync:
+  force-sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Важно для получения всей истории
           token: ${{ secrets.SYNC_TOKEN }}
 
-      - name: Push to Project B
+      - name: Force Push to Target
         run: |
-          git remote add destination https://x-access-token:${{ secrets.SYNC_TOKEN }}@github.com/tbn01-acc/habbitracker-cff940fb.git
-          git push destination main --force
+          # 1. Настройка личности автора для Vercel (ваш email)
+          git config user.name "tbn01-acc"
+          git config user.email "tbn01.acc@gmail.com"
+          
+          # 2. Переподпись последнего коммита для прав деплоя
+          git commit --amend --no-edit --reset-author --allow-empty
+          
+          # 3. Добавление целевого репозитория
+          # Используем ваш секрет SYNC_TOKEN для доступа
+          git remote add target https://x-access-token:${{ secrets.SYNC_TOKEN }}@github.com/tbn01-acc/habbitracker.git
+          
+          # 4. Принудительный импорт (Force Push)
+          # Это удалит всё старое в целевом репо и запишет текущий код
+          git push target main --force
