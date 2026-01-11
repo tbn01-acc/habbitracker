@@ -12,13 +12,15 @@ import { ViewTabs, ViewType } from '@/components/ViewTabs';
 import { CalendarViewNew } from '@/components/CalendarViewNew';
 import { ProgressView } from '@/components/ProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
-import { ExportButtons } from '@/components/ExportButtons';
+import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { exportHabitsToCSV, exportHabitsToPDF } from '@/utils/exportData';
+import { exportHabitsToICS } from '@/utils/icsExport';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -50,6 +52,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
   // Usage limits
   const { getHabitsLimit } = useUsageLimits();
   const habitsLimit = getHabitsLimit(habits.length);
+  const { syncHabit } = useGoogleCalendar();
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -129,7 +132,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
           }
           rightAction={
             <div className="flex items-center gap-1">
-              <ExportButtons
+              <CalendarExportButtons
                 onExportCSV={() => {
                   exportHabitsToCSV(habits, t as unknown as Record<string, string>);
                   toast.success(t('exportSuccess'));
@@ -137,7 +140,16 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 onExportPDF={() => {
                   exportHabitsToPDF(habits, t as unknown as Record<string, string>);
                 }}
+                onExportICS={() => {
+                  exportHabitsToICS(habits);
+                }}
+                onSyncGoogle={async () => {
+                  for (const habit of habits) {
+                    await syncHabit(habit);
+                  }
+                }}
                 accentColor="hsl(var(--habit))"
+                type="habits"
               />
               <Button
                 variant="ghost"

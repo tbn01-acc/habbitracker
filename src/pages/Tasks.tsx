@@ -18,12 +18,14 @@ import { TaskCalendarView } from '@/components/TaskCalendarView';
 import { TaskFilters } from '@/components/TaskFilters';
 import { PeriodSelector } from '@/components/PeriodSelector';
 import { PageHeader } from '@/components/PageHeader';
-import { ExportButtons } from '@/components/ExportButtons';
+import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { exportTasksToCSV, exportTasksToPDF } from '@/utils/exportData';
+import { exportTasksToICS } from '@/utils/icsExport';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -51,6 +53,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   const timeTracker = useTimeTracker();
   const { getTasksLimit } = useUsageLimits();
   const tasksLimit = getTasksLimit(tasks.length);
+  const { syncTask } = useGoogleCalendar();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -158,7 +161,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
           }
           rightAction={
             <div className="flex items-center gap-1">
-              <ExportButtons
+              <CalendarExportButtons
                 onExportCSV={() => {
                   exportTasksToCSV(tasks, t as unknown as Record<string, string>);
                   toast.success(t('exportSuccess'));
@@ -166,7 +169,25 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                 onExportPDF={() => {
                   exportTasksToPDF(tasks, t as unknown as Record<string, string>);
                 }}
+                onExportICS={() => {
+                  const tasksForExport = tasks.filter(t => t.dueDate).map(task => ({
+                    id: task.id,
+                    name: task.name,
+                    icon: task.icon,
+                    dueDate: task.dueDate,
+                    dueTime: undefined,
+                    description: task.notes,
+                    completed: task.completed
+                  }));
+                  exportTasksToICS(tasksForExport);
+                }}
+                onSyncGoogle={async () => {
+                  for (const task of tasks) {
+                    await syncTask(task);
+                  }
+                }}
                 accentColor="hsl(var(--task))"
+                type="tasks"
               />
               <Button
                 variant="ghost"

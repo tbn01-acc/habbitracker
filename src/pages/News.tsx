@@ -21,6 +21,20 @@ interface NewsItem {
 
 const newsItems: NewsItem[] = [
   {
+    id: 'postpone',
+    date: '2025-01-11',
+    title: { 
+      ru: 'Перенос сроков привычек и задач!', 
+      en: 'Postpone habits and tasks deadlines!' 
+    },
+    content: { 
+      ru: 'Теперь можно перенести срок выполнения привычки или задачи до 2 раз (на день/3 дня/неделю). После 2 переносов — в Архив или удаление!', 
+      en: 'Now you can postpone a habit or task deadline up to 2 times (1 day/3 days/week). After 2 postpones — archive or delete!' 
+    },
+    type: 'feature',
+    icon: <CalendarRange className="w-5 h-5 text-amber-500" />
+  },
+  {
     id: 'gcal',
     date: '2025-01-11',
     title: { 

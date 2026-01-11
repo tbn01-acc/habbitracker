@@ -51,6 +51,10 @@ export interface Task {
   subtasks: SubTask[];
   attachments: TaskAttachment[];
   notes?: string;
+  // Postpone feature
+  postponeCount?: number;
+  postponedUntil?: string;
+  archivedAt?: string;
 }
 
 export const TASK_ICONS = [

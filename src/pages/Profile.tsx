@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Info } from 'lucide-react';
+import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Info, Archive } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 interface TileProps {
@@ -55,6 +56,7 @@ export default function Profile() {
   const { language } = useTranslation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { isProActive } = useSubscription();
   const isRussian = language === 'ru';
 
   const handleTileClick = (path: string, requiresAuth: boolean) => {
@@ -111,7 +113,7 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* 2x2 Tile Grid */}
+        {/* 2x2 Tile Grid + Archive tile for PRO */}
         <div className="grid grid-cols-2 gap-4" style={{ minHeight: 'calc(100vh - 300px)' }}>
           <ProfileTile
             icon={<Settings className="w-6 h-6 text-white" />}
@@ -150,6 +152,18 @@ export default function Profile() {
             onClick={() => navigate('/upgrade')}
             delay={0.3}
           />
+
+          {/* Archive tile - PRO only */}
+          {user && isProActive && (
+            <ProfileTile
+              icon={<Archive className="w-6 h-6 text-white" />}
+              title={isRussian ? 'Архив' : 'Archive'}
+              subtitle={isRussian ? 'История привычек и задач' : 'Habits & tasks history'}
+              gradient="from-slate-600 to-slate-500"
+              onClick={() => navigate('/archive')}
+              delay={0.4}
+            />
+          )}
         </div>
       </div>
     </div>
