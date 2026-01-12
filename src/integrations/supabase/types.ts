@@ -115,6 +115,7 @@ export type Database = {
       }
       habits: {
         Row: {
+          archived_at: string | null
           category_id: string | null
           color: string | null
           completed_dates: string[]
@@ -122,6 +123,8 @@ export type Database = {
           icon: string | null
           id: string
           name: string
+          postpone_count: number | null
+          postponed_until: string | null
           streak: number
           tags: string[] | null
           target_days: number[]
@@ -129,6 +132,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           category_id?: string | null
           color?: string | null
           completed_dates?: string[]
@@ -136,6 +140,8 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
+          postpone_count?: number | null
+          postponed_until?: string | null
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -143,6 +149,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           category_id?: string | null
           color?: string | null
           completed_dates?: string[]
@@ -150,6 +157,8 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
+          postpone_count?: number | null
+          postponed_until?: string | null
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -223,36 +232,42 @@ export type Database = {
           habit_notification_enabled: boolean
           habit_notification_time: string
           id: string
+          overdue_notification_enabled: boolean | null
           push_token: string | null
           task_notification_days_before: number
           task_notification_enabled: boolean
           task_notification_time: string
           updated_at: string
           user_id: string
+          weather_notification_enabled: boolean | null
         }
         Insert: {
           created_at?: string
           habit_notification_enabled?: boolean
           habit_notification_time?: string
           id?: string
+          overdue_notification_enabled?: boolean | null
           push_token?: string | null
           task_notification_days_before?: number
           task_notification_enabled?: boolean
           task_notification_time?: string
           updated_at?: string
           user_id: string
+          weather_notification_enabled?: boolean | null
         }
         Update: {
           created_at?: string
           habit_notification_enabled?: boolean
           habit_notification_time?: string
           id?: string
+          overdue_notification_enabled?: boolean | null
           push_token?: string | null
           task_notification_days_before?: number
           task_notification_enabled?: boolean
           task_notification_time?: string
           updated_at?: string
           user_id?: string
+          weather_notification_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -908,6 +923,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          archived_at: string | null
           attachments: Json | null
           category_id: string | null
           completed: boolean
@@ -918,6 +934,8 @@ export type Database = {
           icon: string | null
           id: string
           name: string
+          postpone_count: number | null
+          postponed_until: string | null
           priority: string
           recurrence: string | null
           status: string
@@ -927,6 +945,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           attachments?: Json | null
           category_id?: string | null
           completed?: boolean
@@ -937,6 +956,8 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
+          postpone_count?: number | null
+          postponed_until?: string | null
           priority?: string
           recurrence?: string | null
           status?: string
@@ -946,6 +967,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           attachments?: Json | null
           category_id?: string | null
           completed?: boolean
@@ -956,6 +978,8 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
+          postpone_count?: number | null
+          postponed_until?: string | null
           priority?: string
           recurrence?: string | null
           status?: string

@@ -22,6 +22,7 @@ import { exportHabitsToCSV, exportHabitsToPDF } from '@/utils/exportData';
 import { exportHabitsToICS } from '@/utils/icsExport';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
+import { addDays, format } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +62,11 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
   const [activeView, setActiveView] = useState<ViewType>('habits');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isRussian = language === 'ru';
+
+  // Filter out archived habits
+  const activeHabits = habits.filter(h => !h.archivedAt);
 
   const handleSaveHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'completedDates' | 'streak'>) => {
     if (editingHabit) {
@@ -69,7 +74,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     } else {
       // Check limit before adding
       if (!habitsLimit.canAdd) {
-        toast.error(t('language') === 'ru' ? 'Достигнут лимит привычек. Перейдите на PRO!' : 'Habit limit reached. Upgrade to PRO!');
+        toast.error(isRussian ? 'Достигнут лимит привычек. Перейдите на PRO!' : 'Habit limit reached. Upgrade to PRO!');
         return;
       }
       addHabit(habitData);
@@ -95,8 +100,40 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     }
   };
 
-  // Filter habits
-  const filteredHabits = habits.filter(habit => {
+  // Postpone handler
+  const handlePostpone = (habitId: string, days: number) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const newPostponeCount = (habit.postponeCount || 0) + 1;
+    const postponedUntil = format(addDays(new Date(), days), 'yyyy-MM-dd');
+
+    updateHabit(habitId, {
+      ...habit,
+      postponeCount: newPostponeCount,
+      postponedUntil,
+    });
+
+    toast.success(isRussian 
+      ? `Привычка перенесена на ${days} дн.` 
+      : `Habit postponed by ${days} days`);
+  };
+
+  // Archive handler
+  const handleArchive = (habitId: string) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    updateHabit(habitId, {
+      ...habit,
+      archivedAt: new Date().toISOString(),
+    });
+
+    toast.success(isRussian ? 'Привычка перемещена в архив' : 'Habit moved to archive');
+  };
+
+  // Filter habits (excluding archived)
+  const filteredHabits = activeHabits.filter(habit => {
     if (filterCategory && habit.categoryId !== filterCategory) return false;
     if (filterTag && !habit.tagIds?.includes(filterTag)) return false;
     return true;
@@ -126,8 +163,8 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
           title={t('myHabits')}
           subtitle={
             <span className="flex items-center gap-2">
-              {`${habits.length} ${t('habits').toLowerCase()}`}
-              <LimitBadge current={habits.length} max={habitsLimit.max} />
+              {`${activeHabits.length} ${t('habits').toLowerCase()}`}
+              <LimitBadge current={activeHabits.length} max={habitsLimit.max} />
             </span>
           }
           rightAction={
@@ -164,7 +201,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
         />
 
         {/* Limit Warning */}
-        <LimitWarning current={habits.length} max={habitsLimit.max} type="habits" />
+        <LimitWarning current={activeHabits.length} max={habitsLimit.max} type="habits" />
 
         {/* Category/Tag Filters */}
         {(categories.length > 0 || tags.length > 0) && (
@@ -275,6 +312,8 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                           onToggle={(date) => toggleHabitCompletion(habit.id, date)}
                           onEdit={() => handleEditHabit(habit)}
                           onDelete={() => handleDeleteHabit(habit)}
+                          onPostpone={handlePostpone}
+                          onArchive={handleArchive}
                         />
                       ))}
                     </div>
@@ -313,7 +352,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
       </div>
 
       {/* FAB */}
-      {habits.length > 0 && activeView === 'habits' && (
+      {activeHabits.length > 0 && activeView === 'habits' && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}

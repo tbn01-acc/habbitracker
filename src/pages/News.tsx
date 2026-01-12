@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Newspaper, Calendar, Sparkles, Zap, Gift, Crown, Bell, Archive, CalendarRange } from 'lucide-react';
+import { ArrowLeft, Newspaper, Calendar, Sparkles, Zap, Gift, Crown, Bell, Archive, CalendarRange, Trophy, ThumbsUp, Lightbulb, Settings } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { ru, enUS } from 'date-fns/locale';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NewsCard } from '@/components/news/NewsCard';
 
 interface NewsItem {
   id: string;
@@ -20,6 +19,34 @@ interface NewsItem {
 }
 
 const newsItems: NewsItem[] = [
+  {
+    id: 'rating-filters',
+    date: '2026-01-12',
+    title: { 
+      ru: 'Новые фильтры рейтинга и лента!', 
+      en: 'New rating filters and feed!' 
+    },
+    content: { 
+      ru: 'В ТОП-100 теперь можно переключаться между рейтингами по Звёздам, Лайкам и Активности. Добавлены фильтры по периоду: Сегодня, Неделя, Месяц, Квартал, Год, Всё время. В Ленте появились разделы: Актив, Истории успеха, Идеи!', 
+      en: 'TOP-100 now has Stars, Likes, and Activity rankings. Added period filters: Today, Week, Month, Quarter, Year, All time. Feed now has sections: Activity, Success Stories, Ideas!' 
+    },
+    type: 'feature',
+    icon: <Trophy className="w-5 h-5 text-yellow-500" />
+  },
+  {
+    id: 'push-notif',
+    date: '2026-01-12',
+    title: { 
+      ru: 'Push-уведомления о сроках!', 
+      en: 'Push notifications for deadlines!' 
+    },
+    content: { 
+      ru: 'Теперь вы получаете уведомления о приближающихся сроках. FREE: привычки в 9:00, задачи накануне в 15:00. PRO-пользователи могут настроить время и включать/выключать уведомления!', 
+      en: 'Now you get notifications about upcoming deadlines. FREE: habits at 9:00, tasks at 15:00 day before. PRO users can customize time and toggle notifications!' 
+    },
+    type: 'feature',
+    icon: <Bell className="w-5 h-5 text-blue-500" />
+  },
   {
     id: 'postpone',
     date: '2025-01-11',
@@ -56,8 +83,8 @@ const newsItems: NewsItem[] = [
       en: 'Archive with calendar view!' 
     },
     content: { 
-      ru: 'Новая страница Архива (PRO): просматривайте историю привычек, задач и финансов в удобном календарном виде по неделям, месяцам и кварталам!', 
-      en: 'New Archive page (PRO): view history of habits, tasks, and finance in a convenient calendar view by weeks, months, and quarters!' 
+      ru: 'Новая страница Архива (PRO): просматривайте историю привычек, задач и финансов в удобном календарном виде по месяцам и кварталам! Добавлен режим "Все" для отображения всех типов данных.', 
+      en: 'New Archive page (PRO): view history of habits, tasks, and finance in a convenient calendar view by months and quarters! Added "All" mode to display all data types.' 
     },
     type: 'feature',
     icon: <Archive className="w-5 h-5 text-purple-500" />
@@ -106,24 +133,33 @@ const newsItems: NewsItem[] = [
   },
 ];
 
+type PageSize = '10' | '25' | '50' | 'all';
+
 export default function News() {
   const { language } = useTranslation();
   const navigate = useNavigate();
   const isRussian = language === 'ru';
-  const locale = isRussian ? ru : enUS;
 
-  const getTypeBadge = (type: NewsItem['type']) => {
-    switch (type) {
-      case 'update':
-        return <Badge variant="outline" className="border-blue-500/50 text-blue-500">Обновление</Badge>;
-      case 'feature':
-        return <Badge variant="outline" className="border-green-500/50 text-green-500">{isRussian ? 'Новая функция' : 'New Feature'}</Badge>;
-      case 'promo':
-        return <Badge variant="outline" className="border-purple-500/50 text-purple-500">{isRussian ? 'Акция' : 'Promo'}</Badge>;
-      case 'announcement':
-        return <Badge variant="outline" className="border-amber-500/50 text-amber-500">{isRussian ? 'Объявление' : 'Announcement'}</Badge>;
-    }
+  const [pageSize, setPageSize] = useState<PageSize>('10');
+  const [displayedCount, setDisplayedCount] = useState(10);
+
+  const pageSizeNum = pageSize === 'all' ? newsItems.length : parseInt(pageSize);
+  
+  const displayedNews = useMemo(() => {
+    return newsItems.slice(0, displayedCount);
+  }, [displayedCount]);
+
+  const handlePageSizeChange = (value: PageSize) => {
+    setPageSize(value);
+    const num = value === 'all' ? newsItems.length : parseInt(value);
+    setDisplayedCount(num);
   };
+
+  const handleShowMore = () => {
+    setDisplayedCount(prev => Math.min(prev + pageSizeNum, newsItems.length));
+  };
+
+  const hasMore = displayedCount < newsItems.length;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -134,7 +170,7 @@ export default function News() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
               <Newspaper className="w-5 h-5 text-white" />
             </div>
@@ -147,54 +183,51 @@ export default function News() {
               </p>
             </div>
           </div>
+          
+          {/* Page size selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {isRussian ? 'Показывать по:' : 'Show:'}
+            </span>
+            <Select value={pageSize} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-20 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="all">{isRussian ? 'Все' : 'All'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* News List */}
-        <div className="space-y-4">
-          {newsItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">
-                          {isRussian ? item.title.ru : item.title.en}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {format(new Date(item.date), 'd MMMM yyyy', { locale })}
-                          </span>
-                          {getTypeBadge(item.type)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {isRussian ? item.content.ru : item.content.en}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+        <div className="space-y-3">
+          {displayedNews.map((item, index) => (
+            <NewsCard key={item.id} item={item} isRussian={isRussian} index={index} />
           ))}
         </div>
+
+        {/* Show More Button */}
+        {hasMore && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-6 text-center"
+          >
+            <Button variant="outline" onClick={handleShowMore}>
+              {isRussian ? 'Показать ещё' : 'Show more'} ({newsItems.length - displayedCount})
+            </Button>
+          </motion.div>
+        )}
 
         {/* Subscribe hint */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
           className="mt-6"
         >
           <Card className="border-primary/20 bg-primary/5">

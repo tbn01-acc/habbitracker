@@ -27,6 +27,7 @@ import { exportTasksToCSV, exportTasksToPDF } from '@/utils/exportData';
 import { exportTasksToICS } from '@/utils/icsExport';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
+import { addDays, format } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +45,8 @@ interface TasksProps {
 }
 
 export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
+  const { language } = useTranslation();
+  const isRussian = language === 'ru';
   const { 
     tasks, categories, tags, isLoading, 
     addTask, updateTask, deleteTask, toggleTaskCompletion,
@@ -109,9 +112,44 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     }
   };
 
+  // Postpone handler
+  const handlePostpone = (taskId: string, days: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newPostponeCount = (task.postponeCount || 0) + 1;
+    const newDueDate = format(addDays(new Date(task.dueDate), days), 'yyyy-MM-dd');
+
+    updateTask(taskId, {
+      ...task,
+      dueDate: newDueDate,
+      postponeCount: newPostponeCount,
+    });
+
+    toast.success(isRussian 
+      ? `Задача перенесена на ${days} дн.` 
+      : `Task postponed by ${days} days`);
+  };
+
+  // Archive handler
+  const handleArchive = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    updateTask(taskId, {
+      ...task,
+      archivedAt: new Date().toISOString(),
+    });
+
+    toast.success(isRussian ? 'Задача перемещена в архив' : 'Task moved to archive');
+  };
+
+  // Filter out archived tasks
+  const activeTasks = tasks.filter(t => !t.archivedAt);
+
   // Filter tasks
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
+    return activeTasks.filter(task => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(task.categoryId || '')) {
         return false;
       }
@@ -123,7 +161,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
       }
       return true;
     });
-  }, [tasks, selectedCategories, selectedTags, selectedStatuses]);
+  }, [activeTasks, selectedCategories, selectedTags, selectedStatuses]);
 
   // Sort: incomplete first, then by due date
   const sortedTasks = useMemo(() => {
@@ -267,6 +305,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                         onToggle={() => toggleTaskCompletion(task.id)}
                         onEdit={() => handleEditTask(task)}
                         onDelete={() => handleDeleteTask(task)}
+                        onPostpone={handlePostpone}
+                        onArchive={handleArchive}
                         activeTimer={timeTracker.activeTimer}
                         elapsedTime={timeTracker.elapsedTime}
                         onStartTimer={timeTracker.startTimer}
