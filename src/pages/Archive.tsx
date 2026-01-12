@@ -1,20 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Archive, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  CheckCircle2, Target, DollarSign, Lock, Crown, Copy, Eye
+  CheckCircle2, Target, DollarSign, Crown, Copy, Eye, Filter, X
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, 
   addWeeks, subWeeks, addMonths, subMonths, addQuarters, subQuarters, 
-  eachDayOfInterval, isSameDay, parseISO, isWithinInterval 
+  eachDayOfInterval, isSameDay
 } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -25,11 +26,14 @@ import { cn } from '@/lib/utils';
 
 type ViewMode = 'week' | 'month' | 'quarter';
 type ArchiveType = 'habits' | 'tasks' | 'finance';
+type StatusFilter = 'all' | 'completed' | 'incomplete';
 
 interface DayStats {
   date: Date;
   habits: number;
+  habitsTotal: number;
   tasks: number;
+  tasksCompleted: number;
   income: number;
   expense: number;
 }
@@ -52,6 +56,7 @@ export default function ArchivePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailItem, setDetailItem] = useState<any | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // Get period range based on view mode
   const periodRange = useMemo(() => {
@@ -82,18 +87,19 @@ export default function ArchivePage() {
       const habitsCount = habits.reduce((count, h) => {
         return count + (h.completedDates.includes(dateStr) ? 1 : 0);
       }, 0);
+      const habitsTotal = habits.filter(h => h.targetDays.includes(date.getDay())).length;
       
-      // Tasks completed on this day
-      const tasksCount = tasks.filter(t => 
-        t.completed && t.dueDate === dateStr
-      ).length;
+      // Tasks for this day
+      const dayTasks = tasks.filter(t => t.dueDate === dateStr);
+      const tasksCount = dayTasks.length;
+      const tasksCompleted = dayTasks.filter(t => t.completed).length;
       
       // Finance for this day
       const dayTransactions = transactions.filter(t => t.date === dateStr && t.completed);
       const income = dayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const expense = dayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       
-      return { date, habits: habitsCount, tasks: tasksCount, income, expense };
+      return { date, habits: habitsCount, habitsTotal, tasks: tasksCount, tasksCompleted, income, expense };
     });
   }, [daysInPeriod, habits, tasks, transactions]);
 
@@ -105,17 +111,40 @@ export default function ArchivePage() {
     setCurrentDate(fn(currentDate, 1));
   };
 
-  // Get items for selected day
+  // Get items for selected day with filtering
   const selectedDayItems = useMemo(() => {
     if (!selectedDay) return { habits: [], tasks: [], transactions: [] };
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
     
+    let filteredHabits = habits.filter(h => {
+      const isCompleted = h.completedDates.includes(dateStr);
+      const isTarget = h.targetDays.includes(selectedDay.getDay());
+      if (!isTarget) return false;
+      if (statusFilter === 'completed') return isCompleted;
+      if (statusFilter === 'incomplete') return !isCompleted;
+      return true;
+    });
+    
+    let filteredTasks = tasks.filter(t => {
+      if (t.dueDate !== dateStr) return false;
+      if (statusFilter === 'completed') return t.completed;
+      if (statusFilter === 'incomplete') return !t.completed;
+      return true;
+    });
+    
+    let filteredTransactions = transactions.filter(t => {
+      if (t.date !== dateStr) return false;
+      if (statusFilter === 'completed') return t.completed;
+      if (statusFilter === 'incomplete') return !t.completed;
+      return true;
+    });
+    
     return {
-      habits: habits.filter(h => h.completedDates.includes(dateStr)),
-      tasks: tasks.filter(t => t.dueDate === dateStr),
-      transactions: transactions.filter(t => t.date === dateStr),
+      habits: filteredHabits,
+      tasks: filteredTasks,
+      transactions: filteredTransactions,
     };
-  }, [selectedDay, habits, tasks, transactions]);
+  }, [selectedDay, habits, tasks, transactions, statusFilter]);
 
   if (loading || subLoading) {
     return (
@@ -214,6 +243,39 @@ export default function ArchivePage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* Status filter */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground mr-1">
+            {isRussian ? 'Статус:' : 'Status:'}
+          </span>
+          {(['all', 'completed', 'incomplete'] as StatusFilter[]).map(filter => (
+            <Badge
+              key={filter}
+              variant={statusFilter === filter ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer text-xs transition-all",
+                statusFilter === filter && "bg-primary text-primary-foreground"
+              )}
+              onClick={() => setStatusFilter(filter)}
+            >
+              {filter === 'all' ? (isRussian ? 'Все' : 'All') :
+               filter === 'completed' ? (isRussian ? 'Выполнено' : 'Completed') :
+               (isRussian ? 'Не выполнено' : 'Incomplete')}
+            </Badge>
+          ))}
+          {statusFilter !== 'all' && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 px-2"
+              onClick={() => setStatusFilter('all')}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
 
         {/* View mode selector */}
         <div className="flex items-center justify-between mb-4">

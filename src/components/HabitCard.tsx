@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, MoreVertical, Flame, Tag, Timer } from 'lucide-react';
+import { Check, MoreVertical, Flame, Timer, CalendarClock } from 'lucide-react';
 import { Habit } from '@/types/habit';
 import { ProgressRing } from './ProgressRing';
 import { getTodayString, getWeekDates } from '@/hooks/useHabits';
@@ -12,11 +13,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { HabitDetailDialog } from './HabitDetailDialog';
-import { useState } from 'react';
+import { PostponeDialog } from './PostponeDialog';
 import { useNavigate } from 'react-router-dom';
 
 interface HabitCardProps {
@@ -24,13 +26,15 @@ interface HabitCardProps {
   onToggle: (date: string) => void;
   onEdit: () => void;
   onDelete: () => void;
+  onPostpone?: (habitId: string, days: number) => void;
+  onArchive?: (habitId: string) => void;
   index: number;
   onTagClick?: (tagId: string) => void;
 }
 
 const WEEKDAY_KEYS: TranslationKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-export function HabitCard({ habit, onToggle, onEdit, onDelete, index, onTagClick }: HabitCardProps) {
+export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArchive, index, onTagClick }: HabitCardProps) {
   const today = getTodayString();
   const weekDates = getWeekDates();
   const isCompletedToday = habit.completedDates.includes(today);
@@ -39,6 +43,7 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, index, onTagClick
   const { start: startPomodoro, isRunning, currentHabitId } = usePomodoro();
   const navigate = useNavigate();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [postponeOpen, setPostponeOpen] = useState(false);
   
   const isCurrentHabitRunning = isRunning && currentHabitId === habit.id;
   
@@ -177,6 +182,13 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, index, onTagClick
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                 {t('edit')}
               </DropdownMenuItem>
+              {onPostpone && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setPostponeOpen(true); }}>
+                  <CalendarClock className="w-4 h-4 mr-2" />
+                  {t('postpone') || 'Перенести'}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
                 {t('delete')}
               </DropdownMenuItem>
@@ -223,6 +235,19 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, index, onTagClick
         onDelete={onDelete}
         onTagClick={onTagClick}
       />
+
+      {onPostpone && onArchive && (
+        <PostponeDialog
+          open={postponeOpen}
+          onOpenChange={setPostponeOpen}
+          currentPostponeCount={habit.postponeCount || 0}
+          onPostpone={(days) => onPostpone(habit.id, days)}
+          onArchive={() => onArchive(habit.id)}
+          onDelete={onDelete}
+          itemName={habit.name}
+          itemType="habit"
+        />
+      )}
     </>
   );
 }

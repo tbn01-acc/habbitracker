@@ -46,6 +46,7 @@ export const translations = {
     deleteHabit: "Удалить привычку?",
     deleteDescription: "Привычка будет удалена вместе со всей историей. Это действие нельзя отменить.",
     delete: "Удалить",
+    postpone: "Перенести",
 
     // Days (short)
     sun: "Вс",
@@ -687,6 +688,7 @@ export const translations = {
     deleteHabit: "Delete habit?",
     deleteDescription: "The habit will be deleted along with all history. This action cannot be undone.",
     delete: "Delete",
+    postpone: "Postpone",
 
     // Days (short)
     sun: "Sun",
@@ -1323,6 +1325,7 @@ export const translations = {
     deleteHabit: "¿Eliminar hábito?",
     deleteDescription: "El hábito se eliminará junto con todo el historial. Esta acción no se puede deshacer.",
     delete: "Eliminar",
+    postpone: "Posponer",
 
     // Days (short)
     sun: "Dom",

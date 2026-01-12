@@ -25,9 +25,11 @@ export type Database = {
           image_url: string
           is_visible: boolean
           likes_count: number
+          post_type: string
           task_id: string | null
           updated_at: string
           user_id: string
+          votes_count: number
         }
         Insert: {
           comments_count?: number
@@ -39,9 +41,11 @@ export type Database = {
           image_url: string
           is_visible?: boolean
           likes_count?: number
+          post_type?: string
           task_id?: string | null
           updated_at?: string
           user_id: string
+          votes_count?: number
         }
         Update: {
           comments_count?: number
@@ -53,9 +57,11 @@ export type Database = {
           image_url?: string
           is_visible?: boolean
           likes_count?: number
+          post_type?: string
           task_id?: string | null
           updated_at?: string
           user_id?: string
+          votes_count?: number
         }
         Relationships: []
       }
@@ -152,6 +158,35 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "achievement_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_documents: {
         Row: {
           content: string
@@ -179,6 +214,45 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: number
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          habit_notification_enabled: boolean
+          habit_notification_time: string
+          id: string
+          push_token: string | null
+          task_notification_days_before: number
+          task_notification_enabled: boolean
+          task_notification_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          habit_notification_enabled?: boolean
+          habit_notification_time?: string
+          id?: string
+          push_token?: string | null
+          task_notification_days_before?: number
+          task_notification_enabled?: boolean
+          task_notification_time?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          habit_notification_enabled?: boolean
+          habit_notification_time?: string
+          id?: string
+          push_token?: string | null
+          task_notification_days_before?: number
+          task_notification_enabled?: boolean
+          task_notification_time?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -971,6 +1045,42 @@ export type Database = {
           recurrence?: string | null
           tags?: string[] | null
           type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_daily_activity: {
+        Row: {
+          activity_date: string
+          created_at: string
+          habits_completed: number
+          id: string
+          likes_received: number
+          stars_earned: number
+          tasks_completed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          created_at?: string
+          habits_completed?: number
+          id?: string
+          likes_received?: number
+          stars_earned?: number
+          tasks_completed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          created_at?: string
+          habits_completed?: number
+          id?: string
+          likes_received?: number
+          stars_earned?: number
+          tasks_completed?: number
           updated_at?: string
           user_id?: string
         }

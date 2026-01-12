@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote, Play, Square, Timer, Tag, Zap } from 'lucide-react';
+import { Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote, Play, Square, Timer, Zap, CalendarClock } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
@@ -9,11 +9,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { toast } from 'sonner';
 import { TaskDetailDialog } from './TaskDetailDialog';
+import { PostponeDialog } from './PostponeDialog';
 import { triggerCompletionCelebration } from '@/utils/celebrations';
 import { isBefore, startOfDay, parseISO, differenceInDays } from 'date-fns';
 
@@ -23,6 +25,8 @@ interface TaskCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onPostpone?: (taskId: string, days: number) => void;
+  onArchive?: (taskId: string) => void;
   activeTimer?: { taskId: string; subtaskId?: string } | null;
   elapsedTime?: number;
   onStartTimer?: (taskId: string, subtaskId?: string) => void;
@@ -36,7 +40,9 @@ export function TaskCard({
   index, 
   onToggle, 
   onEdit, 
-  onDelete, 
+  onDelete,
+  onPostpone,
+  onArchive,
   activeTimer,
   elapsedTime = 0,
   onStartTimer,
@@ -48,6 +54,7 @@ export function TaskCard({
   const { tags: userTags } = useUserTags();
   const { start: startPomodoro, isRunning: isPomodoroRunning, currentTaskId: pomodoroTaskId } = usePomodoro();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [postponeOpen, setPostponeOpen] = useState(false);
 
   const isPomodoroActiveForThis = isPomodoroRunning && pomodoroTaskId === task.id;
   const taskTags = userTags.filter(tag => task.tagIds?.includes(tag.id));
@@ -167,6 +174,13 @@ export function TaskCard({
                     <Pencil className="w-4 h-4 mr-2" />
                     {t('edit')}
                   </DropdownMenuItem>
+                  {onPostpone && !task.completed && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setPostponeOpen(true); }}>
+                      <CalendarClock className="w-4 h-4 mr-2" />
+                      {t('postpone') || 'Перенести'}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
                     <Trash2 className="w-4 h-4 mr-2" />
                     {t('delete')}
@@ -294,6 +308,19 @@ export function TaskCard({
         onDelete={onDelete}
         onTagClick={onTagClick}
       />
+
+      {onPostpone && onArchive && (
+        <PostponeDialog
+          open={postponeOpen}
+          onOpenChange={setPostponeOpen}
+          currentPostponeCount={task.postponeCount || 0}
+          onPostpone={(days) => onPostpone(task.id, days)}
+          onArchive={() => onArchive(task.id)}
+          onDelete={onDelete}
+          itemName={task.name}
+          itemType="task"
+        />
+      )}
     </>
   );
 }
