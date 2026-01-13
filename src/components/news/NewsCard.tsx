@@ -48,26 +48,23 @@ export function NewsCard({ item, isRussian, index }: NewsCardProps) {
         className="cursor-pointer transition-all hover:shadow-md"
         onClick={() => setExpanded(!expanded)}
       >
-        <CardHeader className="py-3 px-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-1.5 rounded-lg bg-muted shrink-0">
-                {item.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-sm font-medium truncate">
-                  {isRussian ? item.title.ru : item.title.en}
-                </CardTitle>
-              </div>
+        <CardHeader className="py-2.5 px-4">
+          <div className="flex flex-col gap-1">
+            {/* Row 1: Tag/Badge */}
+            <div className="flex items-center justify-between">
               {getTypeBadge(item.type)}
+              <button className="p-1 shrink-0">
+                {expanded ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
             </div>
-            <button className="p-1 shrink-0">
-              {expanded ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
+            {/* Row 2: Title */}
+            <CardTitle className="text-sm font-medium line-clamp-1">
+              {isRussian ? item.title.ru : item.title.en}
+            </CardTitle>
           </div>
         </CardHeader>
         
@@ -81,7 +78,10 @@ export function NewsCard({ item, isRussian, index }: NewsCardProps) {
               className="overflow-hidden"
             >
               <CardContent className="pt-0 pb-3 px-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-1.5 rounded-lg bg-muted shrink-0">
+                    {item.icon}
+                  </div>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {format(new Date(item.date), 'd MMMM yyyy', { locale })}

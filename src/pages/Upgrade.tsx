@@ -468,6 +468,9 @@ export default function Upgrade() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Dev Mode Toggle - only for test account */}
+        <DevModeToggle />
       </div>
     </div>
   );

@@ -1,18 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Archive, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  CheckCircle2, Target, DollarSign, Crown, Copy, Eye, Filter, X
+  CheckCircle2, Target, DollarSign, Crown, Copy, Eye, Filter, X, RotateCcw, Layers
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, 
-  addWeeks, subWeeks, addMonths, subMonths, addQuarters, subQuarters, 
-  eachDayOfInterval, isSameDay
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, 
+  addMonths, subMonths, addQuarters, subQuarters, 
+  eachDayOfInterval, isSameDay, eachMonthOfInterval, isBefore, startOfDay
 } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -23,9 +23,11 @@ import { useHabits } from '@/hooks/useHabits';
 import { useTasks } from '@/hooks/useTasks';
 import { useFinance } from '@/hooks/useFinance';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-type ViewMode = 'week' | 'month' | 'quarter';
-type ArchiveType = 'habits' | 'tasks' | 'finance';
+type ViewMode = 'month' | 'quarter';
+type ArchiveType = 'all' | 'habits' | 'tasks' | 'finance';
 type StatusFilter = 'all' | 'completed' | 'incomplete';
 
 interface DayStats {
@@ -36,12 +38,13 @@ interface DayStats {
   tasksCompleted: number;
   income: number;
   expense: number;
+  hasAnyData: boolean;
 }
 
 export default function ArchivePage() {
   const { language } = useTranslation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { currentPlan, loading: subLoading } = useSubscription();
   const { habits } = useHabits();
   const { tasks } = useTasks();
@@ -51,27 +54,44 @@ export default function ArchivePage() {
   const locale = isRussian ? ru : enUS;
   const isPro = currentPlan === 'pro';
 
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [activeTab, setActiveTab] = useState<ArchiveType>('habits');
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
+  const [activeTab, setActiveTab] = useState<ArchiveType>('all');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
+  // Get user registration date
+  const registrationDate = useMemo(() => {
+    if (profile?.created_at) {
+      return startOfDay(new Date(profile.created_at));
+    }
+    return startOfDay(new Date('2024-01-01')); // fallback
+  }, [profile]);
+
+  // Check if can navigate to previous period
+  const canNavigatePrev = useMemo(() => {
+    const prevStart = viewMode === 'month' 
+      ? startOfMonth(subMonths(currentDate, 1))
+      : startOfQuarter(subQuarters(currentDate, 1));
+    return !isBefore(prevStart, registrationDate);
+  }, [currentDate, viewMode, registrationDate]);
+
   // Get period range based on view mode
   const periodRange = useMemo(() => {
     switch (viewMode) {
-      case 'week':
-        return { 
-          start: startOfWeek(currentDate, { weekStartsOn: 1 }), 
-          end: endOfWeek(currentDate, { weekStartsOn: 1 }) 
-        };
       case 'month':
         return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
       case 'quarter':
         return { start: startOfQuarter(currentDate), end: endOfQuarter(currentDate) };
     }
   }, [viewMode, currentDate]);
+
+  // For quarter view, get months in the quarter
+  const monthsInQuarter = useMemo(() => {
+    if (viewMode !== 'quarter') return [];
+    return eachMonthOfInterval({ start: periodRange.start, end: periodRange.end });
+  }, [viewMode, periodRange]);
 
   // Get days in current period
   const daysInPeriod = useMemo(() => {
@@ -98,16 +118,20 @@ export default function ArchivePage() {
       const dayTransactions = transactions.filter(t => t.date === dateStr && t.completed);
       const income = dayTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const expense = dayTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+      const hasAnyData = habitsCount > 0 || tasksCount > 0 || income > 0 || expense > 0;
       
-      return { date, habits: habitsCount, habitsTotal, tasks: tasksCount, tasksCompleted, income, expense };
+      return { date, habits: habitsCount, habitsTotal, tasks: tasksCount, tasksCompleted, income, expense, hasAnyData };
     });
   }, [daysInPeriod, habits, tasks, transactions]);
 
-  // Navigate periods
+  // Navigate periods with registration date limit
   const navigatePeriod = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && !canNavigatePrev) return;
+    
     const fn = direction === 'next' 
-      ? (viewMode === 'week' ? addWeeks : viewMode === 'month' ? addMonths : addQuarters)
-      : (viewMode === 'week' ? subWeeks : viewMode === 'month' ? subMonths : subQuarters);
+      ? (viewMode === 'month' ? addMonths : addQuarters)
+      : (viewMode === 'month' ? subMonths : subQuarters);
     setCurrentDate(fn(currentDate, 1));
   };
 
@@ -145,6 +169,56 @@ export default function ArchivePage() {
       transactions: filteredTransactions,
     };
   }, [selectedDay, habits, tasks, transactions, statusFilter]);
+
+  // Restore archived item
+  const handleRestore = async (type: 'habit' | 'task', id: string) => {
+    try {
+      const table = type === 'habit' ? 'habits' : 'tasks';
+      const { error } = await supabase
+        .from(table)
+        .update({ archived_at: null })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success(isRussian ? 'Восстановлено!' : 'Restored!');
+      // Page will refresh on next visit
+    } catch (err) {
+      toast.error(isRussian ? 'Ошибка восстановления' : 'Restore failed');
+    }
+  };
+
+  // Render day cell content based on active tab
+  const getDayCellContent = (stat: DayStats) => {
+    if (activeTab === 'all') {
+      if (!stat.hasAnyData) return null;
+      return (
+        <div className="text-[7px] flex flex-col items-center gap-0.5">
+          {stat.habits > 0 && <span className="text-green-500">H:{stat.habits}</span>}
+          {stat.tasks > 0 && <span className="text-blue-500">T:{stat.tasks}</span>}
+          {(stat.income > 0 || stat.expense > 0) && <span className="text-amber-500">$</span>}
+        </div>
+      );
+    }
+    
+    if (activeTab === 'habits' && stat.habits > 0) {
+      return <span className="text-[8px] mt-0.5">{stat.habits}</span>;
+    }
+    if (activeTab === 'tasks' && stat.tasks > 0) {
+      return <span className="text-[8px] mt-0.5">{stat.tasks}</span>;
+    }
+    if (activeTab === 'finance' && (stat.income > 0 || stat.expense > 0)) {
+      return <span className="text-[8px] mt-0.5">{stat.income > 0 ? '+' : ''}{stat.income - stat.expense}</span>;
+    }
+    return null;
+  };
+
+  const hasDataForDay = (stat: DayStats) => {
+    if (activeTab === 'all') return stat.hasAnyData;
+    if (activeTab === 'habits') return stat.habits > 0;
+    if (activeTab === 'tasks') return stat.tasks > 0;
+    return stat.income > 0 || stat.expense > 0;
+  };
 
   if (loading || subLoading) {
     return (
@@ -207,6 +281,69 @@ export default function ArchivePage() {
     );
   }
 
+  // Render calendar for a specific month
+  const renderMonthCalendar = (monthDate: Date, daysData: DayStats[]) => {
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd = endOfMonth(monthDate);
+    const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const startDayOfWeek = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1; // Monday = 0
+
+    return (
+      <div key={monthDate.toISOString()} className="mb-4">
+        {viewMode === 'quarter' && (
+          <h3 className="text-sm font-medium mb-2 text-center">
+            {format(monthDate, 'LLLL yyyy', { locale })}
+          </h3>
+        )}
+        <div className="grid grid-cols-7 gap-1">
+          {/* Day headers */}
+          {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+            <div key={day} className="text-center text-[10px] font-medium text-muted-foreground py-1">
+              {isRussian ? day : day}
+            </div>
+          ))}
+          
+          {/* Empty cells for offset */}
+          {[...Array(startDayOfWeek)].map((_, i) => (
+            <div key={`empty-${i}`} className="aspect-square" />
+          ))}
+          
+          {/* Day cells */}
+          {monthDays.map((date) => {
+            const stat = daysData.find(d => isSameDay(d.date, date));
+            if (!stat) return null;
+            
+            const isToday = isSameDay(date, new Date());
+            const hasData = hasDataForDay(stat);
+            const isBeforeRegistration = isBefore(date, registrationDate);
+            
+            return (
+              <motion.button
+                key={date.toISOString()}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                disabled={isBeforeRegistration}
+                onClick={() => setSelectedDay(date)}
+                className={cn(
+                  "aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-all",
+                  isToday && "ring-2 ring-primary",
+                  hasData 
+                    ? "bg-primary/20 text-primary font-bold" 
+                    : "bg-muted/30 text-muted-foreground",
+                  selectedDay && isSameDay(date, selectedDay) && "ring-2 ring-primary bg-primary/30",
+                  isBeforeRegistration && "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <span className={hasData ? "font-bold" : ""}>{format(date, 'd')}</span>
+                {getDayCellContent(stat)}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <AppHeader />
@@ -226,9 +363,13 @@ export default function ArchivePage() {
           </div>
         </div>
 
-        {/* Tabs for type */}
+        {/* Tabs for type - now includes "All" */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ArchiveType)} className="mb-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all" className="text-xs">
+              <Layers className="w-3 h-3 mr-1" />
+              {isRussian ? 'Все' : 'All'}
+            </TabsTrigger>
             <TabsTrigger value="habits" className="text-xs">
               <Target className="w-3 h-3 mr-1" />
               {isRussian ? 'Привычки' : 'Habits'}
@@ -277,10 +418,10 @@ export default function ArchivePage() {
           )}
         </div>
 
-        {/* View mode selector */}
+        {/* View mode selector - removed Week */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-1 bg-muted p-1 rounded-lg">
-            {(['week', 'month', 'quarter'] as ViewMode[]).map(mode => (
+            {(['month', 'quarter'] as ViewMode[]).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
@@ -291,15 +432,19 @@ export default function ArchivePage() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {mode === 'week' ? (isRussian ? 'Неделя' : 'Week') :
-                 mode === 'month' ? (isRussian ? 'Месяц' : 'Month') :
-                 (isRussian ? 'Квартал' : 'Quarter')}
+                {mode === 'month' ? (isRussian ? 'Месяц' : 'Month') : (isRussian ? 'Квартал' : 'Quarter')}
               </button>
             ))}
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigatePeriod('prev')}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigatePeriod('prev')}
+              disabled={!canNavigatePrev}
+              className={!canNavigatePrev ? 'opacity-30' : ''}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-sm font-medium min-w-[120px] text-center">
@@ -314,50 +459,22 @@ export default function ArchivePage() {
         {/* Calendar Grid */}
         <Card>
           <CardContent className="p-4">
-            <div className={cn(
-              "grid gap-2",
-              viewMode === 'week' ? "grid-cols-7" : viewMode === 'month' ? "grid-cols-7" : "grid-cols-7"
-            )}>
-              {/* Day headers */}
-              {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-                <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-                  {isRussian ? day : day}
-                </div>
-              ))}
-              
-              {/* Day cells */}
-              {dayStats.map((stat, idx) => {
-                const isToday = isSameDay(stat.date, new Date());
-                const hasData = activeTab === 'habits' ? stat.habits > 0 :
-                               activeTab === 'tasks' ? stat.tasks > 0 :
-                               (stat.income > 0 || stat.expense > 0);
-                
-                return (
-                  <motion.button
-                    key={idx}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.01 }}
-                    onClick={() => setSelectedDay(stat.date)}
-                    className={cn(
-                      "aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-all",
-                      isToday && "ring-2 ring-primary",
-                      hasData ? "bg-primary/20 text-primary font-medium" : "bg-muted/30 text-muted-foreground",
-                      selectedDay && isSameDay(stat.date, selectedDay) && "ring-2 ring-primary bg-primary/30"
-                    )}
-                  >
-                    <span>{format(stat.date, 'd')}</span>
-                    {hasData && (
-                      <span className="text-[8px] mt-0.5">
-                        {activeTab === 'habits' && stat.habits}
-                        {activeTab === 'tasks' && stat.tasks}
-                        {activeTab === 'finance' && (stat.income > 0 ? '+' : '') + (stat.income - stat.expense)}
-                      </span>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
+            {viewMode === 'quarter' ? (
+              // Quarter view - split into months
+              <div className="space-y-6">
+                {monthsInQuarter.map(monthDate => {
+                  const monthStart = startOfMonth(monthDate);
+                  const monthEnd = endOfMonth(monthDate);
+                  const monthDaysData = dayStats.filter(d => 
+                    d.date >= monthStart && d.date <= monthEnd
+                  );
+                  return renderMonthCalendar(monthDate, monthDaysData);
+                })}
+              </div>
+            ) : (
+              // Month view
+              renderMonthCalendar(currentDate, dayStats)
+            )}
           </CardContent>
         </Card>
 
@@ -373,28 +490,41 @@ export default function ArchivePage() {
             
             {selectedDay && (
               <div className="space-y-4">
-                {activeTab === 'habits' && (
+                {/* Habits section - show if all or habits tab */}
+                {(activeTab === 'all' || activeTab === 'habits') && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium flex items-center gap-2">
-                      <Target className="w-4 h-4 text-habit" />
-                      {isRussian ? 'Выполненные привычки' : 'Completed Habits'}
+                      <Target className="w-4 h-4 text-green-500" />
+                      {isRussian ? 'Привычки' : 'Habits'}
                     </h4>
                     {selectedDayItems.habits.length === 0 ? (
                       <p className="text-sm text-muted-foreground">{isRussian ? 'Нет данных' : 'No data'}</p>
                     ) : (
                       selectedDayItems.habits.map(h => (
-                        <Card key={h.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailItem(h)}>
+                        <Card key={h.id} className="cursor-pointer hover:bg-muted/50">
                           <CardContent className="p-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">{h.icon}</span>
                               <span className="font-medium">{h.name}</span>
+                              {h.archivedAt && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {isRussian ? 'В архиве' : 'Archived'}
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex gap-1">
+                              {h.archivedAt && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleRestore('habit', h.id)}
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Copy className="w-4 h-4" />
                               </Button>
                             </div>
                           </CardContent>
@@ -404,30 +534,50 @@ export default function ArchivePage() {
                   </div>
                 )}
                 
-                {activeTab === 'tasks' && (
+                {/* Tasks section - show if all or tasks tab */}
+                {(activeTab === 'all' || activeTab === 'tasks') && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-task" />
+                      <CheckCircle2 className="w-4 h-4 text-blue-500" />
                       {isRussian ? 'Задачи' : 'Tasks'}
                     </h4>
                     {selectedDayItems.tasks.length === 0 ? (
                       <p className="text-sm text-muted-foreground">{isRussian ? 'Нет данных' : 'No data'}</p>
                     ) : (
                       selectedDayItems.tasks.map(t => (
-                        <Card key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailItem(t)}>
+                        <Card key={t.id} className={cn(
+                          "cursor-pointer hover:bg-muted/50",
+                          t.completed && "opacity-60"
+                        )}>
                           <CardContent className="p-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-lg">{t.icon}</span>
-                              <span className={cn("font-medium", t.completed && "line-through text-muted-foreground")}>
+                              <span className={cn(
+                                "w-3 h-3 rounded-full",
+                                t.priority === 'high' ? 'bg-red-500' :
+                                t.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'
+                              )} />
+                              <span className={cn("font-medium", t.completed && "line-through")}>
                                 {t.name}
                               </span>
+                              {t.archivedAt && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {isRussian ? 'В архиве' : 'Archived'}
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex gap-1">
+                              {t.archivedAt && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleRestore('task', t.id)}
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Copy className="w-4 h-4" />
                               </Button>
                             </div>
                           </CardContent>
@@ -437,24 +587,22 @@ export default function ArchivePage() {
                   </div>
                 )}
                 
-                {activeTab === 'finance' && (
+                {/* Finance section - show if all or finance tab */}
+                {(activeTab === 'all' || activeTab === 'finance') && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-finance" />
-                      {isRussian ? 'Операции' : 'Transactions'}
+                      <DollarSign className="w-4 h-4 text-amber-500" />
+                      {isRussian ? 'Финансы' : 'Finance'}
                     </h4>
                     {selectedDayItems.transactions.length === 0 ? (
                       <p className="text-sm text-muted-foreground">{isRussian ? 'Нет данных' : 'No data'}</p>
                     ) : (
-                      selectedDayItems.transactions.map(t => (
-                        <Card key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailItem(t)}>
+                      selectedDayItems.transactions.map(tr => (
+                        <Card key={tr.id} className="cursor-pointer hover:bg-muted/50">
                           <CardContent className="p-3 flex items-center justify-between">
-                            <span className="font-medium">{t.name}</span>
-                            <span className={cn(
-                              "font-medium",
-                              t.type === 'income' ? "text-green-500" : "text-red-500"
-                            )}>
-                              {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString()} ₽
+                            <span className="font-medium">{tr.name}</span>
+                            <span className={tr.type === 'income' ? 'text-green-500' : 'text-red-500'}>
+                              {tr.type === 'income' ? '+' : '-'}{tr.amount.toLocaleString()} ₽
                             </span>
                           </CardContent>
                         </Card>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useLeaderboard, PublicProfile } from '@/hooks/useLeaderboard';
+import { useLeaderboardFiltered } from '@/hooks/useLeaderboardFiltered';
 import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
+import { useFilteredFeed } from '@/hooks/useFilteredFeed';
 import { useStars } from '@/hooks/useStars';
 import { useAuth } from '@/hooks/useAuth';
 import { useRewardsShop } from '@/hooks/useRewardsShop';
@@ -13,6 +15,8 @@ import { ContactsGatedDialog } from '@/components/profile/ContactsGatedDialog';
 import { RewardsShopTab } from '@/components/rewards/RewardsShopTab';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserBadges } from '@/components/rewards/UserBadges';
+import { LeaderboardTabs, LeaderboardType, LeaderboardPeriod } from '@/components/rating/LeaderboardTabs';
+import { FeedTabs, FeedType } from '@/components/rating/FeedTabs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Trophy, Star, Flame, ThumbsUp, ThumbsDown, MessageCircle, Send, Crown, Medal, Award, User, Plus, Settings, Phone, ShoppingBag } from 'lucide-react';
+import { Trophy, Star, Flame, ThumbsUp, ThumbsDown, MessageCircle, Send, Crown, Medal, Award, User, Plus, Settings, Phone, ShoppingBag, Vote, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -59,13 +63,30 @@ export default function Rating() {
   const [contactsProfile, setContactsProfile] = useState<PublicProfile | null>(null);
   const [userRewards, setUserRewards] = useState<Map<string, UserRewardItems>>(new Map());
 
+  // Leaderboard subtabs state
+  const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>('stars');
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('all');
+
+  // Feed subtabs state
+  const [feedType, setFeedType] = useState<FeedType>('activity');
+  const [feedDisplayedCount, setFeedDisplayedCount] = useState(50);
+
+  // Use filtered hooks
+  const { leaderboard: filteredLeaderboard, loading: filteredLoading } = useLeaderboardFiltered(leaderboardType, leaderboardPeriod);
+  const { posts: filteredPosts, loading: filteredFeedLoading, voteForIdea } = useFilteredFeed(feedType);
+
+  // Displayed posts with pagination
+  const displayedPosts = filteredPosts.slice(0, feedDisplayedCount);
+  const hasMorePosts = feedDisplayedCount < filteredPosts.length;
+
   // Fetch reward items for leaderboard users
   useEffect(() => {
-    if (leaderboard.length > 0) {
-      const userIds = leaderboard.map(u => u.user_id);
+    const users = leaderboardType === 'stars' ? leaderboard : filteredLeaderboard;
+    if (users.length > 0) {
+      const userIds = users.map(u => u.user_id);
       fetchUserRewardItemsBatch(userIds).then(setUserRewards);
     }
-  }, [leaderboard]);
+  }, [leaderboard, filteredLeaderboard, leaderboardType]);
 
   const handleUserClick = async (userId: string) => {
     setProfileLoading(true);
@@ -99,12 +120,50 @@ export default function Rating() {
     setSelectedProfile(null);
   };
 
+  const handleShowMorePosts = () => {
+    setFeedDisplayedCount(prev => Math.min(prev + 50, filteredPosts.length));
+  };
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500" />;
     if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
     if (rank === 3) return <Award className="h-5 w-5 text-amber-600" />;
     return <span className="text-sm font-medium text-muted-foreground">#{rank}</span>;
   };
+
+  const getLeaderboardValue = (user: any) => {
+    switch (leaderboardType) {
+      case 'stars':
+        return (
+          <div className="flex items-center gap-1 text-lg font-semibold">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            {user.total_stars}
+          </div>
+        );
+      case 'likes':
+        return (
+          <div className="flex items-center gap-1 text-lg font-semibold">
+            <ThumbsUp className="h-5 w-5 text-green-500" />
+            {user.likes_count ?? user.total_stars}
+          </div>
+        );
+      case 'activity':
+        return (
+          <div className="flex items-center gap-1 text-lg font-semibold">
+            <Zap className="h-5 w-5 text-purple-500" />
+            {user.activity_count ?? user.total_stars}
+          </div>
+        );
+    }
+  };
+
+  const currentLeaderboard = leaderboardType === 'stars' && leaderboardPeriod === 'all' 
+    ? leaderboard 
+    : filteredLeaderboard;
+
+  const isLeaderboardLoading = leaderboardType === 'stars' && leaderboardPeriod === 'all' 
+    ? leaderboardLoading 
+    : filteredLoading;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -164,7 +223,18 @@ export default function Rating() {
           </TabsList>
 
           <TabsContent value="leaderboard">
-            {leaderboardLoading ? (
+            {/* Leaderboard Subtabs */}
+            <div className="mb-4">
+              <LeaderboardTabs
+                type={leaderboardType}
+                onTypeChange={setLeaderboardType}
+                period={leaderboardPeriod}
+                onPeriodChange={setLeaderboardPeriod}
+                isRussian={isRussian}
+              />
+            </div>
+
+            {isLeaderboardLoading ? (
               <div className="space-y-3">
                 {[...Array(10)].map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full" />
@@ -173,7 +243,7 @@ export default function Rating() {
             ) : (
               <div className="space-y-2">
                 <AnimatePresence>
-                  {leaderboard.map((leaderboardUser, index) => (
+                  {currentLeaderboard.map((leaderboardUser, index) => (
                     <motion.div
                       key={leaderboardUser.user_id}
                       initial={{ opacity: 0, y: 20 }}
@@ -221,10 +291,7 @@ export default function Rating() {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1 text-lg font-semibold">
-                            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                            {leaderboardUser.total_stars}
-                          </div>
+                          {getLeaderboardValue(leaderboardUser)}
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -232,7 +299,7 @@ export default function Rating() {
                 </AnimatePresence>
 
                 {/* Current user if not in top 100 */}
-                {currentUserRank && currentUserRank.rank > 100 && (
+                {currentUserRank && currentUserRank.rank > 100 && leaderboardType === 'stars' && leaderboardPeriod === 'all' && (
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-sm text-muted-foreground mb-2">
                       {isRussian ? 'Ваша позиция' : 'Your position'}
@@ -267,7 +334,7 @@ export default function Rating() {
                   </div>
                 )}
 
-                {leaderboard.length === 0 && (
+                {currentLeaderboard.length === 0 && (
                   <Card>
                     <CardContent className="text-center py-12">
                       <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -282,6 +349,18 @@ export default function Rating() {
           </TabsContent>
 
           <TabsContent value="feed">
+            {/* Feed Subtabs */}
+            <div className="mb-4">
+              <FeedTabs
+                type={feedType}
+                onTypeChange={(t) => {
+                  setFeedType(t);
+                  setFeedDisplayedCount(50);
+                }}
+                isRussian={isRussian}
+              />
+            </div>
+
             <div className="mb-4 flex items-center justify-between">
               <div className="flex gap-2">
                 <Button
@@ -318,7 +397,7 @@ export default function Rating() {
               </div>
             </div>
 
-            {feedLoading ? (
+            {filteredFeedLoading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-64 w-full" />
@@ -327,7 +406,7 @@ export default function Rating() {
             ) : (
               <div className="space-y-4">
                 <AnimatePresence>
-                  {posts.map((post, index) => (
+                  {displayedPosts.map((post, index) => (
                     <motion.div
                       key={post.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -351,6 +430,11 @@ export default function Rating() {
                                 <p className="font-medium truncate">
                                   {post.user_profile?.display_name || 'Пользователь'}
                                 </p>
+                                {feedType !== 'activity' && (
+                                  <Badge variant="outline" className="text-[10px] py-0">
+                                    {feedType === 'success' ? (isRussian ? 'Успех' : 'Success') : (isRussian ? 'Идея' : 'Idea')}
+                                  </Badge>
+                                )}
                                 <UserBadges 
                                   badgeIds={post.user_profile?.active_badges || []}
                                   maxDisplay={2}
@@ -364,11 +448,13 @@ export default function Rating() {
                         </CardHeader>
                         
                         <CardContent className="space-y-3">
-                          <img 
-                            src={post.image_url} 
-                            alt="Achievement" 
-                            className="w-full rounded-lg object-cover max-h-80"
-                          />
+                          {post.image_url && (
+                            <img 
+                              src={post.image_url} 
+                              alt="Achievement" 
+                              className="w-full rounded-lg object-cover max-h-80"
+                            />
+                          )}
                           
                           {post.description && (
                             <p className="text-sm">{post.description}</p>
@@ -376,25 +462,39 @@ export default function Rating() {
                           
                           <div className="flex items-center justify-between pt-2">
                             <div className="flex items-center gap-4">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={post.user_reaction === 'like' ? 'text-green-500' : ''}
-                                onClick={() => reactToPost(post.id, 'like')}
-                              >
-                                <ThumbsUp className={`h-4 w-4 mr-1 ${post.user_reaction === 'like' ? 'fill-current' : ''}`} />
-                                {post.likes_count}
-                              </Button>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={post.user_reaction === 'dislike' ? 'text-red-500' : ''}
-                                onClick={() => reactToPost(post.id, 'dislike')}
-                              >
-                                <ThumbsDown className={`h-4 w-4 mr-1 ${post.user_reaction === 'dislike' ? 'fill-current' : ''}`} />
-                                {post.dislikes_count}
-                              </Button>
+                              {feedType === 'ideas' ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={post.user_voted ? 'text-purple-500' : ''}
+                                  onClick={() => voteForIdea(post.id)}
+                                >
+                                  <Vote className={`h-4 w-4 mr-1 ${post.user_voted ? 'fill-current' : ''}`} />
+                                  {post.votes_count || 0}
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={post.user_reaction === 'like' ? 'text-green-500' : ''}
+                                    onClick={() => reactToPost(post.id, 'like')}
+                                  >
+                                    <ThumbsUp className={`h-4 w-4 mr-1 ${post.user_reaction === 'like' ? 'fill-current' : ''}`} />
+                                    {post.likes_count}
+                                  </Button>
+                                  
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={post.user_reaction === 'dislike' ? 'text-red-500' : ''}
+                                    onClick={() => reactToPost(post.id, 'dislike')}
+                                  >
+                                    <ThumbsDown className={`h-4 w-4 mr-1 ${post.user_reaction === 'dislike' ? 'fill-current' : ''}`} />
+                                    {post.dislikes_count}
+                                  </Button>
+                                </>
+                              )}
                             </div>
                             
                             <Button
@@ -412,7 +512,7 @@ export default function Rating() {
                   ))}
                 </AnimatePresence>
 
-                {posts.length === 0 && (
+                {displayedPosts.length === 0 && (
                   <Card>
                     <CardContent className="text-center py-12">
                       <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -421,6 +521,19 @@ export default function Rating() {
                       </p>
                     </CardContent>
                   </Card>
+                )}
+
+                {/* Show More Button */}
+                {hasMorePosts && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center pt-4"
+                  >
+                    <Button variant="outline" onClick={handleShowMorePosts}>
+                      {isRussian ? 'Показать ещё' : 'Show more'} ({filteredPosts.length - feedDisplayedCount})
+                    </Button>
+                  </motion.div>
                 )}
               </div>
             )}
