@@ -294,9 +294,18 @@ export function useSupabaseSync() {
     }
   }, [user]);
 
-  // Full sync
-  const syncAll = useCallback(async () => {
+  // Full sync - only for PRO users
+  const syncAll = useCallback(async (isProUser: boolean = false) => {
     if (!user || isSyncing) return;
+    
+    // Only sync for PRO users
+    if (!isProUser) {
+      toast({
+        title: '⭐ Только для PRO',
+        description: 'Синхронизация в облако доступна только для PRO-пользователей',
+      });
+      return;
+    }
     
     setIsSyncing(true);
     

@@ -114,27 +114,25 @@ function SwipeableItem({
       <div className="relative overflow-hidden">
         {/* Left actions (Complete, Postpone) - shown on swipe right */}
         <motion.div 
-          className="absolute inset-y-0 left-0 flex items-center gap-2 px-3"
+          className="absolute inset-y-0 left-0 flex items-center gap-3 px-4"
           style={{ opacity: leftActionsOpacity }}
         >
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 bg-green-500/20 text-green-500 hover:bg-green-500/30"
+          <button
+            className="text-green-500 hover:text-green-400 transition-colors"
             onClick={onComplete}
+            title={isRussian ? 'Готово' : 'Done'}
           >
-            <Check className="w-4 h-4" />
-          </Button>
+            <Check className="w-5 h-5" />
+          </button>
           {onPostpone && (
             <DropdownMenu open={showPostponeMenu} onOpenChange={setShowPostponeMenu}>
               <DropdownMenuTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                <button
+                  className="text-blue-500 hover:text-blue-400 transition-colors"
+                  title={isRussian ? 'Отложить' : 'Postpone'}
                 >
-                  <ArrowRightFromLine className="w-4 h-4" />
-                </Button>
+                  <ArrowRightFromLine className="w-5 h-5" />
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
                 <DropdownMenuItem onClick={() => onPostpone(1)}>
@@ -156,28 +154,26 @@ function SwipeableItem({
 
         {/* Right actions (Archive, Delete) - shown on swipe left */}
         <motion.div 
-          className="absolute inset-y-0 right-0 flex items-center gap-2 px-3"
+          className="absolute inset-y-0 right-0 flex items-center gap-3 px-4"
           style={{ opacity: rightActionsOpacity }}
         >
           {onArchive && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+            <button
+              className="text-amber-500 hover:text-amber-400 transition-colors"
               onClick={() => setShowArchiveConfirm(true)}
+              title={isRussian ? 'В архив' : 'Archive'}
             >
-              <Archive className="w-4 h-4" />
-            </Button>
+              <Archive className="w-5 h-5" />
+            </button>
           )}
           {onDelete && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 bg-red-500/20 text-red-500 hover:bg-red-500/30"
+            <button
+              className="text-red-500 hover:text-red-400 transition-colors"
               onClick={() => setShowDeleteConfirm(true)}
+              title={isRussian ? 'Удалить' : 'Delete'}
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="w-5 h-5" />
+            </button>
           )}
         </motion.div>
 
@@ -205,34 +201,31 @@ function SwipeableItem({
             </div>
           </div>
           
-          {/* Actions visible when swiped */}
+          {/* Actions visible when swiped - only icons */}
           <AnimatePresence>
             {swipeDirection === 'right' && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-4"
               >
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                <button
+                  className="text-green-500 hover:text-green-400 transition-colors"
                   onClick={onComplete}
+                  title={isRussian ? 'Готово' : 'Done'}
                 >
-                  <Check className="w-4 h-4 mr-1" />
-                  {isRussian ? 'Готово' : 'Done'}
-                </Button>
+                  <Check className="w-5 h-5" />
+                </button>
                 {onPostpone && (
                   <DropdownMenu open={showPostponeMenu} onOpenChange={setShowPostponeMenu}>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                      <button
+                        className="text-blue-500 hover:text-blue-400 transition-colors"
+                        title={isRussian ? 'Отложить' : 'Postpone'}
                       >
-                        <ArrowRightFromLine className="w-4 h-4" />
-                      </Button>
+                        <ArrowRightFromLine className="w-5 h-5" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={() => onPostpone(1)}>
@@ -257,29 +250,25 @@ function SwipeableItem({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-4"
               >
                 {onArchive && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+                  <button
+                    className="text-amber-500 hover:text-amber-400 transition-colors"
                     onClick={() => setShowArchiveConfirm(true)}
+                    title={isRussian ? 'В архив' : 'Archive'}
                   >
-                    <Archive className="w-4 h-4 mr-1" />
-                    {isRussian ? 'Архив' : 'Archive'}
-                  </Button>
+                    <Archive className="w-5 h-5" />
+                  </button>
                 )}
                 {onDelete && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                  <button
+                    className="text-red-500 hover:text-red-400 transition-colors"
                     onClick={() => setShowDeleteConfirm(true)}
+                    title={isRussian ? 'Удалить' : 'Delete'}
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    {isRussian ? 'Удалить' : 'Delete'}
-                  </Button>
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 )}
               </motion.div>
             )}
@@ -479,52 +468,30 @@ export function OverdueWidget({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-4"
+      className="-mx-4 -mt-6 mb-4"
     >
-      {/* Header bar - full width, single line, no rounded corners */}
-      <div className="bg-amber-500/10 border-y border-amber-500/30">
+      {/* Header bar - full width, single line, no rounded corners, pressed to header */}
+      <div className="bg-amber-500/10 border-b border-amber-500/30">
         <div 
-          className="flex items-center justify-between px-4 py-3 cursor-pointer"
+          className="flex items-center justify-between px-4 py-2 cursor-pointer"
           onClick={() => hasQuickEdit && overdueItems.length > 0 && setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3">
             <Zap className="w-5 h-5 text-amber-500" />
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-amber-500">
               {isRussian ? 'Просрочено' : 'Overdue'}
             </span>
-            <Badge variant="destructive" className="text-xs">
+            <Badge variant="secondary" className="bg-amber-500/20 text-amber-500 hover:bg-amber-500/30">
               {total}
             </Badge>
           </div>
           
           {hasQuickEdit && overdueItems.length > 0 && (
-            <div className="flex items-center gap-4">
-              {/* Type counters */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {overdueHabits > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Target className="w-4 h-4" />
-                    {overdueHabits}
-                  </span>
-                )}
-                {overdueTasks > 0 && (
-                  <span className="flex items-center gap-1">
-                    <CheckSquare className="w-4 h-4" />
-                    {overdueTasks}
-                  </span>
-                )}
-                {overdueTransactions > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Wallet className="w-4 h-4" />
-                    {overdueTransactions}
-                  </span>
-                )}
-              </div>
-              
+            <div className="flex items-center">
               {isExpanded ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                <ChevronUp className="w-5 h-5 text-amber-500" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                <ChevronDown className="w-5 h-5 text-amber-500" />
               )}
             </div>
           )}

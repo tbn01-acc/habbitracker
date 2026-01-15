@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Image, X, Sparkles } from 'lucide-react';
+import { Camera, Upload, Loader2, Image, X, Sparkles, Lightbulb, Trophy } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,9 @@ import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
 import { useStars } from '@/hooks/useStars';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+type PostType = 'achievement' | 'success_story' | 'idea';
 
 interface AchievementPublishDialogProps {
   open: boolean;
@@ -27,12 +30,19 @@ export function AchievementPublishDialog({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postType, setPostType] = useState<PostType>('achievement');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   
   const { createPost, dailyPostCount, dailyLimit } = useAchievementsFeed();
   const { awardAchievementPost } = useStars();
   const { isProActive } = useSubscription();
+
+  const postTypeOptions = [
+    { type: 'achievement' as PostType, label: 'Достижение', icon: Trophy, color: 'text-yellow-500' },
+    { type: 'success_story' as PostType, label: 'История успеха', icon: Sparkles, color: 'text-purple-500' },
+    { type: 'idea' as PostType, label: 'Идея', icon: Lightbulb, color: 'text-blue-500' },
+  ];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,29 +75,37 @@ export function AchievementPublishDialog({
   };
 
   const handleSubmit = async () => {
-    if (!imageFile) {
-      toast.error('Добавьте фото достижения');
+    // For ideas, image is optional
+    if (postType !== 'idea' && !imageFile) {
+      toast.error('Добавьте фото');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const postId = await createPost(imageFile, description, taskId, habitId);
+      const postId = await createPost(imageFile, description, taskId, habitId, postType);
       
       if (postId) {
         // Award stars for posting
         await awardAchievementPost(postId);
         
-        toast.success(`Достижение опубликовано! +${isProActive ? 10 : 5} ⭐`);
+        const typeLabels = {
+          achievement: 'Достижение',
+          success_story: 'История успеха',
+          idea: 'Идея'
+        };
+        
+        toast.success(`${typeLabels[postType]} опубликовано! +${isProActive ? 10 : 5} ⭐`);
         onOpenChange(false);
         
         // Reset form
         setImageFile(null);
         setImagePreview(null);
         setDescription('');
+        setPostType('achievement');
       }
     } catch (error) {
-      console.error('Error publishing achievement:', error);
+      console.error('Error publishing:', error);
       toast.error('Ошибка публикации');
     } finally {
       setIsSubmitting(false);
@@ -99,21 +117,51 @@ export function AchievementPublishDialog({
     setImageFile(null);
     setImagePreview(null);
     setDescription('');
+    setPostType('achievement');
   };
 
   const canPost = dailyPostCount < dailyLimit;
+
+  const getDialogTitle = () => {
+    switch (postType) {
+      case 'success_story': return 'Опубликовать историю успеха';
+      case 'idea': return 'Предложить идею';
+      default: return 'Опубликовать достижение';
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Опубликовать достижение
+            {postType === 'idea' && <Lightbulb className="h-5 w-5 text-blue-500" />}
+            {postType === 'success_story' && <Sparkles className="h-5 w-5 text-purple-500" />}
+            {postType === 'achievement' && <Trophy className="h-5 w-5 text-yellow-500" />}
+            {getDialogTitle()}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Post type selector */}
+          <div className="flex gap-2">
+            {postTypeOptions.map((option) => (
+              <button
+                key={option.type}
+                onClick={() => setPostType(option.type)}
+                className={cn(
+                  "flex-1 flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all",
+                  postType === option.type 
+                    ? "border-primary bg-primary/10" 
+                    : "border-border hover:border-muted-foreground/50"
+                )}
+              >
+                <option.icon className={cn("h-5 w-5", option.color)} />
+                <span className="text-xs font-medium">{option.label}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Daily limit info */}
           <div className="text-sm text-muted-foreground text-center">
             Публикаций сегодня: {dailyPostCount}/{dailyLimit}

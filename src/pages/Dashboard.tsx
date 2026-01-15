@@ -13,6 +13,8 @@ import { DayQualityRing } from "@/components/dashboard/DayQualityRing";
 import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
 import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
+import { useWeather, getWeatherIcon } from "@/hooks/useWeather";
+import { WeatherModal } from "@/components/WeatherModal";
 
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { AppHeader } from "@/components/AppHeader";
@@ -21,18 +23,20 @@ import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
 import { useOverdueTasks } from "@/hooks/useOverdueTasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { startOfDay, parseISO, isBefore } from "date-fns";
+import { startOfDay, parseISO, isBefore, addDays } from "date-fns";
 
 export default function Dashboard() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [weatherModalOpen, setWeatherModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { habits, toggleHabitCompletion } = useHabits();
-  const { tasks, toggleTaskCompletion, getTodayTasks } = useTasks();
+  const { habits, toggleHabitCompletion, updateHabit, deleteHabit } = useHabits();
+  const { tasks, toggleTaskCompletion, updateTask, deleteTask } = useTasks();
   const { transactions, toggleTransactionCompletion, getTodayTransactions } = useFinance();
   const { t, language } = useTranslation();
   const { profile, user } = useAuth();
   const { recordDailyLogin } = useStars();
   const dailyLoginRecordedRef = useRef(false);
+  const { weather } = useWeather();
   
   // Initialize trial notifications
   useTrialNotifications();
@@ -53,7 +57,6 @@ export default function Dashboard() {
 
   // User name and avatar
   const userName = profile?.display_name || user?.email?.split("@")[0] || t("guest");
-  const userInitials = userName.slice(0, 2).toUpperCase();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -63,12 +66,16 @@ export default function Dashboard() {
     return t("goodEvening");
   };
 
+  // Get today tasks (use filter instead of getTodayTasks for updated reference)
+  const todayTasks = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return tasks.filter(t => t.dueDate === todayStr && !t.archivedAt);
+  }, [tasks]);
+
   // Habits for today
-  const todayHabits = habits.filter((h) => h.targetDays.includes(dayOfWeek));
+  const todayHabits = habits.filter((h) => h.targetDays.includes(dayOfWeek) && !h.archivedAt);
   const completedHabits = todayHabits.filter((h) => h.completedDates.includes(today));
 
-  // Tasks for today
-  const todayTasks = getTodayTasks();
   const completedTasks = todayTasks.filter((t) => t.completed);
 
   // Transactions for today
@@ -114,6 +121,11 @@ export default function Dashboard() {
   const completedItems = completedHabits.length + completedTasks.length + completedTransactions.length;
   const dayQuality = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
+  // Calculate progress per category
+  const habitsProgress = todayHabits.length > 0 ? Math.round((completedHabits.length / todayHabits.length) * 100) : 0;
+  const tasksProgress = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
+  const financeProgress = todayTransactions.length > 0 ? Math.round((completedTransactions.length / todayTransactions.length) * 100) : 0;
+
   // Format date
   const formattedDate = new Date().toLocaleDateString(
     language === "ru" ? "ru-RU" : language === "es" ? "es-ES" : "en-US",
@@ -139,6 +151,32 @@ export default function Dashboard() {
     );
   }
 
+  // Callback handlers for OverdueWidget
+  const handlePostponeTask = (id: string, newDate: string) => {
+    updateTask(id, { dueDate: newDate });
+  };
+
+  const handleArchiveTask = (id: string) => {
+    updateTask(id, { archivedAt: new Date().toISOString() });
+  };
+
+  const handleDeleteTask = (id: string) => {
+    deleteTask(id);
+  };
+
+  const handlePostponeHabit = (id: string, days: number) => {
+    const newDate = addDays(new Date(), days).toISOString().split('T')[0];
+    updateHabit(id, { postponedUntil: newDate });
+  };
+
+  const handleArchiveHabit = (id: string) => {
+    updateHabit(id, { archivedAt: new Date().toISOString() });
+  };
+
+  const handleDeleteHabit = (id: string) => {
+    deleteHabit(id);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <AppHeader />
@@ -158,16 +196,46 @@ export default function Dashboard() {
           onCompleteHabit={toggleHabitCompletion}
           onCompleteTask={toggleTaskCompletion}
           onCompleteTransaction={toggleTransactionCompletion}
+          onPostponeTask={handlePostponeTask}
+          onArchiveTask={handleArchiveTask}
+          onDeleteTask={handleDeleteTask}
+          onPostponeHabit={handlePostponeHabit}
+          onArchiveHabit={handleArchiveHabit}
+          onDeleteHabit={handleDeleteHabit}
         />
 
-        {/* Section: Сегодня with Day Quality Ring */}
+        {/* Section: Greeting with Weather and Day Quality Ring */}
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("today")}</h1>
-            <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{getGreeting()}, {userName}!</h1>
+              <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
+            </div>
+            
+            {/* Weather icon (1.5x size) */}
+            {weather && (
+              <button
+                onClick={() => setWeatherModalOpen(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-3xl">{getWeatherIcon(weather.weatherCode, weather.isDay)}</span>
+                <span className="text-lg font-medium">{weather.temperature}°</span>
+              </button>
+            )}
           </div>
-          <DayQualityRing value={dayQuality} />
+          <DayQualityRing 
+            value={dayQuality} 
+            habitsProgress={habitsProgress}
+            tasksProgress={tasksProgress}
+            financeProgress={financeProgress}
+          />
         </div>
+
+        {/* Weather Modal */}
+        <WeatherModal 
+          open={weatherModalOpen} 
+          onOpenChange={setWeatherModalOpen} 
+        />
 
         {/* Section: Сделать/Выполнено (Tabbed) */}
         <Tabs defaultValue="todo" className="mb-6">

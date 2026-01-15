@@ -133,10 +133,11 @@ export function useAchievementsFeed() {
   }, [fetchPosts, fetchDailyPostCount]);
 
   const createPost = useCallback(async (
-    imageFile: File,
+    imageFile: File | null,
     description: string,
     taskId?: string,
-    habitId?: string
+    habitId?: string,
+    postType: 'achievement' | 'success_story' | 'idea' = 'achievement'
   ): Promise<string | null> => {
     if (!user) return null;
 
@@ -147,29 +148,36 @@ export function useAchievementsFeed() {
     }
 
     try {
-      // Upload image
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      let imageUrl = '';
       
-      const { error: uploadError } = await supabase.storage
-        .from('achievements')
-        .upload(fileName, imageFile);
+      // Upload image if provided
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('achievements')
+          .upload(fileName, imageFile);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('achievements')
-        .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage
+          .from('achievements')
+          .getPublicUrl(fileName);
+        
+        imageUrl = urlData.publicUrl;
+      }
 
       // Create post
       const { data: post, error: postError } = await supabase
         .from('achievement_posts')
         .insert({
           user_id: user.id,
-          image_url: urlData.publicUrl,
+          image_url: imageUrl || 'https://placeholder.svg',
           description,
           task_id: taskId,
-          habit_id: habitId
+          habit_id: habitId,
+          post_type: postType
         })
         .select()
         .single();
