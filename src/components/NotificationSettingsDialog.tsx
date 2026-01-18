@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Heart, MessageCircle, UserPlus, Moon, Clock } from 'lucide-react';
+import { Bell, BellOff, Heart, MessageCircle, UserPlus, Moon, Clock, CheckSquare, Repeat, Target } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -71,9 +71,9 @@ export function NotificationSettingsDialog({ open, onOpenChange }: NotificationS
 
           <Separator />
 
-          {/* Notification types */}
+          {/* Notification types - Social */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium">Типы уведомлений</h3>
+            <h3 className="text-sm font-medium">Социальные уведомления</h3>
             
             <div className="flex items-center justify-between">
               <Label htmlFor="likes" className="flex items-center gap-2 cursor-pointer">
@@ -116,6 +116,56 @@ export function NotificationSettingsDialog({ open, onOpenChange }: NotificationS
                 }
               />
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Notification types - Productivity */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Уведомления о продуктивности</h3>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="tasks" className="flex items-center gap-2 cursor-pointer">
+                <CheckSquare className="w-4 h-4 text-blue-500" />
+                Задачи
+              </Label>
+              <Switch
+                id="tasks"
+                checked={localSettings.tasks_notifications_enabled}
+                onCheckedChange={(checked) => 
+                  setLocalSettings(prev => ({ ...prev, tasks_notifications_enabled: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="habits" className="flex items-center gap-2 cursor-pointer">
+                <Repeat className="w-4 h-4 text-green-500" />
+                Привычки
+              </Label>
+              <Switch
+                id="habits"
+                checked={localSettings.habits_notifications_enabled}
+                onCheckedChange={(checked) => 
+                  setLocalSettings(prev => ({ ...prev, habits_notifications_enabled: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="goals" className="flex items-center gap-2 cursor-pointer">
+                <Target className="w-4 h-4 text-amber-500" />
+                Цели
+              </Label>
+              <Switch
+                id="goals"
+                checked={localSettings.goals_notifications_enabled}
+                onCheckedChange={(checked) => 
+                  setLocalSettings(prev => ({ ...prev, goals_notifications_enabled: checked }))
+                }
+              />
+            </div>
+
           </div>
 
           <Separator />

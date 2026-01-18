@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Habit, HabitCategory, HabitTag, DEFAULT_HABIT_CATEGORIES, DEFAULT_HABIT_TAGS } from '@/types/habit';
+import { Habit, HabitCategory, HabitTag, HabitCompletion, DEFAULT_HABIT_CATEGORIES, DEFAULT_HABIT_TAGS } from '@/types/habit';
 import { triggerCompletionCelebration } from '@/utils/celebrations';
 import { format, parseISO, isBefore, isAfter, startOfDay, subDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -7,6 +7,29 @@ import { toast } from 'sonner';
 const STORAGE_KEY = 'habitflow_habits';
 const CATEGORIES_KEY = 'habitflow_habit_categories';
 const TAGS_KEY = 'habitflow_habit_tags';
+
+// Helper to get reps completed for a habit on a specific date
+export function getCompletedReps(habit: Habit, date: string): number {
+  if (!habit.completions) {
+    // Legacy: if no completions array, check completedDates (1 rep if completed)
+    return habit.completedDates.includes(date) ? (habit.targetRepsPerDay || 1) : 0;
+  }
+  const completion = habit.completions.find(c => c.date === date);
+  return completion?.reps || 0;
+}
+
+// Helper to calculate completion percentage for a date
+export function getCompletionPercent(habit: Habit, date: string): number {
+  const targetReps = habit.targetRepsPerDay || 1;
+  const completedReps = getCompletedReps(habit, date);
+  return Math.min(100, (completedReps / targetReps) * 100);
+}
+
+// Helper to check if habit is fully completed for a date
+export function isFullyCompleted(habit: Habit, date: string): boolean {
+  const targetReps = habit.targetRepsPerDay || 1;
+  return getCompletedReps(habit, date) >= targetReps;
+}
 
 export function useHabits() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -99,7 +122,7 @@ export function useHabits() {
     saveHabits(habits.filter(h => h.id !== id));
   }, [habits, saveHabits]);
 
-  // Toggle habit completion - returns habitId and wasCompleted for star awarding
+  // Toggle/increment habit completion - returns habitId and wasCompleted for star awarding
   const toggleHabitCompletion = useCallback((id: string, date: string): { habitId: string; completed: boolean } | null => {
     const habit = habits.find(h => h.id === id);
     if (!habit) return null;
@@ -122,28 +145,55 @@ export function useHabits() {
     }
 
     const isToday = format(targetDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
-    const isCompleted = habit.completedDates.includes(date);
-    let newCompletedDates: string[];
+    const targetReps = habit.targetRepsPerDay || 1;
     
-    if (isCompleted) {
-      newCompletedDates = habit.completedDates.filter(d => d !== date);
+    // Get current completions array or migrate from legacy
+    let completions = habit.completions ? [...habit.completions] : [];
+    const existingIndex = completions.findIndex(c => c.date === date);
+    const currentReps = existingIndex >= 0 ? completions[existingIndex].reps : 0;
+    
+    let newReps: number;
+    let justFullyCompleted = false;
+    
+    if (currentReps >= targetReps) {
+      // Reset to 0 if already fully completed (toggle off)
+      newReps = 0;
     } else {
-      newCompletedDates = [...habit.completedDates, date];
-      // Trigger celebration when completing
-      triggerCompletionCelebration();
-      
-      // Show warning for past completions
-      if (!isToday) {
-        toast.info('Отметка за прошлые дни не учитывается в бонусах и серии');
+      // Increment by 1
+      newReps = currentReps + 1;
+      if (newReps === targetReps) {
+        justFullyCompleted = true;
+        triggerCompletionCelebration();
       }
+    }
+    
+    // Update completions array
+    if (existingIndex >= 0) {
+      if (newReps === 0) {
+        completions.splice(existingIndex, 1);
+      } else {
+        completions[existingIndex] = { date, reps: newReps };
+      }
+    } else if (newReps > 0) {
+      completions.push({ date, reps: newReps });
+    }
+    
+    // Also update legacy completedDates for backwards compatibility
+    let newCompletedDates = habit.completedDates.filter(d => d !== date);
+    if (newReps >= targetReps) {
+      newCompletedDates.push(date);
+    }
+    
+    // Show warning for past completions
+    if (!isToday && newReps > currentReps) {
+      toast.info('Отметка за прошлые дни не учитывается в бонусах и серии');
     }
 
     const streak = calculateStreak(newCompletedDates, habit.targetDays);
-    updateHabit(id, { completedDates: newCompletedDates, streak });
+    updateHabit(id, { completedDates: newCompletedDates, completions, streak });
     
-    // Return info about the toggle - !isCompleted means it was just completed
-    // Only count as verified if completed today
-    return { habitId: id, completed: !isCompleted && isToday };
+    // Return info about the toggle - only count as verified if fully completed today
+    return { habitId: id, completed: justFullyCompleted && isToday };
   }, [habits, updateHabit]);
 
   // Category management

@@ -5,6 +5,8 @@ import { FinanceTransaction, FINANCE_CATEGORIES, FinanceCategory, FinanceTag } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TagSelector } from '@/components/TagSelector';
+import { GoalSelector } from '@/components/goals/GoalSelector';
+import { SphereSelector } from '@/components/spheres/SphereSelector';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,12 +22,17 @@ interface TransactionDialogProps {
 
 export function TransactionDialog({ open, onClose, onSave, transaction, categories, tags }: TransactionDialogProps) {
   const { user } = useAuth();
+  const { language } = useTranslation();
+  const isRussian = language === 'ru';
   const [name, setName] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(FINANCE_CATEGORIES[4].id);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [customCategoryId, setCustomCategoryId] = useState<string | undefined>();
+  const [goalId, setGoalId] = useState<string | null>(null);
+  const [sphereId, setSphereId] = useState<number | null>(null);
+  const [sphereLockedByGoal, setSphereLockedByGoal] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [commonTagIds, setCommonTagIds] = useState<string[]>([]);
   const { t } = useTranslation();
@@ -38,6 +45,9 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       setCategory(transaction.category);
       setDate(transaction.date);
       setCustomCategoryId(transaction.customCategoryId);
+      setGoalId((transaction as any).goalId || null);
+      setSphereId((transaction as any).sphereId || null);
+      setSphereLockedByGoal(!!(transaction as any).goalId);
       const localTagIdSet = new Set(tags.map(t => t.id));
       setTagIds((transaction.tagIds || []).filter(id => localTagIdSet.has(id)));
       setCommonTagIds((transaction.tagIds || []).filter(id => !localTagIdSet.has(id)));
@@ -48,6 +58,9 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       setCategory(FINANCE_CATEGORIES[4].id);
       setDate(new Date().toISOString().split('T')[0]);
       setCustomCategoryId(undefined);
+      setGoalId(null);
+      setSphereId(null);
+      setSphereLockedByGoal(false);
       setTagIds([]);
       setCommonTagIds([]);
     }
@@ -55,6 +68,8 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
 
   const handleSave = () => {
     if (!name.trim() || !amount) return;
+    // Require sphere for authenticated users
+    if (user && !sphereId) return;
     const allTagIds = [...tagIds, ...commonTagIds];
     onSave({ 
       name: name.trim(), 
@@ -64,8 +79,20 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       date,
       customCategoryId,
       tagIds: allTagIds,
-    });
+      goalId: goalId || undefined,
+      sphereId: sphereId,
+    } as any);
     onClose();
+  };
+
+  const handleGoalChange = (newGoalId: string | null, goalSphereId?: number | null) => {
+    setGoalId(newGoalId);
+    if (newGoalId && goalSphereId !== undefined) {
+      setSphereId(goalSphereId);
+      setSphereLockedByGoal(true);
+    } else {
+      setSphereLockedByGoal(false);
+    }
   };
 
   const filteredCategories = FINANCE_CATEGORIES.filter(c => 
@@ -267,6 +294,29 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Goal Selector */}
+            {user && (
+              <div className="mb-6">
+                <GoalSelector
+                  value={goalId}
+                  onChange={handleGoalChange}
+                  isRussian={isRussian}
+                />
+              </div>
+            )}
+
+            {/* Sphere Selector - locked if goal selected */}
+            {user && (
+              <div className="mb-6">
+                <SphereSelector
+                  value={sphereId}
+                  onChange={setSphereId}
+                  disabled={sphereLockedByGoal}
+                  label={isRussian ? 'Сфера жизни' : 'Life Sphere'}
+                />
               </div>
             )}
 

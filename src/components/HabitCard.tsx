@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, MoreVertical, Flame, Timer, CalendarClock } from 'lucide-react';
 import { Habit } from '@/types/habit';
 import { ProgressRing } from './ProgressRing';
-import { getTodayString, getWeekDates } from '@/hooks/useHabits';
+import { getTodayString, getWeekDates, getCompletedReps, isFullyCompleted, getCompletionPercent } from '@/hooks/useHabits';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -37,7 +37,6 @@ const WEEKDAY_KEYS: TranslationKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri'
 export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArchive, index, onTagClick }: HabitCardProps) {
   const today = getTodayString();
   const weekDates = getWeekDates();
-  const isCompletedToday = habit.completedDates.includes(today);
   const { t } = useTranslation();
   const { tags: userTags } = useUserTags();
   const { start: startPomodoro, isRunning, currentHabitId } = usePomodoro();
@@ -47,10 +46,18 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
   
   const isCurrentHabitRunning = isRunning && currentHabitId === habit.id;
   
-  const weekProgress = weekDates.filter(date => {
+  // Repetitions tracking
+  const targetReps = habit.targetRepsPerDay || 1;
+  const todayReps = getCompletedReps(habit, today);
+  const isCompletedToday = isFullyCompleted(habit, today);
+  const todayPercent = getCompletionPercent(habit, today);
+  
+  // Calculate week progress considering repetitions
+  const weekProgress = weekDates.reduce((sum, date) => {
     const dayOfWeek = new Date(date).getDay();
-    return habit.targetDays.includes(dayOfWeek) && habit.completedDates.includes(date);
-  }).length;
+    if (!habit.targetDays.includes(dayOfWeek)) return sum;
+    return sum + getCompletionPercent(habit, date) / 100;
+  }, 0);
   
   const weekTarget = weekDates.filter(date => {
     const dayOfWeek = new Date(date).getDay();
@@ -86,18 +93,21 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { 
               e.stopPropagation(); 
-              const wasNotCompleted = !isCompletedToday;
               onToggle(today);
-              if (wasNotCompleted) {
-                triggerCompletionCelebration();
-              }
             }}
             className={`relative w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${
               isCompletedToday 
                 ? 'text-primary-foreground' 
-                : 'bg-muted text-muted-foreground hover:bg-secondary'
+                : todayReps > 0
+                  ? 'text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-secondary'
             }`}
-            style={isCompletedToday ? { background: habit.color } : undefined}
+            style={isCompletedToday 
+              ? { background: habit.color } 
+              : todayReps > 0 
+                ? { background: `${habit.color}80` } // Semi-transparent for partial
+                : undefined
+            }
           >
             {isCompletedToday ? (
               <motion.div
@@ -107,6 +117,8 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
               >
                 <Check className="w-7 h-7" />
               </motion.div>
+            ) : todayReps > 0 ? (
+              <span className="text-sm font-bold">{todayReps}/{targetReps}</span>
             ) : (
               <span className="text-2xl">{habit.icon}</span>
             )}
@@ -201,7 +213,9 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
           {weekDates.map((date) => {
             const dayOfWeek = new Date(date).getDay();
             const isTarget = habit.targetDays.includes(dayOfWeek);
-            const isCompleted = habit.completedDates.includes(date);
+            const dateReps = getCompletedReps(habit, date);
+            const isFullComplete = isFullyCompleted(habit, date);
+            const isPartial = dateReps > 0 && !isFullComplete;
             const isToday = date === today;
             
             return (
@@ -210,15 +224,22 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
                 onClick={() => onToggle(date)}
                 disabled={!isTarget}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                  isCompleted
+                  isFullComplete
                     ? 'text-primary-foreground'
-                    : isTarget
-                      ? isToday
-                        ? 'bg-secondary text-foreground ring-2 ring-primary/50'
-                        : 'bg-secondary text-muted-foreground hover:bg-muted'
-                      : 'text-muted-foreground/30'
+                    : isPartial
+                      ? 'text-primary-foreground'
+                      : isTarget
+                        ? isToday
+                          ? 'bg-secondary text-foreground ring-2 ring-primary/50'
+                          : 'bg-secondary text-muted-foreground hover:bg-muted'
+                        : 'text-muted-foreground/30'
                 }`}
-                style={isCompleted ? { background: habit.color } : undefined}
+                style={isFullComplete 
+                  ? { background: habit.color } 
+                  : isPartial 
+                    ? { background: `${habit.color}60` }
+                    : undefined
+                }
               >
                 {t(WEEKDAY_KEYS[dayOfWeek])}
               </button>

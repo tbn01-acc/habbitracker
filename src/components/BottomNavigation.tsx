@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, CheckSquare, Wallet, Plus, Wrench, Aperture } from 'lucide-react';
+import { Home, Target, CheckSquare, Wallet, Plus, Wrench, Aperture, Flag } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { GoalDialog } from '@/components/goals/GoalDialog';
@@ -35,8 +35,8 @@ export function BottomNavigation({
     { path: '/tasks', icon: CheckSquare, label: t('tasks'), color: 'hsl(var(--task))' },
     // Plus button goes here (index 3)
     { path: '/finance', icon: Wallet, label: t('finance'), color: 'hsl(var(--finance))' },
+    { path: '/goals', icon: Flag, label: isRussian ? 'Мои цели' : 'My Goals', color: 'hsl(45, 90%, 50%)' },
     { path: '/services', icon: Wrench, label: t('services'), color: 'hsl(var(--service))' },
-    { path: '/goals', icon: Target, label: isRussian ? 'Цели' : 'Goals', color: 'hsl(262, 80%, 55%)' },
   ];
 
   const quickAddItems = [
@@ -95,11 +95,11 @@ export function BottomNavigation({
             <div className="relative w-0 h-0">
               {quickAddItems.map((item, index) => {
                 const totalItems = quickAddItems.length;
-                const angleSpread = 100;
+                const angleSpread = 120; // Increased spread
                 const startAngle = -180 + (180 - angleSpread) / 2;
                 const angleStep = angleSpread / (totalItems - 1);
                 const angle = startAngle + (index * angleStep);
-                const radius = 100;
+                const radius = 120; // Increased radius
                 const x = Math.cos((angle * Math.PI) / 180) * radius;
                 const y = Math.sin((angle * Math.PI) / 180) * radius;
 

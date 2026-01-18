@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useLeaderboard, PublicProfile } from '@/hooks/useLeaderboard';
-import { useLeaderboardFiltered, LeaderboardPeriod } from '@/hooks/useLeaderboardFiltered';
+import { useLeaderboardFiltered, LeaderboardPeriod, LeaderboardSortType } from '@/hooks/useLeaderboardFiltered';
 import { useStars } from '@/hooks/useStars';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchUserRewardItemsBatch, UserRewardItems } from '@/hooks/useUserRewardItems';
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trophy, Star, Flame, User, Settings, Phone } from 'lucide-react';
+import { Trophy, Star, Flame, User, Settings, Phone, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserBadges } from '@/components/rewards/UserBadges';
@@ -41,8 +41,8 @@ export default function Rating() {
   const [ratingType, setRatingType] = useState<RatingType>('stars');
   const [ratingPeriod, setRatingPeriod] = useState<RatingPeriod>('all');
 
-  // Use filtered leaderboard hook
-  const { leaderboard, currentUserRank, loading: leaderboardLoading } = useLeaderboardFiltered(ratingPeriod as LeaderboardPeriod);
+  // Use filtered leaderboard hook with sort type
+  const { leaderboard, currentUserRank, loading: leaderboardLoading } = useLeaderboardFiltered(ratingPeriod as LeaderboardPeriod, ratingType as LeaderboardSortType);
 
   // Fetch reward items for leaderboard users
   useEffect(() => {
@@ -71,9 +71,15 @@ export default function Rating() {
       <main className="container max-w-2xl mx-auto px-4 py-6">
         {/* Page Title */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">
-            {isRussian ? 'Рейтинг' : 'Rating'}
-          </h1>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <Trophy className="h-7 w-7 text-yellow-500" />
+            <h1 className="text-2xl font-bold">
+              {isRussian ? 'Рейтинг' : 'Rating'}
+            </h1>
+          </div>
           
           {user && (
             <Button
@@ -91,7 +97,7 @@ export default function Rating() {
           <RatingPodium
             users={leaderboard}
             userRewards={userRewards}
-            type={ratingType === 'referrals' ? 'referrals' : 'stars'}
+            type={ratingType}
             isRussian={isRussian}
             onUserClick={handleUserClick}
           />

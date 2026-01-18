@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { GOAL_COLORS, GOAL_ICONS } from '@/types/goal';
 import { cn } from '@/lib/utils';
+import { SphereSelector } from '@/components/spheres/SphereSelector';
+import { useAuth } from '@/hooks/useAuth';
 
 interface GoalDialogProps {
   open: boolean;
@@ -17,6 +19,7 @@ interface GoalDialogProps {
 
 export function GoalDialog({ open, onOpenChange, onSave, initialData }: GoalDialogProps) {
   const { language } = useTranslation();
+  const { user } = useAuth();
   const isRussian = language === 'ru';
 
   const [name, setName] = useState(initialData?.name || '');
@@ -26,11 +29,27 @@ export function GoalDialog({ open, onOpenChange, onSave, initialData }: GoalDial
   const [targetDate, setTargetDate] = useState(initialData?.target_date || '');
   const [budgetGoal, setBudgetGoal] = useState(initialData?.budget_goal || '');
   const [timeGoal, setTimeGoal] = useState(initialData?.time_goal_minutes ? String(Math.round(initialData.time_goal_minutes / 60)) : '');
+  const [sphereId, setSphereId] = useState<number | null>(initialData?.sphere_id ?? null);
 
+  // Reset form when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      setName(initialData?.name || '');
+      setDescription(initialData?.description || '');
+      setColor(initialData?.color || GOAL_COLORS[0]);
+      setIcon(initialData?.icon || GOAL_ICONS[0]);
+      setTargetDate(initialData?.target_date || '');
+      setBudgetGoal(initialData?.budget_goal || '');
+      setTimeGoal(initialData?.time_goal_minutes ? String(Math.round(initialData.time_goal_minutes / 60)) : '');
+      setSphereId(initialData?.sphere_id ?? null);
+    }
+  }, [open, initialData]);
+
+  const isValid = name.trim() && (user ? sphereId !== null : true);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) return;
+    if (!isValid) return;
 
     onSave({
       name: name.trim(),
@@ -40,17 +59,10 @@ export function GoalDialog({ open, onOpenChange, onSave, initialData }: GoalDial
       target_date: targetDate || null,
       budget_goal: budgetGoal ? parseFloat(budgetGoal) : null,
       time_goal_minutes: timeGoal ? parseInt(timeGoal) * 60 : null,
+      sphere_id: sphereId,
       status: 'active',
     });
-
-    // Reset form
-    setName('');
-    setDescription('');
-    setColor(GOAL_COLORS[0]);
-    setIcon(GOAL_ICONS[0]);
-    setTargetDate('');
-    setBudgetGoal('');
-    setTimeGoal('');
+    // Dialog will be closed by parent after successful save
   };
 
   return (
@@ -167,12 +179,31 @@ export function GoalDialog({ open, onOpenChange, onSave, initialData }: GoalDial
             />
           </div>
 
+          {/* Sphere - Required */}
+          {user && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                {isRussian ? 'Сфера жизни' : 'Life Sphere'}
+                <span className="text-destructive">*</span>
+              </Label>
+              <SphereSelector 
+                value={sphereId} 
+                onChange={setSphereId}
+              />
+              {sphereId === null && (
+                <p className="text-xs text-destructive">
+                  {isRussian ? 'Выберите сферу жизни' : 'Please select a life sphere'}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               {isRussian ? 'Отмена' : 'Cancel'}
             </Button>
-            <Button type="submit" className="flex-1">
-              {initialData 
+            <Button type="submit" className="flex-1" disabled={!isValid}>
+              {initialData
                 ? (isRussian ? 'Сохранить' : 'Save')
                 : (isRussian ? 'Создать' : 'Create')
               }

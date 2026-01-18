@@ -212,6 +212,7 @@ export function PublicProfileEditDialog({
           location: location.trim() || null,
           job_title: jobTitle.trim() || null,
           status_tag: statusTag || null,
+          interests: interests.length > 0 ? interests : null,
           expertise: expertise.trim() || null,
           can_help: canHelp.trim() || null,
           phone: phone.trim() || null,

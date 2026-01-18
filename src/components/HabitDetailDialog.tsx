@@ -1,10 +1,10 @@
-import { Calendar, Flame, Tag, Edit2, Trash2, Timer } from 'lucide-react';
+import { Calendar, Flame, Tag, Edit2, Trash2, Timer, Repeat } from 'lucide-react';
 import { Habit } from '@/types/habit';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { ProgressRing } from './ProgressRing';
-import { getTodayString, getWeekDates } from '@/hooks/useHabits';
+import { getTodayString, getWeekDates, getCompletedReps } from '@/hooks/useHabits';
 import {
   Dialog,
   DialogContent,
@@ -29,11 +29,20 @@ export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete,
   const { tags: userTags } = useUserTags();
   const { start: startPomodoro, isRunning } = usePomodoro();
   const weekDates = getWeekDates();
+  const today = getTodayString();
   
-  const weekProgress = weekDates.filter(date => {
+  // Repetitions for today
+  const targetReps = habit.targetRepsPerDay || 1;
+  const completedReps = getCompletedReps(habit, today);
+  const repsPercent = Math.min((completedReps / targetReps) * 100, 100);
+  
+  // Week progress with repetitions
+  const weekProgress = weekDates.reduce((sum, date) => {
     const dayOfWeek = new Date(date).getDay();
-    return habit.targetDays.includes(dayOfWeek) && habit.completedDates.includes(date);
-  }).length;
+    if (!habit.targetDays.includes(dayOfWeek)) return sum;
+    const reps = getCompletedReps(habit, date);
+    return sum + Math.min(reps / targetReps, 1);
+  }, 0);
   
   const weekTarget = weekDates.filter(date => {
     const dayOfWeek = new Date(date).getDay();
@@ -42,7 +51,6 @@ export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete,
   
   const progressPercent = weekTarget > 0 ? (weekProgress / weekTarget) * 100 : 0;
   const habitTags = userTags.filter(tag => habit.tagIds?.includes(tag.id));
-
   const handleStartPomodoro = () => {
     if (isRunning) {
       toast.error('Pomodoro уже запущен');
@@ -83,6 +91,22 @@ export function HabitDetailDialog({ open, onOpenChange, habit, onEdit, onDelete,
                 <span className="text-sm font-semibold">{Math.round(progressPercent)}%</span>
               </ProgressRing>
             </div>
+
+            {/* Daily Repetitions */}
+            {targetReps > 1 && (
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Repeat className="w-6 h-6 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('todayReps')}</p>
+                    <p className="text-xl font-bold">{completedReps}/{targetReps}</p>
+                  </div>
+                </div>
+                <ProgressRing progress={repsPercent} size={48} strokeWidth={5} color={habit.color}>
+                  <span className="text-xs font-semibold">{Math.round(repsPercent)}%</span>
+                </ProgressRing>
+              </div>
+            )}
 
             {/* Streak */}
             <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-xl">

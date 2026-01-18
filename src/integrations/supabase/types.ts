@@ -65,6 +65,48 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_status_history: {
+        Row: {
+          all_spheres_above_minimum: boolean | null
+          created_at: string
+          id: string
+          level: string
+          max_sphere_id: number | null
+          max_value: number
+          min_sphere_id: number | null
+          min_value: number
+          spread: number
+          stars_awarded: number | null
+          user_id: string
+        }
+        Insert: {
+          all_spheres_above_minimum?: boolean | null
+          created_at?: string
+          id?: string
+          level: string
+          max_sphere_id?: number | null
+          max_value: number
+          min_sphere_id?: number | null
+          min_value: number
+          spread: number
+          stars_awarded?: number | null
+          user_id: string
+        }
+        Update: {
+          all_spheres_above_minimum?: boolean | null
+          created_at?: string
+          id?: string
+          level?: string
+          max_sphere_id?: number | null
+          max_value?: number
+          min_sphere_id?: number | null
+          min_value?: number
+          spread?: number
+          stars_awarded?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cloud_user_data: {
         Row: {
           checklists: Json | null
@@ -143,6 +185,123 @@ export type Database = {
           updated_at?: string
           user_id?: string
           widget_settings?: Json | null
+        }
+        Relationships: []
+      }
+      contact_goals: {
+        Row: {
+          contact_id: string
+          created_at: string
+          goal_id: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          goal_id: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          goal_id?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_goals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_goals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_spheres: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          sphere_id: number
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          sphere_id: number
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          sphere_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_spheres_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_spheres_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          photo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -247,6 +406,7 @@ export type Database = {
           id: string
           name: string
           progress_percent: number | null
+          sphere_id: number | null
           status: string | null
           target_date: string | null
           time_goal_minutes: number | null
@@ -264,6 +424,7 @@ export type Database = {
           id?: string
           name: string
           progress_percent?: number | null
+          sphere_id?: number | null
           status?: string | null
           target_date?: string | null
           time_goal_minutes?: number | null
@@ -281,13 +442,22 @@ export type Database = {
           id?: string
           name?: string
           progress_percent?: number | null
+          sphere_id?: number | null
           status?: string | null
           target_date?: string | null
           time_goal_minutes?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "goals_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_chat_members: {
         Row: {
@@ -424,6 +594,7 @@ export type Database = {
           name: string
           postpone_count: number | null
           postponed_until: string | null
+          sphere_id: number | null
           streak: number
           tags: string[] | null
           target_days: number[]
@@ -442,6 +613,7 @@ export type Database = {
           name: string
           postpone_count?: number | null
           postponed_until?: string | null
+          sphere_id?: number | null
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -460,6 +632,7 @@ export type Database = {
           name?: string
           postpone_count?: number | null
           postponed_until?: string | null
+          sphere_id?: number | null
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -472,6 +645,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "habits_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
             referencedColumns: ["id"]
           },
         ]
@@ -571,6 +751,42 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: number
+        }
+        Relationships: []
+      }
+      life_index_history: {
+        Row: {
+          created_at: string
+          external_success: number | null
+          id: string
+          life_index: number
+          mindfulness_level: number | null
+          personal_energy: number | null
+          recorded_at: string
+          sphere_indices: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_success?: number | null
+          id?: string
+          life_index: number
+          mindfulness_level?: number | null
+          personal_energy?: number | null
+          recorded_at?: string
+          sphere_indices?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          external_success?: number | null
+          id?: string
+          life_index?: number
+          mindfulness_level?: number | null
+          personal_energy?: number | null
+          recorded_at?: string
+          sphere_indices?: Json | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1133,6 +1349,45 @@ export type Database = {
         }
         Relationships: []
       }
+      spheres: {
+        Row: {
+          color: string
+          created_at: string
+          group_type: string
+          icon: string
+          id: number
+          key: string
+          name_en: string
+          name_es: string
+          name_ru: string
+          sort_order: number
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          group_type: string
+          icon: string
+          id: number
+          key: string
+          name_en: string
+          name_es: string
+          name_ru: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          group_type?: string
+          icon?: string
+          id?: number
+          key?: string
+          name_en?: string
+          name_es?: string
+          name_ru?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       star_transactions: {
         Row: {
           amount: number
@@ -1329,6 +1584,7 @@ export type Database = {
           postponed_until: string | null
           priority: string
           recurrence: string | null
+          sphere_id: number | null
           status: string
           subtasks: Json | null
           tags: string[] | null
@@ -1352,6 +1608,7 @@ export type Database = {
           postponed_until?: string | null
           priority?: string
           recurrence?: string | null
+          sphere_id?: number | null
           status?: string
           subtasks?: Json | null
           tags?: string[] | null
@@ -1375,6 +1632,7 @@ export type Database = {
           postponed_until?: string | null
           priority?: string
           recurrence?: string | null
+          sphere_id?: number | null
           status?: string
           subtasks?: Json | null
           tags?: string[] | null
@@ -1389,6 +1647,13 @@ export type Database = {
             referencedRelation: "goals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tasks_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
+            referencedColumns: ["id"]
+          },
         ]
       }
       time_entries: {
@@ -1399,6 +1664,7 @@ export type Database = {
           end_time: string
           goal_id: string | null
           id: string
+          sphere_id: number | null
           start_time: string
           subtask_id: string | null
           task_id: string | null
@@ -1412,6 +1678,7 @@ export type Database = {
           end_time: string
           goal_id?: string | null
           id?: string
+          sphere_id?: number | null
           start_time: string
           subtask_id?: string | null
           task_id?: string | null
@@ -1425,6 +1692,7 @@ export type Database = {
           end_time?: string
           goal_id?: string | null
           id?: string
+          sphere_id?: number | null
           start_time?: string
           subtask_id?: string | null
           task_id?: string | null
@@ -1437,6 +1705,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
             referencedColumns: ["id"]
           },
         ]
@@ -1452,6 +1727,7 @@ export type Database = {
           id: string
           name: string
           recurrence: string | null
+          sphere_id: number | null
           tags: string[] | null
           type: string
           updated_at: string
@@ -1467,6 +1743,7 @@ export type Database = {
           id?: string
           name: string
           recurrence?: string | null
+          sphere_id?: number | null
           tags?: string[] | null
           type: string
           updated_at?: string
@@ -1482,6 +1759,7 @@ export type Database = {
           id?: string
           name?: string
           recurrence?: string | null
+          sphere_id?: number | null
           tags?: string[] | null
           type?: string
           updated_at?: string
@@ -1493,6 +1771,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_sphere_id_fkey"
+            columns: ["sphere_id"]
+            isOneToOne: false
+            referencedRelation: "spheres"
             referencedColumns: ["id"]
           },
         ]

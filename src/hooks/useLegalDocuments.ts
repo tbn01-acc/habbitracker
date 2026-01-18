@@ -17,6 +17,7 @@ export interface LegalDocument {
 export function useLegalDocuments() {
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminLoading, setAdminLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const { user } = useAuth();
 
@@ -39,9 +40,11 @@ export function useLegalDocuments() {
   const checkAdminRole = useCallback(async () => {
     if (!user) {
       setIsAdmin(false);
+      setAdminLoading(false);
       return;
     }
 
+    setAdminLoading(true);
     try {
       const { data, error } = await supabase
         .rpc('has_role', { _user_id: user.id, _role: 'admin' });
@@ -51,6 +54,8 @@ export function useLegalDocuments() {
     } catch (error) {
       console.error('Error checking admin role:', error);
       setIsAdmin(false);
+    } finally {
+      setAdminLoading(false);
     }
   }, [user]);
 
@@ -96,6 +101,7 @@ export function useLegalDocuments() {
   return {
     documents,
     loading,
+    adminLoading,
     isAdmin,
     getDocument,
     updateDocument,

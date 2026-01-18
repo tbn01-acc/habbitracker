@@ -18,6 +18,11 @@ export interface HabitPeriod {
   endDate?: string;
 }
 
+export interface HabitCompletion {
+  date: string;
+  reps: number; // Number of repetitions completed on this date
+}
+
 export interface Habit {
   id: string;
   name: string;
@@ -26,17 +31,21 @@ export interface Habit {
   frequency: 'daily' | 'weekly';
   targetDays: number[];
   completedDates: string[];
+  completions?: HabitCompletion[]; // Detailed completion tracking for multi-rep habits
+  targetRepsPerDay?: number; // Number of repetitions required per day (default 1)
   createdAt: string;
   streak: number;
   categoryId?: string;
   tagIds: string[];
+  goalId?: string;
+  sphereId?: number;
   period?: HabitPeriod;
   archivedAt?: string;
   postponeCount?: number;
   postponedUntil?: string;
 }
 
-export interface HabitCompletion {
+export interface HabitCompletionEvent {
   habitId: string;
   date: string;
   completed: boolean;

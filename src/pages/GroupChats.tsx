@@ -142,7 +142,12 @@ export default function GroupChats() {
           <div className={`w-full md:w-80 border-r border-border flex-shrink-0 ${selectedChatId ? 'hidden md:flex' : 'flex'} flex-col`}>
             <div className="p-4 border-b border-border space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Чаты</h2>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                  <h2 className="text-lg font-semibold">Чаты</h2>
+                </div>
                 <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="icon" variant="outline">

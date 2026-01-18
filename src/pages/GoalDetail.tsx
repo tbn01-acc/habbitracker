@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Target, CheckSquare, Clock, DollarSign, Users, 
-  Plus, Edit, Trash2, MoreVertical, Check
+  Plus, Edit, Trash2, MoreVertical, Check, TrendingUp, BarChart3
 } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import { useGoals } from '@/hooks/useGoals';
 import { GoalDialog } from '@/components/goals/GoalDialog';
 import { GoalProgressChart } from '@/components/goals/GoalProgressChart';
 import { GoalContactsManager } from '@/components/goals/GoalContactsManager';
+import { GoalProgressTab } from '@/components/goals/GoalProgressTab';
+import { GoalAnalyticsTab } from '@/components/goals/GoalAnalyticsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
@@ -133,7 +135,7 @@ export default function GoalDetail() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/goals')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div 
@@ -274,30 +276,67 @@ export default function GoalDetail() {
           />
         </motion.div>
 
-        {/* Tabs with related items */}
-        <Tabs defaultValue="tasks">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="tasks" className="text-xs">
-              <CheckSquare className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{tasks.length}</span>
+        {/* Main Tabs - Progress, Analytics, Items */}
+        <Tabs defaultValue="progress">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="progress" className="gap-1">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">{isRussian ? 'Прогресс' : 'Progress'}</span>
             </TabsTrigger>
-            <TabsTrigger value="habits" className="text-xs">
-              <Target className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{habits.length}</span>
+            <TabsTrigger value="analytics" className="gap-1">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">{isRussian ? 'Аналитика' : 'Analytics'}</span>
             </TabsTrigger>
-            <TabsTrigger value="finance" className="text-xs">
-              <DollarSign className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{transactions.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="time" className="text-xs">
-              <Clock className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{timeEntries.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="text-xs">
-              <Users className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{contacts.length}</span>
+            <TabsTrigger value="items" className="gap-1">
+              <CheckSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">{isRussian ? 'Элементы' : 'Items'}</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="progress">
+            <GoalProgressTab
+              goal={goal}
+              tasks={tasks}
+              habits={habits}
+              isRussian={isRussian}
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <GoalAnalyticsTab
+              goal={goal}
+              timeEntries={timeEntries}
+              transactions={transactions}
+              habits={habits}
+              isRussian={isRussian}
+            />
+          </TabsContent>
+
+          <TabsContent value="items">
+            {/* Nested Tabs for items */}
+            <Tabs defaultValue="tasks">
+              <TabsList className="grid w-full grid-cols-5 mb-4">
+                <TabsTrigger value="tasks" className="text-xs">
+                  <CheckSquare className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{tasks.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="habits" className="text-xs">
+                  <Target className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{habits.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="finance" className="text-xs">
+                  <DollarSign className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{transactions.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="time" className="text-xs">
+                  <Clock className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{timeEntries.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="contacts" className="text-xs">
+                  <Users className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{contacts.length}</span>
+                </TabsTrigger>
+              </TabsList>
 
           <TabsContent value="tasks">
             <Card>
@@ -502,6 +541,8 @@ export default function GoalDetail() {
               onAddContact={handleAddContact}
               onDeleteContact={handleDeleteContact}
             />
+          </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
 

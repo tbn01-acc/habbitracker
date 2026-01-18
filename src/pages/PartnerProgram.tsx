@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, ArrowLeft, Copy, Check, Gift, Crown,
+  Users, Copy, Check, Gift, Crown,
   Wallet, TrendingUp, Clock,
   DollarSign, Zap, BarChart3, Share2, Calculator,
-  Star, Award, Target, X
+  Star, Award, Target, X, ArrowLeft
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
@@ -81,7 +81,7 @@ export default function PartnerProgram() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export type LeaderboardPeriod = 'today' | 'month' | 'year' | 'all';
+export type LeaderboardSortType = 'stars' | 'likes' | 'referrals';
 
 export interface LeaderboardUser {
   rank: number;
@@ -11,6 +12,8 @@ export interface LeaderboardUser {
   avatar_url: string | null;
   total_stars: number;
   total_likes: number;
+  likes_count?: number;
+  referrals_count?: number;
   total_activity_score: number;
   habits_completed: number;
   tasks_completed: number;
@@ -39,7 +42,7 @@ const getPeriodKey = (period: LeaderboardPeriod): string => {
   }
 };
 
-export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all') {
+export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all', sortType: LeaderboardSortType = 'stars') {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
@@ -92,22 +95,45 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all') {
         return acc;
       }, {} as Record<string, any>);
 
-      const leaderboardData: LeaderboardUser[] = starsData
+      // Get referrals count for each user
+      const { data: referralsData } = await supabase
+        .from('referrals')
+        .select('referrer_id')
+        .in('referrer_id', userIds);
+
+      const referralsMap: Record<string, number> = {};
+      (referralsData || []).forEach(r => {
+        referralsMap[r.referrer_id] = (referralsMap[r.referrer_id] || 0) + 1;
+      });
+
+      // Get likes count for each user (from their posts)
+      const { data: postsData } = await supabase
+        .from('achievement_posts')
+        .select('user_id, likes_count')
+        .in('user_id', userIds);
+
+      const likesMap: Record<string, number> = {};
+      (postsData || []).forEach(p => {
+        likesMap[p.user_id] = (likesMap[p.user_id] || 0) + (p.likes_count || 0);
+      });
+
+      let leaderboardData: LeaderboardUser[] = starsData
         .filter(s => {
           const profile = profilesMap[s.user_id];
           return profile && !profile.is_banned;
         })
-        .slice(0, 100)
-        .map((s, index) => {
+        .map((s) => {
           const profile = profilesMap[s.user_id] || {};
           const agg = aggregatesMap[s.user_id] || {};
           return {
-            rank: index + 1,
+            rank: 0, // Will be set after sorting
             user_id: s.user_id,
             display_name: profile.display_name || 'Пользователь',
             avatar_url: profile.avatar_url,
             total_stars: period === 'all' ? (s.total_stars || 0) : (agg.total_stars || 0),
             total_likes: agg.total_likes || 0,
+            likes_count: likesMap[s.user_id] || 0,
+            referrals_count: referralsMap[s.user_id] || 0,
             total_activity_score: agg.total_activity_score || 0,
             habits_completed: agg.habits_completed || 0,
             tasks_completed: agg.tasks_completed || 0,
@@ -115,6 +141,24 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all') {
             is_current_user: user?.id === s.user_id,
           };
         });
+
+      // Sort by selected type
+      leaderboardData.sort((a, b) => {
+        switch (sortType) {
+          case 'likes':
+            return (b.likes_count || 0) - (a.likes_count || 0);
+          case 'referrals':
+            return (b.referrals_count || 0) - (a.referrals_count || 0);
+          default:
+            return b.total_stars - a.total_stars;
+        }
+      });
+
+      // Assign ranks and limit to top 100
+      leaderboardData = leaderboardData.slice(0, 100).map((u, index) => ({
+        ...u,
+        rank: index + 1,
+      }));
 
       setLeaderboard(leaderboardData);
 
@@ -149,6 +193,8 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all') {
               avatar_url: userProfile?.avatar_url,
               total_stars: userStars.total_stars,
               total_likes: 0,
+              likes_count: likesMap[user.id] || 0,
+              referrals_count: referralsMap[user.id] || 0,
               total_activity_score: 0,
               habits_completed: 0,
               tasks_completed: 0,
@@ -163,7 +209,7 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all') {
     } finally {
       setLoading(false);
     }
-  }, [user, period]);
+  }, [user, period, sortType]);
 
   useEffect(() => {
     fetchLeaderboard();

@@ -39,6 +39,8 @@ import Notifications from "./pages/Notifications";
 import GroupChats from "./pages/GroupChats";
 import Goals from "./pages/Goals";
 import GoalDetail from "./pages/GoalDetail";
+import LifeFocus from "./pages/LifeFocus";
+import SphereDetail from "./pages/SphereDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -130,6 +132,8 @@ const AppContent = () => {
         <Route path="/chats/:inviteCode" element={<GroupChats />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/goals/:id" element={<GoalDetail />} />
+        <Route path="/life-focus" element={<LifeFocus />} />
+        <Route path="/sphere/:sphereKey" element={<SphereDetail />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNavigation 

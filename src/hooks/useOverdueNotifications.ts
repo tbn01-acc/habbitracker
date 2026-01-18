@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Task } from '@/types/task';
 import { Habit } from '@/types/habit';
 import { FinanceTransaction } from '@/types/finance';
@@ -13,9 +13,19 @@ interface OverdueNotificationData {
   transactions?: FinanceTransaction[];
 }
 
+// Create stable keys to prevent re-renders
+function createStableKey(items: { id: string; completed?: boolean; status?: string }[]): string {
+  return items.map(i => `${i.id}:${i.completed}:${i.status || ''}`).join('|');
+}
+
 export function useOverdueNotifications(data: OverdueNotificationData) {
   const hasNotifiedRef = useRef(false);
   const { tasks = [], habits = [], transactions = [] } = data;
+  
+  // Create stable keys to avoid infinite loops
+  const tasksKey = useMemo(() => createStableKey(tasks), [tasks]);
+  const habitsKey = useMemo(() => createStableKey(habits.map(h => ({ id: h.id, completed: h.completedDates.length > 0 }))), [habits]);
+  const transactionsKey = useMemo(() => createStableKey(transactions), [transactions]);
 
   useEffect(() => {
     if (hasNotifiedRef.current) return;
@@ -118,7 +128,7 @@ export function useOverdueNotifications(data: OverdueNotificationData) {
     }
 
     hasNotifiedRef.current = true;
-  }, [tasks, habits, transactions]);
+  }, [tasksKey, habitsKey, transactionsKey, tasks, habits, transactions]);
 }
 
 function getTaskWord(count: number): string {

@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, ArrowLeft, Cloud, Settings, Sliders, Volume2, Sparkles, Shield, HardDrive, CloudSun, Bell, User, Users } from 'lucide-react';
+import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, Shield, HardDrive, Bell, User, Users, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
 import { PublicProfileEditDialog } from '@/components/profile/PublicProfileEditDialog';
@@ -18,8 +19,6 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useCelebrationSettings } from '@/hooks/useCelebrationSettings';
 import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { usePageCaching } from '@/hooks/usePageCaching';
-import { useWeatherNotifications } from '@/hooks/useWeatherNotifications';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -35,34 +34,8 @@ export default function ProfileSettings() {
   const { subscription, currentPlan, isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
   const { soundEnabled, confettiEnabled, setSoundEnabled, setConfettiEnabled } = useCelebrationSettings();
   const { isAdmin } = useLegalDocuments();
-  const { 
-    isEnabled: weatherNotifEnabled, 
-    notificationTime, 
-    permissionGranted,
-    toggleNotifications: toggleWeatherNotif, 
-    updateNotificationTime,
-    sendWeatherNotification
-  } = useWeatherNotifications();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const isRussian = language === 'ru';
-
-  const handleWeatherNotifToggle = async (enabled: boolean) => {
-    const success = await toggleWeatherNotif(enabled);
-    if (success && enabled) {
-      toast.success(isRussian ? 'Уведомления о погоде включены' : 'Weather notifications enabled');
-    } else if (!success && enabled) {
-      toast.error(isRussian ? 'Не удалось получить разрешение' : 'Failed to get permission');
-    }
-  };
-
-  const handleTestWeatherNotif = async () => {
-    const success = await sendWeatherNotification(isRussian);
-    if (success) {
-      toast.success(isRussian ? 'Тестовое уведомление отправлено' : 'Test notification sent');
-    } else {
-      toast.error(isRussian ? 'Ошибка отправки' : 'Failed to send');
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -93,7 +66,7 @@ export default function ProfileSettings() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -284,76 +257,6 @@ export default function ProfileSettings() {
                   onCheckedChange={setConfettiEnabled}
                 />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Weather Notifications */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.26 }}
-          className="mt-8"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-              <CloudSun className="w-4 h-4 text-cyan-500" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground">
-              {isRussian ? 'Уведомления о погоде' : 'Weather Notifications'}
-            </h2>
-          </div>
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <Label htmlFor="weather-notif" className="text-sm font-medium">
-                      {isRussian ? 'Утренний прогноз' : 'Morning forecast'}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {isRussian ? 'Ежедневные рекомендации о погоде' : 'Daily weather recommendations'}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="weather-notif"
-                  checked={weatherNotifEnabled}
-                  onCheckedChange={handleWeatherNotifToggle}
-                />
-              </div>
-              
-              {weatherNotifEnabled && (
-                <div className="space-y-3 pt-2 border-t border-border">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm text-muted-foreground">
-                      {isRussian ? 'Время уведомления' : 'Notification time'}
-                    </Label>
-                    <Input
-                      type="time"
-                      value={notificationTime}
-                      onChange={(e) => updateNotificationTime(e.target.value)}
-                      className="w-28 h-8"
-                    />
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleTestWeatherNotif}
-                    className="w-full"
-                  >
-                    {isRussian ? 'Отправить тестовое уведомление' : 'Send test notification'}
-                  </Button>
-                  {!permissionGranted && (
-                    <p className="text-xs text-amber-500">
-                      {isRussian 
-                        ? '⚠️ Разрешите уведомления в браузере' 
-                        : '⚠️ Allow notifications in your browser'}
-                    </p>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
         </motion.div>

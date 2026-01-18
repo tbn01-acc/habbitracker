@@ -10,6 +10,7 @@ import { SubtaskList } from '@/components/SubtaskList';
 import { TaskAttachments } from '@/components/TaskAttachments';
 import { TagSelector } from '@/components/TagSelector';
 import { GoalSelector } from '@/components/goals/GoalSelector';
+import { SphereSelector } from '@/components/spheres/SphereSelector';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { getNotificationPermissionStatus } from '@/hooks/useTaskReminders';
@@ -48,6 +49,8 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [goalId, setGoalId] = useState<string | null>(null);
+  const [sphereId, setSphereId] = useState<number | null>(null);
+  const [sphereLockedByGoal, setSphereLockedByGoal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newTagName, setNewTagName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -99,6 +102,8 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setAttachments(task.attachments || []);
       setNotes(task.notes || '');
       setGoalId((task as any).goalId || null);
+      setSphereId((task as any).sphereId ?? null);
+      setSphereLockedByGoal(!!(task as any).goalId);
       setShowSubtasks((task.subtasks?.length || 0) > 0);
       setShowAttachments((task.attachments?.length || 0) > 0 || !!task.notes);
     } else {
@@ -118,6 +123,8 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setAttachments([]);
       setNotes('');
       setGoalId(null);
+      setSphereId(null);
+      setSphereLockedByGoal(false);
       setShowSubtasks(false);
       setShowAttachments(false);
     }
@@ -125,6 +132,8 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
 
   const handleSave = () => {
     if (!name.trim()) return;
+    // Require sphere for authenticated users
+    if (user && !sphereId) return;
     const reminder: TaskReminder | undefined = reminderEnabled 
       ? { enabled: true, time: reminderTime }
       : undefined;
@@ -132,9 +141,22 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
     onSave({ 
       name: name.trim(), icon, color, dueDate, priority, status, 
       categoryId, tagIds: allTagIds, recurrence, reminder, subtasks, attachments, notes,
-      goalId
+      goalId,
+      sphereId
     } as any);
     onClose();
+  };
+
+  const handleGoalChange = (newGoalId: string | null, goalSphereId?: number | null) => {
+    setGoalId(newGoalId);
+    if (newGoalId && goalSphereId !== undefined) {
+      // Inherit sphere from goal
+      setSphereId(goalSphereId);
+      setSphereLockedByGoal(true);
+    } else {
+      // No goal - unlock sphere selector
+      setSphereLockedByGoal(false);
+    }
   };
 
   const handleReminderToggle = async (enabled: boolean) => {
@@ -258,9 +280,28 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
               <div className="mb-4">
                 <GoalSelector
                   value={goalId}
-                  onChange={setGoalId}
+                  onChange={handleGoalChange}
                   isRussian={isRussian}
                 />
+              </div>
+            )}
+
+            {/* Sphere Selector */}
+            {user && (
+              <div className="mb-4">
+                <SphereSelector
+                  value={sphereId}
+                  onChange={setSphereId}
+                  disabled={sphereLockedByGoal}
+                  showWarning={!sphereId && sphereId !== 0}
+                />
+                {sphereLockedByGoal && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isRussian 
+                      ? 'Сфера унаследована от цели'
+                      : 'Sphere inherited from goal'}
+                  </p>
+                )}
               </div>
             )}
 

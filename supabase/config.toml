@@ -3,6 +3,9 @@ project_id = "jexrtsyokhegjxnvqjur"
 [functions.aggregate-leaderboard]
 verify_jwt = false
 
+[functions.cleanup-old-notifications]
+verify_jwt = false
+
 [functions.robokassa-create-payment]
 verify_jwt = false
 
@@ -16,4 +19,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-referral-notification]
+verify_jwt = false
+
+[functions.verify-telegram-init]
 verify_jwt = false

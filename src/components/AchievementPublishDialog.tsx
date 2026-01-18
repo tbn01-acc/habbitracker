@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Loader2, Image, X, Sparkles, Lightbulb, Trophy } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface AchievementPublishDialogProps {
   taskId?: string;
   habitId?: string;
   itemName?: string;
+  preloadedImageUrl?: string | null;
 }
 
 export function AchievementPublishDialog({
@@ -24,14 +25,24 @@ export function AchievementPublishDialog({
   onOpenChange,
   taskId,
   habitId,
-  itemName
+  itemName,
+  preloadedImageUrl
 }: AchievementPublishDialogProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postType, setPostType] = useState<PostType>('achievement');
+  const [usePreloadedImage, setUsePreloadedImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Initialize with preloaded image if provided
+  useEffect(() => {
+    if (open && preloadedImageUrl) {
+      setImagePreview(preloadedImageUrl);
+      setUsePreloadedImage(true);
+    }
+  }, [open, preloadedImageUrl]);
   
   
   const { createPost, dailyPostCount, dailyLimit } = useAchievementsFeed();
@@ -69,6 +80,7 @@ export function AchievementPublishDialog({
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setUsePreloadedImage(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -76,14 +88,24 @@ export function AchievementPublishDialog({
 
   const handleSubmit = async () => {
     // For ideas and success stories without linked task/habit, image is optional
-    if (postType === 'achievement' && !imageFile) {
+    // If using preloaded image, convert data URL to File
+    let fileToUpload = imageFile;
+    
+    if (usePreloadedImage && preloadedImageUrl && !imageFile) {
+      // Convert data URL to File
+      const response = await fetch(preloadedImageUrl);
+      const blob = await response.blob();
+      fileToUpload = new File([blob], 'balance-achievement.png', { type: 'image/png' });
+    }
+    
+    if (postType === 'achievement' && !fileToUpload && !usePreloadedImage) {
       toast.error('Добавьте фото');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const postId = await createPost(imageFile, description, taskId, habitId, postType);
+      const postId = await createPost(fileToUpload, description, taskId, habitId, postType);
       
       if (postId) {
         // Award stars for posting
@@ -103,6 +125,7 @@ export function AchievementPublishDialog({
         setImagePreview(null);
         setDescription('');
         setPostType('achievement');
+        setUsePreloadedImage(false);
       }
     } catch (error) {
       console.error('Error publishing:', error);
@@ -118,6 +141,7 @@ export function AchievementPublishDialog({
     setImagePreview(null);
     setDescription('');
     setPostType('achievement');
+    setUsePreloadedImage(false);
   };
 
   const canPost = dailyPostCount < dailyLimit;

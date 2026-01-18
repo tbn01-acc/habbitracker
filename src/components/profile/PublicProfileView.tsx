@@ -68,6 +68,45 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
   const [loading, setLoading] = useState(!initialProfile && !!userId);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // Calculate age from DOB - must be before any returns
+  const age = useMemo(() => {
+    if (!profile?.dob) return null;
+    try {
+      const birthDate = parseISO(profile.dob);
+      return differenceInYears(new Date(), birthDate);
+    } catch {
+      return null;
+    }
+  }, [profile?.dob]);
+
+  // Calculate membership duration - must be before any returns
+  const membershipDuration = useMemo(() => {
+    if (!profile?.created_at) return '';
+    try {
+      const createdDate = parseISO(profile.created_at);
+      const years = differenceInYears(new Date(), createdDate);
+      const months = differenceInMonths(new Date(), createdDate) % 12;
+      const days = differenceInDays(new Date(), createdDate) % 30;
+
+      if (years > 0) {
+        return `${years} ${years === 1 ? 'год' : years < 5 ? 'года' : 'лет'}`;
+      } else if (months > 0) {
+        return `${months} ${months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'}`;
+      } else {
+        return `${days} ${days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}`;
+      }
+    } catch {
+      return '';
+    }
+  }, [profile?.created_at]);
+
+  const isOwnProfile = user?.id === profile?.user_id;
+  const userInitials = useMemo(() => 
+    (profile?.display_name || 'U').slice(0, 2).toUpperCase(),
+    [profile?.display_name]
+  );
+
   useEffect(() => {
     if (userId && !initialProfile) {
       const fetchProfile = async () => {
@@ -133,10 +172,9 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
 
       fetchProfile();
     }
-  }, [userId, initialProfile, user]);
+  }, [userId, initialProfile]);
 
-  const isOwnProfile = user?.id === profile?.user_id;
-
+  // NOW conditional returns are allowed - after all hooks
   if (loading) {
     return (
       <div className="space-y-6 p-4">
@@ -158,30 +196,7 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
     );
   }
 
-  // Calculate age from DOB
-  const age = useMemo(() => {
-    if (!profile.dob) return null;
-    const birthDate = parseISO(profile.dob);
-    return differenceInYears(new Date(), birthDate);
-  }, [profile.dob]);
-
-  // Calculate membership duration
-  const membershipDuration = useMemo(() => {
-    const createdDate = parseISO(profile.created_at);
-    const years = differenceInYears(new Date(), createdDate);
-    const months = differenceInMonths(new Date(), createdDate) % 12;
-    const days = differenceInDays(new Date(), createdDate) % 30;
-
-    if (years > 0) {
-      return `${years} ${years === 1 ? 'год' : years < 5 ? 'года' : 'лет'}`;
-    } else if (months > 0) {
-      return `${months} ${months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'}`;
-    } else {
-      return `${days} ${days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}`;
-    }
-  }, [profile.created_at]);
-
-  const userInitials = (profile.display_name || 'U').slice(0, 2).toUpperCase();
+  // userInitials is defined above via useMemo
 
   const handleContactClick = () => {
     if (isProActive || isOwnProfile) {

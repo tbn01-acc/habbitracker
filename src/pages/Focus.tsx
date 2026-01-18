@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Aperture, Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, Camera, Trophy, Lightbulb } from 'lucide-react';
+import { Aperture, Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, Camera, Trophy, Lightbulb, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -49,6 +49,9 @@ export default function Focus() {
       <main className="container max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <Aperture className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold">
               {isRussian ? 'Фокус' : 'Focus'}

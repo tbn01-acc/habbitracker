@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Plus, Tag, Tags, BarChart3 } from 'lucide-react';
+import { Trophy, Plus, TrendingUp, BarChart3, Target } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -8,9 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GoalsList } from '@/components/goals/GoalsList';
 import { GoalDialog } from '@/components/goals/GoalDialog';
-import { TagStatistics } from '@/components/TagStatistics';
-import { CommonTagsTab } from '@/components/statistics/CommonTagsTab';
 import { useGoals } from '@/hooks/useGoals';
+import { GoalsOverviewProgress } from '@/components/goals/GoalsOverviewProgress';
+import { GoalsOverviewAnalytics } from '@/components/goals/GoalsOverviewAnalytics';
 
 export default function Goals() {
   const { language } = useTranslation();
@@ -31,9 +31,9 @@ export default function Goals() {
         <div className="flex items-center justify-between mb-6">
           <PageHeader 
             showTitle
-            icon={<Target className="w-5 h-5 text-purple-500" />}
-            iconBgClass="bg-purple-500/10"
-            title={isRussian ? 'Цели' : 'Goals'}
+            icon={<Trophy className="w-5 h-5 text-yellow-500" />}
+            iconBgClass="bg-yellow-500/10"
+            title={isRussian ? 'Мои цели' : 'My Goals'}
             subtitle={isRussian ? 'Управляйте своими целями' : 'Manage your goals'}
           />
           <Button onClick={() => setDialogOpen(true)} size="sm" className="gap-2">
@@ -42,19 +42,19 @@ export default function Goals() {
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="goals" className="gap-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="goals" className="gap-1">
               <Target className="w-4 h-4" />
-              {isRussian ? 'Цели' : 'Goals'}
+              <span className="hidden sm:inline">{isRussian ? 'Цели' : 'Goals'}</span>
             </TabsTrigger>
-            <TabsTrigger value="tags" className="gap-2">
-              <Tag className="w-4 h-4" />
-              {isRussian ? 'Теги' : 'Tags'}
+            <TabsTrigger value="progress" className="gap-1">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">{isRussian ? 'Прогресс' : 'Progress'}</span>
             </TabsTrigger>
-            <TabsTrigger value="common" className="gap-2">
-              <Tags className="w-4 h-4" />
-              {isRussian ? 'Общие' : 'Common'}
+            <TabsTrigger value="analytics" className="gap-1">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">{isRussian ? 'Аналитика' : 'Analytics'}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -68,12 +68,12 @@ export default function Goals() {
             />
           </TabsContent>
 
-          <TabsContent value="tags">
-            <TagStatistics />
+          <TabsContent value="progress">
+            <GoalsOverviewProgress goals={goals} isRussian={isRussian} />
           </TabsContent>
 
-          <TabsContent value="common">
-            <CommonTagsTab />
+          <TabsContent value="analytics">
+            <GoalsOverviewAnalytics goals={goals} isRussian={isRussian} />
           </TabsContent>
         </Tabs>
 

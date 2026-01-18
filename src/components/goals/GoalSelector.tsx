@@ -10,11 +10,12 @@ interface Goal {
   name: string;
   icon: string | null;
   color: string | null;
+  sphere_id: number | null;
 }
 
 interface GoalSelectorProps {
   value: string | null | undefined;
-  onChange: (value: string | null) => void;
+  onChange: (value: string | null, sphereId?: number | null) => void;
   label?: string;
   isRussian?: boolean;
 }
@@ -35,7 +36,7 @@ export function GoalSelector({ value, onChange, label, isRussian = true }: GoalS
       try {
         const { data, error } = await supabase
           .from('goals')
-          .select('id, name, icon, color')
+          .select('id, name, icon, color, sphere_id')
           .eq('user_id', user.id)
           .eq('status', 'active')
           .order('name');
@@ -51,6 +52,19 @@ export function GoalSelector({ value, onChange, label, isRussian = true }: GoalS
 
     fetchGoals();
   }, [user]);
+
+  // Get current goal's sphere_id
+  const getGoalSphereId = (goalId: string | null): number | null => {
+    if (!goalId) return null;
+    const goal = goals.find(g => g.id === goalId);
+    return goal?.sphere_id ?? null;
+  };
+
+  const handleChange = (val: string) => {
+    const goalId = val === 'none' ? null : val;
+    const sphereId = getGoalSphereId(goalId);
+    onChange(goalId, sphereId);
+  };
 
   if (loading) {
     return (
@@ -76,7 +90,7 @@ export function GoalSelector({ value, onChange, label, isRussian = true }: GoalS
       </Label>
       <Select
         value={value || 'none'}
-        onValueChange={(val) => onChange(val === 'none' ? null : val)}
+        onValueChange={handleChange}
       >
         <SelectTrigger>
           <SelectValue placeholder={isRussian ? 'Без цели' : 'No goal'} />

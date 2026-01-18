@@ -16,7 +16,6 @@ const WIDGET_LABELS: Record<WidgetType, { ru: string; en: string; es: string }> 
   pomodoro: { ru: 'Помодоро таймер', en: 'Pomodoro Timer', es: 'Temporizador Pomodoro' },
   time_stats: { ru: 'Статистика времени', en: 'Time Statistics', es: 'Estadísticas de tiempo' },
   quick_services: { ru: 'Быстрые сервисы', en: 'Quick Services', es: 'Servicios rápidos' },
-  weather: { ru: 'Погода', en: 'Weather', es: 'Clima' },
   habit_counters: { ru: 'Счётчики привычек', en: 'Habit Counters', es: 'Contadores de hábitos' },
   quick_notes: { ru: 'Быстрые заметки', en: 'Quick Notes', es: 'Notas rápidas' },
 };

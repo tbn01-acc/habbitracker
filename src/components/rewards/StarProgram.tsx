@@ -60,6 +60,22 @@ export function StarProgram({ isRussian }: StarProgramProps) {
       stars: 1,
       color: 'text-red-500',
       bgColor: 'bg-red-500/10'
+    },
+    {
+      icon: Award,
+      title: isRussian ? 'Баланс «Устойчивость»' : 'Balance "Stability"',
+      description: isRussian ? 'Достижение Spread ≤ 10 между сферами жизни' : 'Achieve Spread ≤ 10 between life spheres',
+      stars: 25,
+      color: 'text-emerald-500',
+      bgColor: 'bg-emerald-500/10'
+    },
+    {
+      icon: Crown,
+      title: isRussian ? 'Баланс «Топ Фокус»' : 'Balance "Top Focus"',
+      description: isRussian ? 'Достижение Spread ≤ 5 — идеальный баланс!' : 'Achieve Spread ≤ 5 — perfect balance!',
+      stars: 50,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10'
     }
   ];
 

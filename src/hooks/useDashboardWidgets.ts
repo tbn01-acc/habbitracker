@@ -4,7 +4,6 @@ export type WidgetType =
   | 'pomodoro' 
   | 'time_stats' 
   | 'quick_services' 
-  | 'weather' 
   | 'habit_counters'
   | 'quick_notes';
 

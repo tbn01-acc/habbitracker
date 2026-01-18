@@ -133,6 +133,22 @@ export function useNotifications() {
     }
   }, [user]);
 
+  const deleteAllNotifications = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from('user_notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+    }
+  }, [user]);
+
   // Subscribe to realtime notifications
   useEffect(() => {
     if (!user) return;
@@ -171,6 +187,7 @@ export function useNotifications() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteAllNotifications,
     refetch: fetchNotifications,
   };
 }
