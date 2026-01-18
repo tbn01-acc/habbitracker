@@ -367,6 +367,38 @@ export function useStars() {
     return success;
   }, [user, isProActive, addStars]);
 
+  const deductAchievementPost = useCallback(async (postId: string) => {
+    if (!user) return false;
+
+    // Find the original transaction for this post to know how much was awarded
+    const { data: originalTx } = await supabase
+      .from('star_transactions')
+      .select('amount')
+      .eq('user_id', user.id)
+      .eq('reference_id', postId)
+      .eq('transaction_type', 'achievement_post')
+      .single();
+
+    if (!originalTx) {
+      // No stars were awarded for this post
+      return true;
+    }
+
+    const starsToDeduct = originalTx.amount;
+    const success = await addStars(
+      -starsToDeduct,
+      'achievement_post_removed',
+      'Удаление/скрытие публикации',
+      postId
+    );
+
+    if (success) {
+      toast.info(`-${starsToDeduct} ⭐`, { description: 'Звезды списаны за скрытый пост' });
+    }
+
+    return success;
+  }, [user, addStars]);
+
   return {
     userStars,
     transactions,
@@ -382,6 +414,7 @@ export function useStars() {
     recordDailyLogin,
     purchaseFreeze,
     awardAchievementPost,
+    deductAchievementPost,
     refetch: fetchUserStars
   };
 }
