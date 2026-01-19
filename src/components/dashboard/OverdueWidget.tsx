@@ -421,9 +421,9 @@ export function OverdueWidget({
 
   const getTypeIcon = (type: 'habit' | 'task' | 'transaction') => {
     switch (type) {
-      case 'habit': return <Target className="w-4 h-4 text-green-500" />;
-      case 'task': return <CheckSquare className="w-4 h-4 text-blue-500" />;
-      case 'transaction': return <Wallet className="w-4 h-4 text-purple-500" />;
+      case 'habit': return <Target className="w-4 h-4 text-green-500 bg-transparent" />;
+      case 'task': return <CheckSquare className="w-4 h-4 text-blue-500 bg-transparent" />;
+      case 'transaction': return <Wallet className="w-4 h-4 text-purple-500 bg-transparent" />;
     }
   };
 

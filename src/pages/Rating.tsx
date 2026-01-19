@@ -252,7 +252,15 @@ export default function Rating() {
             avatar_url: profile.avatar_url,
             bio: profile.bio,
             telegram_username: profile.telegram_username,
-            public_email: profile.public_email
+            public_email: profile.public_email,
+            dob: profile.dob,
+            location: profile.location,
+            job_title: profile.job_title,
+            status_tag: profile.status_tag,
+            interests: profile.interests,
+            expertise: profile.expertise,
+            can_help: profile.can_help,
+            phone: profile.phone
           }}
           onUpdate={() => {}}
         />
