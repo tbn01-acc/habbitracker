@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutDashboard, Target, CheckSquare, Wallet, Compass, Wrench, Focus } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { GoalDialog } from '@/components/goals/GoalDialog';
 import { AchievementPublishDialog } from '@/components/AchievementPublishDialog';
 import { useGoals } from '@/hooks/useGoals';
-import { Icon3D, Icon3DKey } from '@/components/Icon3D';
+import { LucideIcon } from 'lucide-react';
 
 interface BottomNavigationProps {
   onAddHabit: () => void;
@@ -30,22 +30,21 @@ export function BottomNavigation({
 
   const isRussian = language === 'ru';
 
-  const navItems: { path: string; icon3d: Icon3DKey; label: string; color: string }[] = [
-    { path: '/', icon3d: 'dashboard', label: t('home'), color: 'hsl(var(--primary))' },
-    { path: '/habits', icon3d: 'habits', label: t('habits'), color: 'hsl(var(--habit))' },
-    { path: '/tasks', icon3d: 'tasks', label: t('tasks'), color: 'hsl(var(--task))' },
-    // Plus button goes here (index 3)
-    { path: '/finance', icon3d: 'finance', label: t('finance'), color: 'hsl(var(--finance))' },
-    { path: '/goals', icon3d: 'goals', label: isRussian ? 'Мои цели' : 'My Goals', color: 'hsl(45, 90%, 50%)' },
-    { path: '/services', icon3d: 'services', label: t('services'), color: 'hsl(var(--service))' },
+  const navItems: { path: string; icon: LucideIcon; label: string; color: string }[] = [
+    { path: '/', icon: LayoutDashboard, label: t('home'), color: 'hsl(var(--primary))' },
+    { path: '/habits', icon: Target, label: t('habits'), color: 'hsl(var(--habit))' },
+    { path: '/tasks', icon: CheckSquare, label: t('tasks'), color: 'hsl(var(--task))' },
+    { path: '/finance', icon: Wallet, label: t('finance'), color: 'hsl(var(--finance))' },
+    { path: '/goals', icon: Compass, label: isRussian ? 'Мои цели' : 'My Goals', color: 'hsl(45, 90%, 50%)' },
+    { path: '/services', icon: Wrench, label: t('services'), color: 'hsl(var(--service))' },
   ];
 
-  const quickAddItems: { label: string; icon3d: Icon3DKey; color: string; action: () => void; path: string }[] = [
-    { label: isRussian ? 'Цель' : 'Goal', icon3d: 'goals', color: 'hsl(262, 80%, 55%)', action: () => setGoalDialogOpen(true), path: '/goals' },
-    { label: t('habit'), icon3d: 'habits', color: 'hsl(var(--habit))', action: onAddHabit, path: '/habits' },
-    { label: t('task'), icon3d: 'tasks', color: 'hsl(var(--task))', action: onAddTask, path: '/tasks' },
-    { label: t('transaction'), icon3d: 'finance', color: 'hsl(var(--finance))', action: onAddTransaction, path: '/finance' },
-    { label: isRussian ? 'Пост' : 'Post', icon3d: 'focus', color: 'hsl(var(--primary))', action: () => setPostDialogOpen(true), path: '/focus' },
+  const quickAddItems: { label: string; icon: LucideIcon; color: string; action: () => void; path: string }[] = [
+    { label: isRussian ? 'Цель' : 'Goal', icon: Compass, color: 'hsl(262, 80%, 55%)', action: () => setGoalDialogOpen(true), path: '/goals' },
+    { label: t('habit'), icon: Target, color: 'hsl(var(--habit))', action: onAddHabit, path: '/habits' },
+    { label: t('task'), icon: CheckSquare, color: 'hsl(var(--task))', action: onAddTask, path: '/tasks' },
+    { label: t('transaction'), icon: Wallet, color: 'hsl(var(--finance))', action: onAddTransaction, path: '/finance' },
+    { label: isRussian ? 'Пост' : 'Post', icon: Focus, color: 'hsl(var(--primary))', action: () => setPostDialogOpen(true), path: '/focus' },
   ];
 
   const handleQuickAdd = (item: typeof quickAddItems[0]) => {
@@ -119,7 +118,7 @@ export function BottomNavigation({
                       className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                       style={{ backgroundColor: item.color }}
                     >
-                      <Icon3D name={item.icon3d} size="md" />
+                      <item.icon className="w-6 h-6 text-white" />
                     </div>
                     <span className="text-xs font-medium text-foreground whitespace-nowrap">
                       {item.label}
@@ -147,7 +146,7 @@ export function BottomNavigation({
                   : "opacity-70 hover:opacity-100"
               )}
             >
-              <Icon3D name={item.icon3d} size="sm" />
+              <item.icon className="w-5 h-5" />
               <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
             </button>
           ))}
@@ -176,7 +175,7 @@ export function BottomNavigation({
                   : "opacity-70 hover:opacity-100"
               )}
             >
-              <Icon3D name={item.icon3d} size="sm" />
+              <item.icon className="w-5 h-5" />
               <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
             </button>
           ))}

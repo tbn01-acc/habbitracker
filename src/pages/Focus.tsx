@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertical, EyeOff, Trash2, Users } from 'lucide-react';
+import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertical, EyeOff, Trash2, Users, Focus as FocusIcon, FileQuestion } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -16,7 +16,6 @@ import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserSubscribeButton } from '@/components/feed/UserSubscribeButton';
 import { PostCommentsSheet } from '@/components/feed/PostCommentsSheet';
 import { MySubscriptionsSheet } from '@/components/feed/MySubscriptionsSheet';
-import { Icon3D } from '@/components/Icon3D';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +93,7 @@ export default function Focus() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Icon3D name="focus" size="lg" />
+            <FocusIcon className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold">
               {isRussian ? 'Фокус' : 'Focus'}
             </h1>
@@ -286,7 +285,7 @@ export default function Focus() {
             {posts.length === 0 && (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Icon3D name="focus" size="xl" className="mx-auto mb-4" />
+                  <FileQuestion className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">
                     {isRussian ? 'Пока нет публикаций' : 'No posts yet'}
                   </p>

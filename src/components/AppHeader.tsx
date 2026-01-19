@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Flame } from 'lucide-react';
+import { Gift, Flame, Bell, Newspaper, Users, Focus, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useStars } from '@/hooks/useStars';
@@ -14,7 +14,6 @@ import { ReferralModal } from '@/components/ReferralModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserBadges } from '@/components/rewards/UserBadges';
-import { Icon3D } from '@/components/Icon3D';
 
 export function AppHeader() {
   const navigate = useNavigate();
@@ -70,7 +69,7 @@ export function AppHeader() {
                     onClick={() => navigate('/notifications')}
                     className="relative hover:bg-primary/10"
                   >
-                    <Icon3D name="notifications" size="sm" />
+                    <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1">
                         {unreadCount > 99 ? '99+' : unreadCount}
@@ -91,7 +90,7 @@ export function AppHeader() {
                     onClick={() => navigate('/news')}
                     className="hover:bg-blue-500/10"
                   >
-                    <Icon3D name="news" size="sm" />
+                    <Newspaper className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -107,7 +106,7 @@ export function AppHeader() {
                     onClick={() => navigate('/users')}
                     className="hover:bg-green-500/10"
                   >
-                    <Icon3D name="users" size="sm" />
+                    <Users className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -123,7 +122,7 @@ export function AppHeader() {
                     onClick={() => navigate('/focus')}
                     className="hover:bg-purple-500/10"
                   >
-                    <Icon3D name="focus" size="sm" />
+                    <Focus className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -139,7 +138,7 @@ export function AppHeader() {
                     onClick={() => navigate('/rating')}
                     className="hover:bg-yellow-500/10"
                   >
-                    <Icon3D name="rating" size="sm" />
+                    <Trophy className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, Heart } from 'lucide-react';
 import { useUserSubscriptions } from '@/hooks/useUserSubscriptions';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserSubscribeButton } from './UserSubscribeButton';
-import { Icon3D } from '@/components/Icon3D';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,7 +30,7 @@ export function MySubscriptionsSheet({ open, onOpenChange }: MySubscriptionsShee
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader className="pb-4">
           <div className="flex items-center gap-3">
-            <Icon3D name="subscriptions" size="md" />
+            <Heart className="w-6 h-6 text-primary" />
             <SheetTitle>
               {isRussian ? 'Подписки' : 'Subscriptions'}
             </SheetTitle>

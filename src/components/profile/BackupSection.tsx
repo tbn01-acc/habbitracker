@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Download, Upload, Loader2, ChevronDown, ChevronUp, History, RefreshCw } from 'lucide-react';
+import { Download, Upload, Loader2, ChevronDown, ChevronUp, History, RefreshCw, HardDrive, Cloud } from 'lucide-react';
 import { useLocalBackup } from '@/hooks/useLocalBackup';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCloudSync } from '@/hooks/useCloudSync';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Icon3D } from '@/components/Icon3D';
 import { SyncHistoryPanel, useSyncHistory } from '@/components/SyncHistory';
 import { toast } from 'sonner';
 
@@ -71,7 +70,7 @@ export function BackupSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 mb-4">
-        <Icon3D name="backup" size="lg" />
+        <HardDrive className="w-8 h-8 text-primary" />
         <h2 className="text-lg font-semibold text-foreground">
           {isRussian ? 'Резервное копирование' : 'Backup'}
         </h2>
@@ -83,7 +82,7 @@ export function BackupSection() {
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-3">
-                <Icon3D name="cloud" size="md" />
+                <Cloud className="w-6 h-6 text-primary" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-foreground">
@@ -165,7 +164,7 @@ export function BackupSection() {
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" className="w-full justify-between">
                         <div className="flex items-center gap-2">
-                          <Icon3D name="sync" size="sm" />
+                          <RefreshCw className="w-5 h-5" />
                           <span>{isRussian ? 'История синхронизации' : 'Sync History'}</span>
                         </div>
                         {historyOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -203,7 +202,7 @@ export function BackupSection() {
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-3">
-                <Icon3D name="backup" size="md" />
+                <HardDrive className="w-6 h-6 text-primary" />
                 <div>
                   <h3 className="font-medium text-foreground">
                     {isRussian ? 'Локальный бэкап' : 'Local Backup'}
