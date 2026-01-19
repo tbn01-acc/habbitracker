@@ -116,22 +116,19 @@ export function TaskFilters({
                 <div className="flex flex-wrap gap-2">
                   {categories.map(category => {
                     const isSelected = selectedCategories.includes(category.id);
-                    // Ensure readable text on colored background
-                    const bgColor = category.color + '25';
                     return (
                       <button
                         key={category.id}
                         onClick={() => toggleCategory(category.id)}
                         className={cn(
-                          "px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
+                          "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                           isSelected
-                            ? "ring-2 ring-offset-1 ring-offset-card shadow-sm"
-                            : "opacity-80 hover:opacity-100"
+                            ? "bg-transparent border-2 font-bold"
+                            : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted"
                         )}
                         style={{ 
-                          backgroundColor: isSelected ? category.color : bgColor,
-                          color: isSelected ? '#fff' : category.color,
-                          borderColor: category.color
+                          borderColor: isSelected ? category.color : 'transparent',
+                          color: category.color
                         }}
                       >
                         {category.name}
@@ -148,21 +145,19 @@ export function TaskFilters({
                   <div className="flex flex-wrap gap-2">
                     {tags.map(tag => {
                       const isSelected = selectedTags.includes(tag.id);
-                      const bgColor = tag.color + '25';
                       return (
                         <button
                           key={tag.id}
                           onClick={() => toggleTag(tag.id)}
                           className={cn(
-                            "px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
+                            "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                             isSelected
-                              ? "ring-2 ring-offset-1 ring-offset-card shadow-sm"
-                              : "opacity-80 hover:opacity-100"
+                              ? "bg-transparent border-2 font-bold"
+                              : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted"
                           )}
                           style={{ 
-                            backgroundColor: isSelected ? tag.color : bgColor,
-                            color: isSelected ? '#fff' : tag.color,
-                            borderColor: tag.color
+                            borderColor: isSelected ? tag.color : 'transparent',
+                            color: tag.color
                           }}
                         >
                           {tag.name}

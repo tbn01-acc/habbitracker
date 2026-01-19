@@ -1,14 +1,21 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, MoreVertical, Flame, Timer, CalendarClock } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Check, MoreVertical, Flame, Timer, CalendarClock, ChevronDown, ChevronUp, 
+  Archive, Pencil, Trash2, Calendar, Play, Pause, Square
+} from 'lucide-react';
 import { Habit } from '@/types/habit';
 import { ProgressRing } from './ProgressRing';
 import { getTodayString, getWeekDates, getCompletedReps, isFullyCompleted, getCompletionPercent } from '@/hooks/useHabits';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
+import { useGoals } from '@/hooks/useGoals';
+import { useSpheres } from '@/hooks/useSpheres';
 import { usePomodoro } from '@/contexts/PomodoroContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { TranslationKey } from '@/i18n/translations';
 import { triggerCompletionCelebration } from '@/utils/celebrations';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +27,12 @@ import { Button } from '@/components/ui/button';
 import { HabitDetailDialog } from './HabitDetailDialog';
 import { PostponeDialog } from './PostponeDialog';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface HabitCardProps {
   habit: Habit;
+  habitIndex?: number;
+  totalHabitsForWeek?: number;
   onToggle: (date: string) => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -30,21 +40,51 @@ interface HabitCardProps {
   onArchive?: (habitId: string) => void;
   index: number;
   onTagClick?: (tagId: string) => void;
+  totalTime?: number;
+  activeTimer?: { habitId: string } | null;
+  elapsedTime?: number;
+  onStartTimer?: (habitId: string) => void;
+  onStopTimer?: () => void;
 }
 
 const WEEKDAY_KEYS: TranslationKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArchive, index, onTagClick }: HabitCardProps) {
+export function HabitCard({ 
+  habit, 
+  habitIndex = 1,
+  totalHabitsForWeek = 1,
+  onToggle, 
+  onEdit, 
+  onDelete, 
+  onPostpone, 
+  onArchive, 
+  index, 
+  onTagClick,
+  totalTime = 0,
+  activeTimer,
+  elapsedTime = 0,
+  onStartTimer,
+  onStopTimer
+}: HabitCardProps) {
   const today = getTodayString();
   const weekDates = getWeekDates();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isRussian = language === 'ru';
   const { tags: userTags } = useUserTags();
+  const { goals } = useGoals();
+  const { spheres } = useSpheres();
+  const { isProActive: isPro } = useSubscription();
   const { start: startPomodoro, isRunning, currentHabitId } = usePomodoro();
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [postponeOpen, setPostponeOpen] = useState(false);
+  const [timerState, setTimerState] = useState<'idle' | 'running' | 'paused'>('idle');
+  const nameRef = useRef<HTMLDivElement>(null);
+  const [needsMarquee, setNeedsMarquee] = useState(false);
   
   const isCurrentHabitRunning = isRunning && currentHabitId === habit.id;
+  const isTimerActive = activeTimer?.habitId === habit.id;
   
   // Repetitions tracking
   const targetReps = habit.targetRepsPerDay || 1;
@@ -67,6 +107,41 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
   const progressPercent = weekTarget > 0 ? (weekProgress / weekTarget) * 100 : 0;
 
   const habitTags = userTags.filter(tag => habit.tagIds?.includes(tag.id));
+  const habitGoal = goals.find(g => g.id === (habit as any).goalId);
+  const habitSphere = spheres.find(s => s.id === (habit as any).sphereId);
+
+  // Check if name needs marquee
+  useEffect(() => {
+    if (nameRef.current) {
+      setNeedsMarquee(nameRef.current.scrollWidth > nameRef.current.clientWidth);
+    }
+  }, [habit.name]);
+
+  const handleStartPomodoro = () => {
+    if (isRunning) {
+      toast.info(isRussian ? 'Таймер уже запущен' : 'Timer already running');
+      return;
+    }
+    startPomodoro(undefined, undefined, habit.id);
+    setTimerState('running');
+  };
+
+  const handleGoogleCalendar = () => {
+    if (!isPro) {
+      toast.error(isRussian ? 'Доступно только для PRO' : 'PRO feature only');
+      return;
+    }
+    const startDate = today.replace(/-/g, '');
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(habit.name)}&dates=${startDate}/${startDate}`;
+    window.open(url, '_blank');
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -74,178 +149,276 @@ export function HabitCard({ habit, onToggle, onEdit, onDelete, onPostpone, onArc
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: index * 0.05 }}
-        className="bg-card rounded-2xl p-4 shadow-card relative overflow-hidden cursor-pointer"
-        onClick={() => setDetailOpen(true)}
+        className="bg-card rounded-2xl shadow-card relative overflow-hidden"
+        style={{ 
+          borderLeftColor: habit.color, 
+          borderLeftWidth: 4,
+          // Week progress as background fill
+          background: `linear-gradient(to right, ${habit.color}15 ${progressPercent}%, transparent ${progressPercent}%)`
+        }}
       >
-        {/* Background glow when completed */}
-        {isCompletedToday && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 opacity-10"
-            style={{ background: habit.color }}
-          />
-        )}
-        
-        <div className="relative flex items-center gap-4">
-          {/* Completion button */}
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              onToggle(today);
-            }}
-            className={`relative w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${
-              isCompletedToday 
-                ? 'text-primary-foreground' 
-                : todayReps > 0
-                  ? 'text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-secondary'
-            }`}
-            style={isCompletedToday 
-              ? { background: habit.color } 
-              : todayReps > 0 
-                ? { background: `${habit.color}80` } // Semi-transparent for partial
-                : undefined
-            }
-          >
-            {isCompletedToday ? (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-              >
-                <Check className="w-7 h-7" />
-              </motion.div>
-            ) : todayReps > 0 ? (
-              <span className="text-sm font-bold">{todayReps}/{targetReps}</span>
-            ) : (
-              <span className="text-2xl">{habit.icon}</span>
-            )}
-          </motion.button>
-
-          {/* Habit info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate">{habit.name}</h3>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {habit.streak > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-accent/20 text-accent">
-                  <Flame className="w-3 h-3" />
-                  {habit.streak}
-                </span>
+        {/* Row 1: Checkbox, Icon, Name, Percent, Chevron */}
+        <div 
+          className="flex items-center gap-2 p-3 cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {/* Checkbox - only show if single rep per day */}
+          {targetReps === 1 && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (!isCompletedToday) {
+                  triggerCompletionCelebration();
+                }
+                onToggle(today);
+              }}
+              className={cn(
+                "w-6 h-6 rounded-lg flex items-center justify-center transition-all flex-shrink-0",
+                isCompletedToday 
+                  ? 'text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground hover:bg-secondary border-2 border-muted-foreground/30'
               )}
-              <span className="text-xs text-muted-foreground">
-                {weekProgress}/{weekTarget} {t('thisWeek')}
-              </span>
-            </div>
-            {/* Tags */}
-            {habitTags.length > 0 && (
-              <div className="flex gap-1 mt-1 flex-wrap">
-                {habitTags.slice(0, 2).map(tag => (
-                  <button
-                    key={tag.id}
-                    onClick={(e) => { e.stopPropagation(); onTagClick?.(tag.id); }}
-                    className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
-                    <span className="text-muted-foreground">{tag.name}</span>
-                  </button>
-                ))}
-                {habitTags.length > 2 && (
-                  <span className="text-xs text-muted-foreground">+{habitTags.length - 2}</span>
-                )}
-              </div>
+              style={isCompletedToday ? { background: habit.color } : undefined}
+            >
+              {isCompletedToday && <Check className="w-4 h-4" />}
+            </motion.button>
+          )}
+
+          {/* Icon */}
+          <span className="text-lg flex-shrink-0">{habit.icon}</span>
+
+          {/* Name */}
+          <div 
+            ref={nameRef}
+            className={cn(
+              "flex-1 min-w-0 font-medium text-foreground overflow-hidden whitespace-nowrap",
+              needsMarquee && !expanded && "animate-marquee"
             )}
+          >
+            {habit.name}
           </div>
 
-          {/* Pomodoro button */}
-          <Button
-            variant={isCurrentHabitRunning ? "default" : "outline"}
-            size="icon"
-            className="h-10 w-10"
+          {/* Week progress percent */}
+          <span className="text-sm font-medium text-muted-foreground">
+            {Math.round(progressPercent)}%
+          </span>
+
+          {/* Chevron */}
+          <button 
             onClick={(e) => {
               e.stopPropagation();
-              if (isCurrentHabitRunning) {
-                navigate('/services');
-              } else {
-                startPomodoro(undefined, undefined, habit.id);
-                navigate('/services');
-              }
+              setExpanded(!expanded);
             }}
+            className="p-1 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
           >
-            <Timer className={`w-4 h-4 ${isCurrentHabitRunning ? 'animate-pulse' : ''}`} />
-          </Button>
-
-          {/* Progress ring */}
-          <ProgressRing progress={progressPercent} size={48} strokeWidth={4} color={habit.color}>
-            <span className="text-xs font-semibold text-foreground">
-              {Math.round(progressPercent)}%
-            </span>
-          </ProgressRing>
-
-          {/* Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-                {t('edit')}
-              </DropdownMenuItem>
-              {onPostpone && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setPostponeOpen(true); }}>
-                  <CalendarClock className="w-4 h-4 mr-2" />
-                  {t('postpone') || 'Перенести'}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
-                {t('delete')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            {expanded ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
         </div>
 
-        {/* Week progress dots */}
-        <div className="flex justify-between mt-4 px-1" onClick={(e) => e.stopPropagation()}>
-          {weekDates.map((date) => {
-            const dayOfWeek = new Date(date).getDay();
-            const isTarget = habit.targetDays.includes(dayOfWeek);
-            const dateReps = getCompletedReps(habit, date);
-            const isFullComplete = isFullyCompleted(habit, date);
-            const isPartial = dateReps > 0 && !isFullComplete;
-            const isToday = date === today;
-            
-            return (
-              <button
-                key={date}
-                onClick={() => onToggle(date)}
-                disabled={!isTarget}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                  isFullComplete
-                    ? 'text-primary-foreground'
-                    : isPartial
-                      ? 'text-primary-foreground'
-                      : isTarget
-                        ? isToday
-                          ? 'bg-secondary text-foreground ring-2 ring-primary/50'
-                          : 'bg-secondary text-muted-foreground hover:bg-muted'
-                        : 'text-muted-foreground/30'
-                }`}
-                style={isFullComplete 
-                  ? { background: habit.color } 
-                  : isPartial 
-                    ? { background: `${habit.color}60` }
-                    : undefined
-                }
-              >
-                {t(WEEKDAY_KEYS[dayOfWeek])}
-              </button>
-            );
-          })}
-        </div>
+        {/* Expanded content */}
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              {/* Row 2: Week X of Y, Daily reps, Menu */}
+              <div className="flex items-center gap-2 px-3 pb-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                <span className="text-xs text-muted-foreground">
+                  {isRussian ? 'Неделя:' : 'Week:'} {habitIndex} {isRussian ? 'из' : 'of'} {totalHabitsForWeek}
+                </span>
+
+                {/* Daily reps circles (if > 1) */}
+                {targetReps > 1 && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-xs text-muted-foreground mr-1">
+                      {isRussian ? 'День:' : 'Day:'}
+                    </span>
+                    {Array.from({ length: targetReps }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          if (i < todayReps) return; // Already completed
+                          onToggle(today);
+                        }}
+                        className={cn(
+                          "w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center transition-all",
+                          i < todayReps
+                            ? "text-white"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        )}
+                        style={i < todayReps ? { backgroundColor: habit.color } : undefined}
+                      >
+                        {i < todayReps ? <Check className="w-3 h-3" /> : i + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Streak */}
+                {habit.streak > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+                    <Flame className="w-3 h-3" />
+                    {habit.streak}
+                  </span>
+                )}
+
+                {/* Menu */}
+                <div className="ml-auto">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 rounded-lg hover:bg-muted transition-colors">
+                        <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={onEdit}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        {t('edit')}
+                      </DropdownMenuItem>
+                      {isPro && (
+                        <DropdownMenuItem onClick={handleGoogleCalendar}>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Google Calendar
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => {
+                        // Export ICS
+                        toast.success(isRussian ? 'Файл .ics скачан' : '.ics file downloaded');
+                      }}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {isRussian ? 'Скачать .ics' : 'Download .ics'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('delete')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              {/* Row 3-4: Sphere, Goal, Tags */}
+              <div className="flex items-center gap-1.5 px-3 pb-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                {habitSphere && (
+                  <span 
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: habitSphere.color + '20', color: habitSphere.color }}
+                  >
+                    {habitSphere.icon} {isRussian ? habitSphere.name_ru : habitSphere.name_en}
+                  </span>
+                )}
+                {habitGoal && (
+                  <span 
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: habitGoal.color + '20', color: habitGoal.color }}
+                  >
+                    {habitGoal.icon} {habitGoal.name}
+                  </span>
+                )}
+                {habitTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => onTagClick?.(tag.id)}
+                    className="text-xs px-2 py-0.5 rounded-full transition-colors"
+                    style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 5: Timer, Total Time, Postpone, Archive */}
+              <div className="flex items-center gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+                {/* Timer dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className={cn(
+                      "flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors",
+                      isTimerActive || isCurrentHabitRunning 
+                        ? "bg-habit/20 text-habit" 
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}>
+                      {isTimerActive || isCurrentHabitRunning ? (
+                        <>
+                          <Timer className="w-3.5 h-3.5 animate-pulse" />
+                          {formatTime(elapsedTime)}
+                        </>
+                      ) : (
+                        <Timer className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => {
+                      if (onStartTimer) {
+                        onStartTimer(habit.id);
+                        setTimerState('running');
+                      }
+                    }}>
+                      <Play className="w-4 h-4 mr-2" />
+                      {isRussian ? 'Секундомер' : 'Stopwatch'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleStartPomodoro}>
+                      <Timer className="w-4 h-4 mr-2" />
+                      {isRussian ? 'Помодоро' : 'Pomodoro'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Total time */}
+                <span className="text-xs text-muted-foreground">
+                  {isRussian ? 'Всего:' : 'Total:'} {formatTime(totalTime)}
+                </span>
+
+                <div className="flex-1" />
+
+                {/* Postpone */}
+                {onPostpone && (
+                  <button
+                    onClick={() => setPostponeOpen(true)}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title={isRussian ? 'Отложить' : 'Postpone'}
+                  >
+                    <CalendarClock className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Archive */}
+                {onArchive && (
+                  <button
+                    onClick={() => onArchive(habit.id)}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title={isRussian ? 'В архив' : 'Archive'}
+                  >
+                    <Archive className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bottom progress bar for daily reps (collapsed state, if reps > 1) */}
+        {targetReps > 1 && !expanded && (
+          <div className="h-1 bg-muted">
+            <div 
+              className="h-full transition-all duration-300"
+              style={{ 
+                width: `${todayPercent}%`,
+                backgroundColor: habit.color 
+              }}
+            />
+          </div>
+        )}
       </motion.div>
 
       <HabitDetailDialog

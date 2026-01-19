@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Users } from 'lucide-react';
+import { Star, Heart, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserRewardItems } from '@/hooks/useUserRewardItems';
@@ -38,6 +38,17 @@ export function RatingList({ users, userRewards, type, isRussian, onUserClick, s
     }
   };
 
+  const getIcon = () => {
+    switch (type) {
+      case 'likes':
+        return <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />;
+      case 'referrals':
+        return <Users className="h-4 w-4 text-blue-500" />;
+      default:
+        return <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />;
+    }
+  };
+
   // Skip top 3 (they're on the podium)
   const listUsers = users.slice(3);
 
@@ -45,12 +56,6 @@ export function RatingList({ users, userRewards, type, isRussian, onUserClick, s
 
   return (
     <div className="space-y-2">
-      {/* Header */}
-      <div className="flex justify-between px-2 text-xs text-muted-foreground uppercase">
-        <span>{isRussian ? 'Пользователь' : 'User'}</span>
-        <span>#</span>
-      </div>
-
       {/* List */}
       <AnimatePresence>
         {listUsers.map((user, index) => (
@@ -67,6 +72,12 @@ export function RatingList({ users, userRewards, type, isRussian, onUserClick, s
               onClick={() => onUserClick(user.user_id)}
             >
               <CardContent className="flex items-center gap-3 p-3">
+                {/* Rank */}
+                <span className="w-8 text-center text-lg font-bold text-muted-foreground">
+                  {user.rank}
+                </span>
+
+                {/* Avatar */}
                 <UserAvatarWithFrame
                   avatarUrl={user.avatar_url}
                   displayName={user.display_name}
@@ -74,19 +85,20 @@ export function RatingList({ users, userRewards, type, isRussian, onUserClick, s
                   size="sm"
                 />
 
+                {/* Name */}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
                     {user.display_name}
                   </p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                    {getValue(user).toLocaleString()}
-                  </div>
                 </div>
 
-                <span className="text-lg font-bold text-muted-foreground">
-                  {user.rank}
-                </span>
+                {/* Value with icon - right aligned */}
+                <div className="flex items-center gap-1.5 ml-auto">
+                  {getIcon()}
+                  <span className="text-sm font-semibold">
+                    {getValue(user).toLocaleString()}
+                  </span>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

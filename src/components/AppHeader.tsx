@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Flame, Bell, Newspaper, Users, Focus, Trophy } from 'lucide-react';
+import { Gift, Flame, Bell, Newspaper, Users, Aperture, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useStars } from '@/hooks/useStars';
@@ -122,7 +122,7 @@ export function AppHeader() {
                     onClick={() => navigate('/focus')}
                     className="hover:bg-purple-500/10"
                   >
-                    <Focus className="w-5 h-5" />
+                    <Aperture className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
