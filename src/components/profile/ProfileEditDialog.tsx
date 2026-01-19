@@ -10,6 +10,7 @@ import { AvatarGallery } from './AvatarGallery';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -32,14 +33,23 @@ export function ProfileEditDialog({
   const [displayName, setDisplayName] = useState(currentDisplayName || '');
   const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl || '');
   const [showGallery, setShowGallery] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Use TanStack Query hooks
+  const { data: profile } = useProfile(userId);
+  const updateProfileMutation = useUpdateProfile(userId);
+
   useEffect(() => {
-    setDisplayName(currentDisplayName || '');
-    setAvatarUrl(currentAvatarUrl || '');
-  }, [currentDisplayName, currentAvatarUrl, open]);
+    // Sync local state with profile data from cache
+    if (profile) {
+      setDisplayName(profile.display_name || '');
+      setAvatarUrl(profile.avatar_url || '');
+    } else {
+      setDisplayName(currentDisplayName || '');
+      setAvatarUrl(currentAvatarUrl || '');
+    }
+  }, [profile, currentDisplayName, currentAvatarUrl, open]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,32 +105,24 @@ export function ProfileEditDialog({
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          display_name: displayName || null,
-          avatar_url: avatarUrl || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      toast.success(t('save'));
-      onUpdate();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error(t('error'));
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    // Use optimistic mutation - UI updates instantly
+    updateProfileMutation.mutate(
+      { 
+        display_name: displayName || null,
+        avatar_url: avatarUrl || null,
+      },
+      {
+        onSuccess: () => {
+          onUpdate();
+          onOpenChange(false);
+        },
+      }
+    );
   };
 
   const userInitials = (displayName || 'U').slice(0, 2).toUpperCase();
+  const isSaving = updateProfileMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,14 +135,14 @@ export function ProfileEditDialog({
           {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <Avatar className="w-24 h-24 border-2 border-primary/20">
-                <AvatarImage src={avatarUrl || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+              <Avatar className="w-24 h-24 border-2 border-primary/20 rounded-lg">
+                <AvatarImage src={avatarUrl || undefined} className="rounded-lg" />
+                <AvatarFallback className="bg-primary/10 text-primary text-2xl rounded-lg">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
               {uploading && (
-                <div className="absolute inset-0 bg-background/80 rounded-full flex items-center justify-center">
+                <div className="absolute inset-0 bg-background/80 rounded-lg flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               )}
@@ -217,7 +219,8 @@ export function ProfileEditDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </Button>
-          <Button onClick={handleSave} disabled={saving || uploading}>
+          <Button onClick={handleSave} disabled={isSaving || uploading}>
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {t('save')}
           </Button>
         </div>

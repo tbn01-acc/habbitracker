@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { AvatarGallery } from './AvatarGallery';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUpdateProfile } from '@/hooks/useProfile';
 
 const STATUS_OPTIONS = [
   { value: 'student', label: 'Студент' },
@@ -76,10 +77,12 @@ export function PublicProfileEditDialog({
   const [canHelp, setCanHelp] = useState(currentData.can_help || '');
   const [phone, setPhone] = useState(currentData.phone || '');
   const [showGallery, setShowGallery] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use TanStack Query mutation for optimistic updates
+  const updateProfileMutation = useUpdateProfile(userId);
 
   useEffect(() => {
     if (open) {
@@ -158,7 +161,7 @@ export function PublicProfileEditDialog({
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!displayName.trim()) {
       toast.error('Имя обязательно для заполнения');
       return;
@@ -183,58 +186,49 @@ export function PublicProfileEditDialog({
       return;
     }
 
-    setSaving(true);
-    try {
-      let cleanTelegram = telegramUsername.trim();
-      if (cleanTelegram.startsWith('@')) {
-        cleanTelegram = cleanTelegram.slice(1);
-      }
-      if (cleanTelegram.includes('t.me/')) {
-        cleanTelegram = cleanTelegram.split('t.me/')[1];
-      }
-
-      const cleanEmail = publicEmail.trim();
-      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-        toast.error('Неверный формат email');
-        setSaving(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          display_name: displayName.trim() || null,
-          avatar_url: avatarUrl || null,
-          bio: bio.trim() || null,
-          telegram_username: cleanTelegram || null,
-          public_email: cleanEmail || null,
-          dob: dob || null,
-          location: location.trim() || null,
-          job_title: jobTitle.trim() || null,
-          status_tag: statusTag || null,
-          interests: interests.length > 0 ? interests : null,
-          expertise: expertise.trim() || null,
-          can_help: canHelp.trim() || null,
-          phone: phone.trim() || null,
-          is_public: true, // Always public
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      toast.success('Профиль обновлён');
-      onUpdate();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Ошибка сохранения');
-    } finally {
-      setSaving(false);
+    let cleanTelegram = telegramUsername.trim();
+    if (cleanTelegram.startsWith('@')) {
+      cleanTelegram = cleanTelegram.slice(1);
     }
+    if (cleanTelegram.includes('t.me/')) {
+      cleanTelegram = cleanTelegram.split('t.me/')[1];
+    }
+
+    const cleanEmail = publicEmail.trim();
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      toast.error('Неверный формат email');
+      return;
+    }
+
+    // Use optimistic mutation - UI updates instantly
+    updateProfileMutation.mutate(
+      {
+        display_name: displayName.trim() || null,
+        avatar_url: avatarUrl || null,
+        bio: bio.trim() || null,
+        telegram_username: cleanTelegram || null,
+        public_email: cleanEmail || null,
+        dob: dob || null,
+        location: location.trim() || null,
+        job_title: jobTitle.trim() || null,
+        status_tag: statusTag || null,
+        interests: interests.length > 0 ? interests : null,
+        expertise: expertise.trim() || null,
+        can_help: canHelp.trim() || null,
+        phone: phone.trim() || null,
+        is_public: true,
+      },
+      {
+        onSuccess: () => {
+          onUpdate();
+          onOpenChange(false);
+        },
+      }
+    );
   };
 
   const userInitials = (displayName || 'U').slice(0, 2).toUpperCase();
+  const saving = updateProfileMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

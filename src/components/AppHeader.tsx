@@ -7,6 +7,7 @@ import { useStars } from '@/hooks/useStars';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useProfile } from '@/hooks/useProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +18,18 @@ import { UserBadges } from '@/components/rewards/UserBadges';
 
 export function AppHeader() {
   const navigate = useNavigate();
-  const { profile, user } = useAuth();
+  const { profile: authProfile, user } = useAuth();
   const { userStars } = useStars();
   const { unreadCount } = useNotifications();
   const { isProActive } = useSubscription();
   const { t } = useTranslation();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
+
+  // Use TanStack Query for profile data - enables instant updates from cache
+  const { data: cachedProfile } = useProfile(user?.id);
+  
+  // Prefer cached profile data for instant updates, fallback to auth profile
+  const profile = cachedProfile || authProfile;
 
   const userName = profile?.display_name || user?.email?.split('@')[0] || t('guest');
   const isPro = isProActive;

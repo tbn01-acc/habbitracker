@@ -19,6 +19,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useCelebrationSettings } from '@/hooks/useCelebrationSettings';
 import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { usePageCaching } from '@/hooks/usePageCaching';
+import { useProfile } from '@/hooks/useProfile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -29,13 +30,17 @@ import { toast } from 'sonner';
 export default function ProfileSettings() {
   const { t, language } = useTranslation();
   const navigate = useNavigate();
-  const { user, profile, signOut, loading, refetchProfile } = useAuth();
+  const { user, profile: authProfile, signOut, loading, refetchProfile } = useAuth();
   const { isSyncing, syncAll, syncHistory } = useSupabaseSync();
   const { subscription, currentPlan, isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
   const { soundEnabled, confettiEnabled, setSoundEnabled, setConfettiEnabled } = useCelebrationSettings();
   const { isAdmin } = useLegalDocuments();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const isRussian = language === 'ru';
+
+  // Use TanStack Query for instant profile updates
+  const { data: cachedProfile } = useProfile(user?.id);
+  const profile = cachedProfile || authProfile;
 
   const handleSignOut = async () => {
     await signOut();
