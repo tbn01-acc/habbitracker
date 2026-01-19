@@ -1,19 +1,36 @@
-import { useRef } from 'react';
-import { Download, Upload, Loader2, HardDrive, Cloud, RefreshCw } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Download, Upload, Loader2, ChevronDown, ChevronUp, History, RefreshCw } from 'lucide-react';
 import { useLocalBackup } from '@/hooks/useLocalBackup';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useCloudSync } from '@/hooks/useCloudSync';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
+import { Icon3D } from '@/components/Icon3D';
+import { SyncHistoryPanel, useSyncHistory } from '@/components/SyncHistory';
+import { toast } from 'sonner';
 
 export function BackupSection() {
   const { language } = useTranslation();
   const { createBackup, handleFileSelect, isCreating, isRestoring } = useLocalBackup();
   const { isProActive } = useSubscription();
-  const { syncAll, isSyncing, lastSyncTime } = useSupabaseSync();
+  const { 
+    isSyncing, 
+    lastSyncTime, 
+    syncAll, 
+    saveDataToCloud, 
+    restoreFromCloud 
+  } = useCloudSync();
+  const { history, addEntry } = useSyncHistory();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isRussian = language === 'ru';
+  const isPro = isProActive;
+
+  const [cloudSyncOpen, setCloudSyncOpen] = useState(true);
+  const [localBackupOpen, setLocalBackupOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const formatLastSync = () => {
     if (!lastSyncTime) return isRussian ? 'Никогда' : 'Never';
@@ -34,122 +51,214 @@ export function BackupSection() {
     });
   };
 
+  const handleSaveToCloud = async () => {
+    await saveDataToCloud();
+    addEntry({
+      habitsCount: JSON.parse(localStorage.getItem('habitflow_habits') || '[]').length,
+      tasksCount: JSON.parse(localStorage.getItem('habitflow_tasks') || '[]').length,
+      transactionsCount: JSON.parse(localStorage.getItem('habitflow_finance') || '[]').length,
+    });
+    toast.success(isRussian ? 'Данные сохранены в облако' : 'Data saved to cloud');
+  };
+
+  const handleRestoreFromCloud = async () => {
+    const success = await restoreFromCloud();
+    if (!success) {
+      toast.error(isRussian ? 'Не удалось восстановить данные' : 'Failed to restore data');
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Local Backup */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <HardDrive className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-foreground">
-                {isRussian ? 'Локальный бэкап' : 'Local Backup'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {isRussian ? 'Сохранить данные на устройство' : 'Save data to device'}
-              </p>
-            </div>
-          </div>
+      <div className="flex items-center gap-3 mb-4">
+        <Icon3D name="backup" size="lg" />
+        <h2 className="text-lg font-semibold text-foreground">
+          {isRussian ? 'Резервное копирование' : 'Backup'}
+        </h2>
+      </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={createBackup}
-              disabled={isCreating}
-            >
-              {isCreating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+      {/* Cloud Sync Section (PRO only) */}
+      <Card className={!isPro ? 'opacity-60' : ''}>
+        <Collapsible open={cloudSyncOpen} onOpenChange={setCloudSyncOpen}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Icon3D name="cloud" size="md" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-foreground">
+                      {isRussian ? 'Облачная синхронизация' : 'Cloud Sync'}
+                    </h3>
+                    {!isPro && (
+                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                        PRO
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {isPro 
+                      ? (isRussian ? 'Синхронизация между устройствами' : 'Sync across devices')
+                      : (isRussian ? 'Доступно только для PRO' : 'Available for PRO only')}
+                  </p>
+                </div>
+              </div>
+              {cloudSyncOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+            </div>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <CardContent className="pt-0 pb-4 px-4 space-y-4">
+              {isPro ? (
+                <>
+                  {/* Last sync time */}
+                  <div className="flex items-center justify-between text-sm bg-muted/50 rounded-lg p-3">
+                    <span className="text-muted-foreground">
+                      {isRussian ? 'Последняя синхронизация:' : 'Last sync:'}
+                    </span>
+                    <span className="text-foreground font-medium">
+                      {formatLastSync()}
+                    </span>
+                  </div>
+
+                  {/* Save to cloud */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      {isRussian ? 'Сохранение данных' : 'Save Data'}
+                    </h4>
+                    <Button 
+                      onClick={handleSaveToCloud} 
+                      disabled={isSyncing}
+                      className="w-full gap-2"
+                      variant="outline"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      {isRussian ? 'Сохранить в облако' : 'Save to Cloud'}
+                    </Button>
+                  </div>
+
+                  {/* Restore from cloud */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      {isRussian ? 'Восстановление данных' : 'Restore Data'}
+                    </h4>
+                    <Button 
+                      onClick={handleRestoreFromCloud} 
+                      disabled={isSyncing}
+                      className="w-full gap-2"
+                      variant="outline"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      {isRussian ? 'Восстановить из облака' : 'Restore from Cloud'}
+                    </Button>
+                  </div>
+
+                  {/* Sync History */}
+                  <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon3D name="sync" size="sm" />
+                          <span>{isRussian ? 'История синхронизации' : 'Sync History'}</span>
+                        </div>
+                        {historyOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-2">
+                      <SyncHistoryPanel 
+                        history={history} 
+                        onSync={() => syncAll(true)}
+                        isSyncing={isSyncing}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                </>
               ) : (
-                <Download className="w-4 h-4" />
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {isRussian 
+                      ? 'Облачная синхронизация доступна только для PRO-пользователей'
+                      : 'Cloud sync is only available for PRO users'}
+                  </p>
+                  <Button variant="outline" disabled>
+                    {isRussian ? 'Перейти на PRO' : 'Upgrade to PRO'}
+                  </Button>
+                </div>
               )}
-              {isRussian ? 'Создать' : 'Create'}
-            </Button>
-            
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isRestoring}
-            >
-              {isRestoring ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4" />
-              )}
-              {isRussian ? 'Восстановить' : 'Restore'}
-            </Button>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
-        </CardContent>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
-      {/* Cloud Backup (PRO only) */}
-      <Card className={!isProActive ? 'opacity-60' : ''}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Cloud className={`w-5 h-5 ${isProActive ? 'text-purple-500' : 'text-muted-foreground'}`} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-foreground">
-                  {isRussian ? 'Облачная синхронизация' : 'Cloud Sync'}
-                </h3>
-                {!isProActive && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                    PRO
-                  </span>
-                )}
+      {/* Local Backup Section */}
+      <Card>
+        <Collapsible open={localBackupOpen} onOpenChange={setLocalBackupOpen}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Icon3D name="backup" size="md" />
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    {isRussian ? 'Локальный бэкап' : 'Local Backup'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isRussian ? 'Сохранить данные на устройство' : 'Save data to device'}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {isProActive 
-                  ? (isRussian ? 'Синхронизация между устройствами' : 'Sync across devices')
-                  : (isRussian ? 'Доступно только для PRO' : 'Available for PRO only')}
-              </p>
+              {localBackupOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
             </div>
-          </div>
+          </CollapsibleTrigger>
 
-          {isProActive ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {isRussian ? 'Последняя синхронизация:' : 'Last sync:'}
-                </span>
-                <span className="text-foreground font-medium">
-                  {formatLastSync()}
-                </span>
+          <CollapsibleContent>
+            <CardContent className="pt-0 pb-4 px-4">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={createBackup}
+                  disabled={isCreating}
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  {isRussian ? 'Создать' : 'Create'}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isRestoring}
+                >
+                  {isRestoring ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {isRussian ? 'Восстановить' : 'Restore'}
+                </Button>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
-              
-              <Button 
-                onClick={() => syncAll(true)} 
-                disabled={isSyncing}
-                className="w-full gap-2"
-                variant="outline"
-              >
-                {isSyncing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                {isRussian ? 'Синхронизировать сейчас' : 'Sync now'}
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" className="w-full" disabled>
-              {isRussian ? 'Перейти на PRO' : 'Upgrade to PRO'}
-            </Button>
-          )}
-        </CardContent>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
     </div>
   );

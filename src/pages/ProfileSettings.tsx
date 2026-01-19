@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, Shield, HardDrive, Bell, User, Users, ArrowLeft } from 'lucide-react';
+import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, HardDrive, User, ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
@@ -70,9 +70,7 @@ export default function ProfileSettings() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Settings className="w-5 h-5 text-white" />
-            </div>
+            <Settings className="w-6 h-6 text-primary" />
             <div>
               <h1 className="text-xl font-bold text-foreground">
                 {isRussian ? 'Профиль и Настройки' : 'Profile & Settings'}
@@ -305,33 +303,7 @@ export default function ProfileSettings() {
           </Link>
         </motion.div>
 
-        {/* User Catalog Link */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.27 }}
-          className="mt-8"
-        >
-          <Link to="/users">
-            <Card className="border-accent/20 hover:border-accent/40 transition-colors cursor-pointer">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground">
-                      {isRussian ? 'Каталог пользователей' : 'User Catalog'}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {isRussian ? 'Поиск и подписки' : 'Search and subscriptions'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </motion.div>
+        {/* User Catalog moved to header - removed from here */}
 
         {/* Backup */}
         <motion.div

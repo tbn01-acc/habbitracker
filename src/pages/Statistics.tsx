@@ -24,9 +24,7 @@ export default function Statistics() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-muted-foreground" />
-          </div>
+          <BarChart3 className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-xl font-bold">{t('statistics')}</h1>
             <p className="text-sm text-muted-foreground">{t('productivityStats')}</p>

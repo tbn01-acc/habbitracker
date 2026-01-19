@@ -253,9 +253,9 @@ export function PublicProfileEditDialog({
         {/* Avatar Section */}
         <div className="flex flex-col items-center gap-4 py-4">
           <div className="relative">
-            <Avatar className="w-28 h-28 border-4 border-primary/20">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary text-3xl">
+            <Avatar className="w-28 h-28 border-4 border-primary/20 rounded-xl">
+              <AvatarImage src={avatarUrl || undefined} className="object-cover rounded-xl" />
+              <AvatarFallback className="bg-primary/10 text-primary text-3xl rounded-xl">
                 {userInitials}
               </AvatarFallback>
             </Avatar>

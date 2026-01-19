@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "HabitFlow - Трекер привычек",
-        short_name: "HabitFlow",
-        description: "Современный трекер привычек для достижения целей",
+        name: "Top-Focus - Держи всё в фокусе",
+        short_name: "Top-Focus",
+        description: "Современный трекер задач, привычек, финансов для достижения целей",
         theme_color: "#14b8a6",
         background_color: "#0f172a",
         display: "standalone",
@@ -50,16 +50,16 @@ export default defineConfig(({ mode }) => ({
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
+            handler: "NetworkFirst",
             options: {
-              cacheName: 'supabase-cache',
+              cacheName: "supabase-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              }
-            }
-          }
-        ]
+                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+              },
+            },
+          },
+        ],
       },
     }),
   ].filter(Boolean),

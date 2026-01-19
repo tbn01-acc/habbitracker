@@ -85,9 +85,7 @@ export default function PartnerProgram() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
-            </div>
+            <Users className="w-6 h-6 text-purple-500" />
             <div>
               <h1 className="text-xl font-bold text-foreground">
                 {isRussian ? 'Партнёрская программа 2.0' : 'Partner Program 2.0'}

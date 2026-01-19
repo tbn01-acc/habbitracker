@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export type FeedType = 'activity' | 'success' | 'ideas';
 
@@ -16,6 +17,7 @@ export interface FeedPost {
   comments_count: number;
   votes_count: number;
   created_at: string;
+  is_visible: boolean;
   user_profile?: {
     display_name: string | null;
     avatar_url: string | null;
@@ -34,6 +36,7 @@ export function useFilteredFeed(feedType: FeedType) {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Map feed type to post_type
   const getPostType = (type: FeedType): string => {
@@ -129,6 +132,95 @@ export function useFilteredFeed(feedType: FeedType) {
     }
   }, [feedType, user]);
 
+  // Setup realtime subscription
+  useEffect(() => {
+    const postType = getPostType(feedType);
+    
+    // Cleanup previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    // Create new channel for realtime updates
+    const channel = supabase
+      .channel(`feed-${feedType}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'achievement_posts',
+          filter: `post_type=eq.${postType}`
+        },
+        async (payload) => {
+          const newPost = payload.new as any;
+          if (!newPost.is_visible) return;
+
+          // Fetch profile for new post
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, avatar_url, active_frame, active_badges')
+            .eq('user_id', newPost.user_id)
+            .single();
+
+          const postWithProfile: FeedPost = {
+            ...newPost,
+            user_profile: profile,
+            user_reaction: null,
+            user_voted: false,
+          };
+
+          setPosts(prev => [postWithProfile, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'achievement_posts'
+        },
+        (payload) => {
+          const updatedPost = payload.new as any;
+          
+          setPosts(prev => prev.map(post => {
+            if (post.id === updatedPost.id) {
+              // If post is now hidden, remove it from feed
+              if (!updatedPost.is_visible) {
+                return null;
+              }
+              return {
+                ...post,
+                ...updatedPost,
+              };
+            }
+            return post;
+          }).filter(Boolean) as FeedPost[]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'achievement_posts'
+        },
+        (payload) => {
+          const deletedId = (payload.old as any).id;
+          setPosts(prev => prev.filter(post => post.id !== deletedId));
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, [feedType]);
+
   useEffect(() => {
     setPage(1);
     fetchPosts(1, false);
@@ -158,6 +250,12 @@ export function useFilteredFeed(feedType: FeedType) {
           .eq('post_id', postId)
           .eq('user_id', user.id);
 
+        // Update votes_count in database
+        await supabase
+          .from('achievement_posts')
+          .update({ votes_count: post.votes_count - 1 })
+          .eq('id', postId);
+
         setPosts(prev => prev.map(p => 
           p.id === postId 
             ? { ...p, votes_count: p.votes_count - 1, user_voted: false }
@@ -168,6 +266,12 @@ export function useFilteredFeed(feedType: FeedType) {
         await supabase
           .from('idea_votes')
           .insert({ post_id: postId, user_id: user.id });
+
+        // Update votes_count in database
+        await supabase
+          .from('achievement_posts')
+          .update({ votes_count: post.votes_count + 1 })
+          .eq('id', postId);
 
         setPosts(prev => prev.map(p => 
           p.id === postId 
@@ -214,14 +318,85 @@ export function useFilteredFeed(feedType: FeedType) {
         });
 
       toast.success('Публикация создана!');
-      fetchPosts(1, false);
+      // Realtime will handle adding the post to the feed
       return true;
     } catch (err) {
       console.error('Error creating post:', err);
       toast.error('Ошибка публикации');
       return false;
     }
-  }, [user, fetchPosts]);
+  }, [user]);
+
+  const hidePost = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const post = posts.find(p => p.id === postId);
+      if (!post || post.user_id !== user.id) {
+        toast.error('Вы можете скрыть только свои посты');
+        return false;
+      }
+
+      await supabase
+        .from('achievement_posts')
+        .update({ is_visible: false })
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      toast.success('Пост скрыт');
+      return true;
+    } catch (err) {
+      console.error('Error hiding post:', err);
+      toast.error('Ошибка скрытия поста');
+      return false;
+    }
+  }, [user, posts]);
+
+  const deletePost = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const post = posts.find(p => p.id === postId);
+      if (!post || post.user_id !== user.id) {
+        toast.error('Вы можете удалить только свои посты');
+        return false;
+      }
+
+      await supabase
+        .from('achievement_posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      toast.success('Пост удален');
+      return true;
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      toast.error('Ошибка удаления поста');
+      return false;
+    }
+  }, [user, posts]);
+
+  const unhidePost = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      await supabase
+        .from('achievement_posts')
+        .update({ is_visible: true })
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      toast.success('Пост восстановлен');
+      return true;
+    } catch (err) {
+      console.error('Error unhiding post:', err);
+      toast.error('Ошибка восстановления поста');
+      return false;
+    }
+  }, [user]);
 
   return {
     posts,
@@ -230,6 +405,9 @@ export function useFilteredFeed(feedType: FeedType) {
     loadMore,
     voteForIdea,
     createPost,
+    hidePost,
+    deletePost,
+    unhidePost,
     refetch: () => fetchPosts(1, false),
   };
 }

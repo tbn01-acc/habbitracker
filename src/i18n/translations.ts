@@ -530,7 +530,7 @@ export const translations = {
     aboutApp: "О приложении",
     termsOfService: "Условия использования",
     privacyPolicy: "Политика конфиденциальности",
-    dataProcessingPolicy: "Политика обработки персональных данных",
+    dataProcessingPolicy: "Обработка персональных данных",
     publicOffer: "Публичная оферта",
     helpAndSupport: "Помощь и поддержка",
     userPermissions: "Управление разрешениями",
@@ -571,7 +571,7 @@ export const translations = {
     tasksCompleted: "Задач выполнено",
     expenseTrend: "Динамика расходов",
     activityTrend: "Тренд активности",
-    
+
     // Tag Goals
     tagGoals: "Цели тега",
     setGoals: "Установить цели",
@@ -718,7 +718,7 @@ export const translations = {
     inviteFriend: "Invite",
     share: "Share",
     linkCopied: "Link copied!",
-    shareTitle: "HabitFlow - Habit Tracker",
+    shareTitle: "Top-Focus - Keep all in focus!",
     shareText: "Track your habits with me!",
 
     // Calendar
@@ -1219,7 +1219,7 @@ export const translations = {
     tasksCompleted: "Tasks completed",
     expenseTrend: "Expense trend",
     activityTrend: "Activity trend",
-    
+
     // Tag Goals
     tagGoals: "Tag Goals",
     setGoals: "Set Goals",

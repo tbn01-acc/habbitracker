@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Aperture, Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, Camera, Trophy, Lightbulb, ArrowLeft } from 'lucide-react';
+import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertical, EyeOff, Trash2, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -9,13 +9,34 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredFeed, FeedPost } from '@/hooks/useFilteredFeed';
 import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
+import { useStars } from '@/hooks/useStars';
 import { AchievementPublishDialog } from '@/components/AchievementPublishDialog';
 import { FeedTabs, FeedType } from '@/components/rating/FeedTabs';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
+import { UserSubscribeButton } from '@/components/feed/UserSubscribeButton';
+import { PostCommentsSheet } from '@/components/feed/PostCommentsSheet';
+import { MySubscriptionsSheet } from '@/components/feed/MySubscriptionsSheet';
+import { Icon3D } from '@/components/Icon3D';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Focus() {
   const { language } = useTranslation();
@@ -23,11 +44,16 @@ export default function Focus() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dailyPostCount, dailyLimit, reactToPost } = useAchievementsFeed();
+  const { deductAchievementPost } = useStars();
 
   const [feedType, setFeedType] = useState<FeedType>('activity');
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [deleteConfirmPost, setDeleteConfirmPost] = useState<string | null>(null);
+  const [hideConfirmPost, setHideConfirmPost] = useState<string | null>(null);
+  const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
 
-  const { posts, loading, hasMore, loadMore, voteForIdea } = useFilteredFeed(feedType);
+  const { posts, loading, hasMore, loadMore, voteForIdea, hidePost, deletePost, refetch } = useFilteredFeed(feedType);
 
   const getPostTypeLabel = (postType: string) => {
     switch (postType) {
@@ -42,6 +68,22 @@ export default function Focus() {
     }
   };
 
+  const handleHidePost = async (postId: string) => {
+    const success = await hidePost(postId);
+    if (success) {
+      await deductAchievementPost(postId);
+    }
+    setHideConfirmPost(null);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const success = await deletePost(postId);
+    if (success) {
+      await deductAchievementPost(postId);
+    }
+    setDeleteConfirmPost(null);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <AppHeader />
@@ -52,13 +94,25 @@ export default function Focus() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Aperture className="h-7 w-7 text-primary" />
+            <Icon3D name="focus" size="lg" />
             <h1 className="text-2xl font-bold">
               {isRussian ? 'Фокус' : 'Focus'}
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* My Subscriptions button */}
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSubscriptions(true)}
+                className="relative"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+            )}
+
             <Badge variant="outline">
               {dailyPostCount}/{dailyLimit}
             </Badge>
@@ -100,6 +154,7 @@ export default function Focus() {
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.03 }}
                 >
                   <Card className="overflow-hidden">
@@ -128,9 +183,39 @@ export default function Focus() {
                           })}
                         </p>
                       </div>
+                      
+                      {/* Subscribe button for other users */}
+                      {user && user.id !== post.user_id && (
+                        <UserSubscribeButton userId={post.user_id} size="sm" />
+                      )}
+                      
                       <Badge variant="outline" className="text-xs">
                         {getPostTypeLabel(post.post_type)}
                       </Badge>
+                      
+                      {/* Post Actions Menu (only for own posts) */}
+                      {user && user.id === post.user_id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setHideConfirmPost(post.id)}>
+                              <EyeOff className="h-4 w-4 mr-2" />
+                              {isRussian ? 'Скрыть пост' : 'Hide post'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => setDeleteConfirmPost(post.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              {isRussian ? 'Удалить пост' : 'Delete post'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
 
                     {/* Post Image */}
@@ -186,6 +271,7 @@ export default function Focus() {
                           variant="ghost"
                           size="sm"
                           className="gap-1"
+                          onClick={() => setCommentsPostId(post.id)}
                         >
                           <MessageCircle className="h-4 w-4" />
                           {post.comments_count}
@@ -200,7 +286,7 @@ export default function Focus() {
             {posts.length === 0 && (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Aperture className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <Icon3D name="focus" size="xl" className="mx-auto mb-4" />
                   <p className="text-muted-foreground">
                     {isRussian ? 'Пока нет публикаций' : 'No posts yet'}
                   </p>
@@ -225,6 +311,71 @@ export default function Focus() {
         open={showPublishDialog}
         onOpenChange={setShowPublishDialog}
       />
+
+      {/* Comments Sheet */}
+      <PostCommentsSheet
+        open={!!commentsPostId}
+        onOpenChange={(open) => !open && setCommentsPostId(null)}
+        postId={commentsPostId || ''}
+        onCommentAdded={refetch}
+      />
+
+      {/* My Subscriptions Sheet */}
+      <MySubscriptionsSheet
+        open={showSubscriptions}
+        onOpenChange={setShowSubscriptions}
+      />
+
+      {/* Hide Post Confirmation */}
+      <AlertDialog open={!!hideConfirmPost} onOpenChange={() => setHideConfirmPost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isRussian ? 'Скрыть пост?' : 'Hide post?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRussian 
+                ? 'Пост будет скрыт из ленты. Заработанные звезды за этот пост будут списаны. Вы сможете восстановить пост позже, но звезды не вернутся.'
+                : 'The post will be hidden from the feed. Stars earned for this post will be deducted. You can restore the post later, but stars will not be returned.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {isRussian ? 'Отмена' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => hideConfirmPost && handleHidePost(hideConfirmPost)}>
+              {isRussian ? 'Скрыть' : 'Hide'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Post Confirmation */}
+      <AlertDialog open={!!deleteConfirmPost} onOpenChange={() => setDeleteConfirmPost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isRussian ? 'Удалить пост?' : 'Delete post?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRussian 
+                ? 'Пост будет удален навсегда. Заработанные звезды за этот пост будут списаны. Это действие нельзя отменить.'
+                : 'The post will be permanently deleted. Stars earned for this post will be deducted. This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {isRussian ? 'Отмена' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirmPost && handleDeletePost(deleteConfirmPost)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRussian ? 'Удалить' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

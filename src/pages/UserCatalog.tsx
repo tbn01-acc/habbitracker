@@ -253,9 +253,7 @@ export default function UserCatalog() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-            <Users className="w-5 h-5 text-white" />
-          </div>
+          <Users className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-xl font-bold text-foreground">
               {isRussian ? 'Каталог пользователей' : 'User Catalog'}

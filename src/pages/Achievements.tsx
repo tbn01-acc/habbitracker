@@ -64,9 +64,7 @@ export default function AchievementsPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-white" />
-            </div>
+            <Trophy className="w-6 h-6 text-amber-500" />
             <div>
               <h1 className="text-xl font-bold text-foreground">
                 {isRussian ? 'Награды и достижения' : 'Rewards & Achievements'}

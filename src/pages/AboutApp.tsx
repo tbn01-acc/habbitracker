@@ -42,9 +42,7 @@ export default function AboutApp() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-500 to-slate-600 flex items-center justify-center">
-              <Info className="w-5 h-5 text-white" />
-            </div>
+            <Info className="w-6 h-6 text-primary" />
             <div>
               <h1 className="text-xl font-bold text-foreground">
                 {isRussian ? 'О приложении' : 'About App'}

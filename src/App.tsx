@@ -128,8 +128,7 @@ const AppContent = () => {
         <Route path="/focus" element={<Focus />} />
         <Route path="/user/:userId" element={<UserProfile />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/chats" element={<GroupChats />} />
-        <Route path="/chats/:inviteCode" element={<GroupChats />} />
+        {/* Chats routes removed - replaced by User Catalog */}
         <Route path="/goals" element={<Goals />} />
         <Route path="/goals/:id" element={<GoalDetail />} />
         <Route path="/life-focus" element={<LifeFocus />} />

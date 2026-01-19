@@ -39,7 +39,11 @@ export function usePWAInstall() {
   }, []);
 
   const installApp = async (): Promise<boolean> => {
-    if (!deferredPrompt) return false;
+    if (!deferredPrompt) {
+      // If no deferred prompt, try to show manual install instructions
+      console.log('No deferred prompt available - browser may not support PWA install');
+      return false;
+    }
 
     try {
       await deferredPrompt.prompt();
@@ -57,9 +61,19 @@ export function usePWAInstall() {
     }
   };
 
+  // Force trigger the install prompt if available
+  const forceInstallPrompt = async (): Promise<boolean> => {
+    if (deferredPrompt) {
+      return installApp();
+    }
+    return false;
+  };
+
   return {
     isInstallable,
     isInstalled,
     installApp,
+    forceInstallPrompt,
+    hasDeferredPrompt: !!deferredPrompt,
   };
 }

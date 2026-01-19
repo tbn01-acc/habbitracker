@@ -227,9 +227,9 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center text-center"
         >
-          <Avatar className="w-32 h-32 border-4 border-primary/20 mb-4">
-            <AvatarImage src={profile.avatar_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-4xl">
+          <Avatar className="w-32 h-32 border-4 border-primary/20 mb-4 rounded-xl">
+            <AvatarImage src={profile.avatar_url || undefined} className="object-cover rounded-xl" />
+            <AvatarFallback className="bg-primary/10 text-primary text-4xl rounded-xl">
               {userInitials}
             </AvatarFallback>
           </Avatar>

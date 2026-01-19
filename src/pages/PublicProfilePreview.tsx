@@ -61,9 +61,7 @@ export default function PublicProfilePreview() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Eye className="w-5 h-5 text-white" />
-            </div>
+            <Eye className="w-6 h-6 text-primary" />
             <div>
               <h1 className="text-xl font-bold text-foreground">
                 {isRussian ? 'Публичный профиль' : 'Public Profile'}

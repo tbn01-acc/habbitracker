@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Trash2, Heart, MessageCircle, ThumbsDown, ArrowLeft, Settings, UserPlus, Image, MessageSquare, CheckSquare, Repeat, Target, CloudSun, ChevronDown, ChevronRight } from 'lucide-react';
-import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
+import { Bell, Check, CheckCheck, Trash2, Heart, MessageCircle, ThumbsDown, Settings, UserPlus, Image, MessageSquare, CheckSquare, Repeat, Target, CloudSun, ChevronDown, ChevronRight } from 'lucide-react';
+import { formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useNotifications, UserNotification } from '@/hooks/useNotifications';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,6 +15,7 @@ import { NotificationSettingsDialog } from '@/components/NotificationSettingsDia
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type FilterType = 'all' | 'social' | 'productivity' | 'system';
 
@@ -226,18 +228,12 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 pb-24">
+      <AppHeader />
+      <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Bell className="w-6 h-6 text-primary" />
@@ -254,37 +250,55 @@ export default function Notifications() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isRussian ? 'Настройки' : 'Settings'}
+              </TooltipContent>
+            </Tooltip>
             
             {unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={markAllAsRead}
-                className="gap-2"
-              >
-                <CheckCheck className="w-4 h-4" />
-                {isRussian ? 'Прочитать все' : 'Mark all read'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={markAllAsRead}
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isRussian ? 'Прочитать все' : 'Mark all read'}
+                </TooltipContent>
+              </Tooltip>
             )}
             
             {notifications.length > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    {isRussian ? 'Очистить' : 'Clear all'}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isRussian ? 'Очистить' : 'Clear all'}
+                    </TooltipContent>
+                  </Tooltip>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>

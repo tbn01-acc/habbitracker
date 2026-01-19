@@ -23,7 +23,7 @@ export function SettingsSection() {
   const { t, language } = useTranslation();
   const navigate = useNavigate();
   const { isAdmin } = useLegalDocuments();
-  const { isInstallable, isInstalled, installApp } = usePWAInstall();
+  const { isInstallable, isInstalled, installApp, forceInstallPrompt, hasDeferredPrompt } = usePWAInstall();
   const [legalDialogOpen, setLegalDialogOpen] = useState(false);
   const [legalDocType, setLegalDocType] = useState<LegalDocumentType>('terms');
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
@@ -32,9 +32,18 @@ export function SettingsSection() {
   const isRussian = language === 'ru';
 
   const handleInstallPWA = async () => {
-    const success = await installApp();
+    // Try force install first
+    const success = await forceInstallPrompt();
     if (success) {
       toast.success(isRussian ? 'Приложение установлено!' : 'App installed!');
+    } else if (!hasDeferredPrompt) {
+      // Show instructions if no prompt available
+      toast.info(
+        isRussian 
+          ? 'Для установки используйте меню браузера (три точки) → "Установить приложение" или "Добавить на главный экран"' 
+          : 'To install, use browser menu (three dots) → "Install app" or "Add to Home Screen"',
+        { duration: 5000 }
+      );
     } else {
       toast.error(isRussian ? 'Не удалось установить приложение' : 'Failed to install app');
     }
@@ -82,33 +91,28 @@ export function SettingsSection() {
               </div>
             </CollapsibleContent>
 
-            {/* PWA Install Button */}
-            {(isInstallable || !isInstalled) && (
+            {/* PWA Install Button - Always show in browser when not installed */}
+            {!isInstalled && (
               <Button
                 variant="ghost"
                 className="w-full justify-between p-4 h-auto rounded-none border-b border-border"
                 onClick={handleInstallPWA}
-                disabled={!isInstallable}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                    <Smartphone className="w-4 h-4 text-primary-foreground" />
-                  </div>
+                  <Smartphone className="w-5 h-5 text-primary" />
                   <div className="text-left">
                     <span className="text-sm font-medium block">
                       {isRussian ? 'Установить приложение' : 'Install App'}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {isInstalled 
-                        ? (isRussian ? 'Уже установлено' : 'Already installed')
-                        : isInstallable
-                          ? (isRussian ? 'Добавить на рабочий стол' : 'Add to home screen')
-                          : (isRussian ? 'Недоступно в браузере' : 'Not available in browser')
+                      {hasDeferredPrompt
+                        ? (isRussian ? 'Добавить на рабочий стол' : 'Add to home screen')
+                        : (isRussian ? 'Нажмите для инструкции' : 'Click for instructions')
                       }
                     </span>
                   </div>
                 </div>
-                <Download className={`w-5 h-5 ${isInstallable ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Download className={`w-5 h-5 ${hasDeferredPrompt ? 'text-primary' : 'text-muted-foreground'}`} />
               </Button>
             )}
           </CardContent>
