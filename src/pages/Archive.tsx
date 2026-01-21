@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Archive, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  CheckCircle2, Target, DollarSign, Crown, Copy, Eye, Filter, X, RotateCcw, Layers
+  CheckCircle2, Target, DollarSign, Crown, Copy, Eye, Filter, X, RotateCcw, Layers,
+  ClipboardList, BarChart3
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, 
   addMonths, subMonths, addQuarters, subQuarters, 
@@ -485,6 +486,32 @@ export default function ArchivePage() {
                 {selectedDay && format(selectedDay, 'd MMMM yyyy', { locale })}
               </DialogTitle>
             </DialogHeader>
+            
+            {selectedDay && (
+              <>
+                {/* Quick links to Day Plan and Day Summary */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => navigate(`/day-plan?date=${format(selectedDay, 'yyyy-MM-dd')}`)}
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    {isRussian ? 'План на день' : 'Day Plan'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => navigate(`/day-summary?date=${format(selectedDay, 'yyyy-MM-dd')}`)}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    {isRussian ? 'Итоги дня' : 'Day Summary'}
+                  </Button>
+                </div>
+              </>
+            )}
             
             {selectedDay && (
               <div className="space-y-4">

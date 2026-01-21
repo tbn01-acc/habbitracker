@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Newspaper, Calendar, Sparkles, Zap, Gift, Crown, Bell, Archive, CalendarRange, Trophy, ThumbsUp, Lightbulb, Settings } from 'lucide-react';
+import { ArrowLeft, Newspaper, Calendar, Sparkles, Zap, Gift, Crown, Bell, Archive, CalendarRange, Trophy, ThumbsUp, Lightbulb, Settings, ClipboardList, BarChart3 } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,34 @@ interface NewsItem {
 }
 
 const newsItems: NewsItem[] = [
+  {
+    id: 'day-plan',
+    date: '2026-01-21',
+    title: { 
+      ru: 'План на день — новая PRO-функция!', 
+      en: 'Day Plan — new PRO feature!' 
+    },
+    content: { 
+      ru: 'Теперь PRO-пользователи могут видеть структурированный план на день со всеми привычками, задачами и операциями! Группировка по типу, сфере или тегам. Экспорт в PDF и возможность поделиться.', 
+      en: 'Now PRO users can see a structured day plan with all habits, tasks and operations! Group by type, sphere or tags. Export to PDF and share functionality.' 
+    },
+    type: 'feature',
+    icon: <ClipboardList className="w-5 h-5 text-blue-500" />
+  },
+  {
+    id: 'day-summary',
+    date: '2026-01-21',
+    title: { 
+      ru: 'Итоги дня с метрикой продуктивности!', 
+      en: 'Day Summary with productivity metric!' 
+    },
+    content: { 
+      ru: 'Новая страница «Итоги дня» для PRO: детальная статистика выполненных, невыполненных и отложенных задач. Интегральная метрика «Моя продуктивность» от 0 до 100. Экспорт в PDF!', 
+      en: 'New "Day Summary" page for PRO: detailed stats of completed, incomplete and postponed tasks. Integral "My Productivity" metric from 0 to 100. Export to PDF!' 
+    },
+    type: 'feature',
+    icon: <BarChart3 className="w-5 h-5 text-purple-500" />
+  },
   {
     id: 'rating-filters',
     date: '2026-01-12',

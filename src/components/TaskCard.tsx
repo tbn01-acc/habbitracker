@@ -207,10 +207,10 @@ END:VCALENDAR`;
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ delay: index * 0.05 }}
         className={cn(
-          "bg-card rounded-2xl shadow-card border border-border transition-all overflow-hidden",
+          "bg-card shadow-card border border-border transition-all overflow-hidden",
           task.completed && "opacity-60"
         )}
-        style={{ borderLeftColor: task.color, borderLeftWidth: 4 }}
+        style={{ borderRadius: 'var(--radius-card)', borderLeftColor: task.color, borderLeftWidth: 4 }}
       >
         {/* Row 1: Checkbox, Icon, Name, Percent, Chevron */}
         <div 

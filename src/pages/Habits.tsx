@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, Target, Settings } from 'lucide-react';
-import { useHabits } from '@/hooks/useHabits';
+import { useHabits, getTodayString, isFullyCompleted } from '@/hooks/useHabits';
 import { useHabitNotifications } from '@/hooks/useHabitNotifications';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { Habit, HABIT_COLORS } from '@/types/habit';
@@ -132,12 +132,17 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     toast.success(isRussian ? 'Привычка перемещена в архив' : 'Habit moved to archive');
   };
 
-  // Filter habits (excluding archived)
+  // Filter habits (excluding archived and completed today for the habits tab)
+  const today = getTodayString();
+  
   const filteredHabits = activeHabits.filter(habit => {
     if (filterCategory && habit.categoryId !== filterCategory) return false;
     if (filterTag && !habit.tagIds?.includes(filterTag)) return false;
     return true;
   });
+
+  // For the habits tab, hide habits that are fully completed today
+  const habitsForList = filteredHabits.filter(habit => !isFullyCompleted(habit, today));
 
   const hasFilters = filterCategory || filterTag;
 
@@ -277,7 +282,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 exit={{ opacity: 0, x: 10 }}
               >
                 <AnimatePresence mode="popLayout">
-                  {filteredHabits.length === 0 ? (
+                  {habitsForList.length === 0 ? (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -304,7 +309,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                     </motion.div>
                   ) : (
                     <div className="space-y-3">
-                      {filteredHabits.map((habit, index) => (
+                      {habitsForList.map((habit, index) => (
                         <HabitCard
                           key={habit.id}
                           habit={habit}

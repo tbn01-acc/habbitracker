@@ -25,7 +25,8 @@ export function FinanceWidget({ income, expense, onExpand }: FinanceWidgetProps)
   return (
     <motion.button
       onClick={onExpand}
-      className="w-full rounded-2xl p-4 shadow-card bg-card border border-border"
+      className="w-full p-4 shadow-card bg-finance/15 border border-finance/30"
+      style={{ borderRadius: 'var(--radius-card)' }}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -36,7 +37,7 @@ export function FinanceWidget({ income, expense, onExpand }: FinanceWidgetProps)
       {/* Row 1: Expense and Income */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         {/* Expense */}
-        <div className="rounded-xl p-3 bg-violet-600 text-white">
+        <div className="p-3 bg-violet-600 text-white" style={{ borderRadius: 'var(--radius-card)' }}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingDown className="w-4 h-4" />
             <span className="text-xs font-medium opacity-80">{t('expense')}</span>
@@ -45,7 +46,7 @@ export function FinanceWidget({ income, expense, onExpand }: FinanceWidgetProps)
         </div>
         
         {/* Income */}
-        <div className="rounded-xl p-3 bg-amber-600 text-white">
+        <div className="p-3 bg-amber-600 text-white" style={{ borderRadius: 'var(--radius-card)' }}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4" />
             <span className="text-xs font-medium opacity-80">{t('income')}</span>
@@ -55,7 +56,7 @@ export function FinanceWidget({ income, expense, onExpand }: FinanceWidgetProps)
       </div>
       
       {/* Row 2: Balance */}
-      <div className={`rounded-xl p-3 ${getBalanceColor()} text-white`}>
+      <div className={`p-3 ${getBalanceColor()} text-white`} style={{ borderRadius: 'var(--radius-card)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Wallet className="w-4 h-4" />

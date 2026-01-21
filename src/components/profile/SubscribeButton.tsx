@@ -9,9 +9,10 @@ interface SubscribeButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showLabel?: boolean;
+  className?: string;
 }
 
-export function SubscribeButton({ userId, variant = 'outline', size = 'sm', showLabel = true }: SubscribeButtonProps) {
+export function SubscribeButton({ userId, variant = 'outline', size = 'sm', showLabel = true, className }: SubscribeButtonProps) {
   const { user } = useAuth();
   const { isFollowing, subscribe, unsubscribe } = useUserSubscriptions();
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +43,7 @@ export function SubscribeButton({ userId, variant = 'outline', size = 'sm', show
       size={size}
       onClick={handleClick}
       disabled={isLoading}
-      className={following ? 'text-muted-foreground' : ''}
+      className={`${following ? 'text-muted-foreground' : ''} ${className || ''}`}
     >
       {isLoading ? (
         <Loader2 className="w-4 h-4 animate-spin" />

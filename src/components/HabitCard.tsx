@@ -149,11 +149,11 @@ export function HabitCard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: index * 0.05 }}
-        className="bg-card rounded-2xl shadow-card relative overflow-hidden"
+        className="bg-card shadow-card relative overflow-hidden"
         style={{ 
+          borderRadius: 'var(--radius-card)',
           borderLeftColor: habit.color, 
           borderLeftWidth: 4,
-          // Week progress as background fill
           background: `linear-gradient(to right, ${habit.color}15 ${progressPercent}%, transparent ${progressPercent}%)`
         }}
       >

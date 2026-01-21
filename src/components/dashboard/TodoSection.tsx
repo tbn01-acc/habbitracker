@@ -70,10 +70,10 @@ export function TodoSection({
       <motion.button
         onClick={handleRingClick}
         className={cn(
-          "w-full rounded-2xl shadow-card flex items-center justify-center",
+          "w-full shadow-card flex items-center justify-center",
           compact ? "h-14 p-2 gap-3" : "aspect-square p-4 flex-col gap-2"
         )}
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, borderRadius: 'var(--radius-card)' }}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
@@ -117,8 +117,8 @@ export function TodoSection({
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.2}
       onDragEnd={handleDragEnd}
-      className="col-span-2 lg:col-span-4 w-full rounded-2xl p-4 shadow-card touch-pan-y"
-      style={{ backgroundColor: color }}
+      className="col-span-2 lg:col-span-4 w-full p-4 shadow-card touch-pan-y"
+      style={{ backgroundColor: color, borderRadius: 'var(--radius-card)' }}
       layoutId={`tile-${title}`}
     >
       <button 

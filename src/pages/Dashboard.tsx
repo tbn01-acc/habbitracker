@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Target, CheckSquare, Wallet, Sparkles } from "lucide-react";
+import { Target, CheckSquare, Wallet, Sparkles, Calendar, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useHabits, getTodayString } from "@/hooks/useHabits";
@@ -20,6 +20,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { useOverdueTasks } from "@/hooks/useOverdueTasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, parseISO, isBefore, addDays } from "date-fns";
@@ -33,6 +36,7 @@ export default function Dashboard() {
   const { t, language } = useTranslation();
   const { profile, user } = useAuth();
   const { recordDailyLogin } = useStars();
+  const { isProActive } = useSubscription();
   const dailyLoginRecordedRef = useRef(false);
   
   // Initialize trial notifications
@@ -193,6 +197,59 @@ export default function Dashboard() {
     deleteHabit(id);
   };
 
+  // Day Plan Icons Component (show for all, but navigate to demo for non-PRO)
+  const renderDayPlanIcons = () => {
+    const handleDayPlanClick = () => {
+      navigate('/day-plan');
+    };
+    
+    const handleDaySummaryClick = () => {
+      navigate('/day-summary');
+    };
+    
+    return (
+      <div className="flex flex-col justify-between h-[84px]">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDayPlanClick}
+              className="hover:bg-primary/10 h-8 w-8"
+            >
+              <Calendar className="w-5 h-5 text-primary" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {language === 'ru' ? 'План на день' : 'Day Plan'}
+            {!isProActive && (
+              <span className="ml-1 text-amber-500">(PRO)</span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDaySummaryClick}
+              className="hover:bg-primary/10 h-8 w-8"
+            >
+              <BarChart3 className="w-5 h-5 text-primary" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {language === 'ru' ? 'Итоги дня' : 'Day Summary'}
+            {!isProActive && (
+              <span className="ml-1 text-amber-500">(PRO)</span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <AppHeader />
@@ -229,12 +286,19 @@ export default function Dashboard() {
             </div>
             <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
           </div>
-          <ActivityRings 
-            habitsProgress={habitsProgress}
-            tasksProgress={tasksProgress}
-            financeProgress={financeProgress}
-            dayQuality={dayQuality}
-          />
+          
+          {/* Activity Rings with Day Plan Icons */}
+          <div className="flex items-center gap-3">
+            <ActivityRings 
+              habitsProgress={habitsProgress}
+              tasksProgress={tasksProgress}
+              financeProgress={financeProgress}
+              dayQuality={dayQuality}
+            />
+            
+            {/* Day Plan & Summary Icons */}
+            {renderDayPlanIcons()}
+          </div>
         </div>
 
         {/* Section: Сделать/Выполнено (Tabbed) */}
@@ -249,47 +313,55 @@ export default function Dashboard() {
               <AnimatePresence mode="wait">
                 {expandedSection === null && (
                   <>
-                    {/* Row 1: Habits and Tasks (half height) */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <TodoSection
-                        title={t("habits")}
-                        items={todayHabits.map((h) => ({
-                          id: h.id,
-                          name: h.name,
-                          icon: h.icon,
-                          completed: h.completedDates.includes(today),
-                        }))}
-                        color={colors.habits}
-                        icon={<Target className="w-4 h-4" />}
-                        onToggle={(id) => toggleHabitCompletion(id, today)}
-                        isExpanded={false}
-                        onExpand={() => setExpandedSection("habits")}
-                        compact
-                      />
+                    {/* Bento Grid Layout */}
+                    <div className="grid grid-cols-4 gap-3">
+                      {/* Habits - spans 2 cols */}
+                      <div className="col-span-2">
+                        <TodoSection
+                          title={t("habits")}
+                          items={todayHabits.map((h) => ({
+                            id: h.id,
+                            name: h.name,
+                            icon: h.icon,
+                            completed: h.completedDates.includes(today),
+                          }))}
+                          color={colors.habits}
+                          icon={<Target className="w-4 h-4" />}
+                          onToggle={(id) => toggleHabitCompletion(id, today)}
+                          isExpanded={false}
+                          onExpand={() => setExpandedSection("habits")}
+                          compact
+                        />
+                      </div>
 
-                      <TodoSection
-                        title={t("tasks")}
-                        items={todayTasks.map((t) => ({
-                          id: t.id,
-                          name: t.name,
-                          icon: t.icon,
-                          completed: t.completed,
-                        }))}
-                        color={colors.tasks}
-                        icon={<CheckSquare className="w-4 h-4" />}
-                        onToggle={toggleTaskCompletion}
-                        isExpanded={false}
-                        onExpand={() => setExpandedSection("tasks")}
-                        compact
-                      />
+                      {/* Tasks - spans 2 cols */}
+                      <div className="col-span-2">
+                        <TodoSection
+                          title={t("tasks")}
+                          items={todayTasks.map((t) => ({
+                            id: t.id,
+                            name: t.name,
+                            icon: t.icon,
+                            completed: t.completed,
+                          }))}
+                          color={colors.tasks}
+                          icon={<CheckSquare className="w-4 h-4" />}
+                          onToggle={toggleTaskCompletion}
+                          isExpanded={false}
+                          onExpand={() => setExpandedSection("tasks")}
+                          compact
+                        />
+                      </div>
+
+                      {/* Finance Widget - spans all 4 cols */}
+                      <div className="col-span-4">
+                        <FinanceWidget
+                          income={todayIncome}
+                          expense={todayExpense}
+                          onExpand={() => setExpandedSection("finance")}
+                        />
+                      </div>
                     </div>
-
-                    {/* Row 2: Finance Widget (full width) */}
-                    <FinanceWidget
-                      income={todayIncome}
-                      expense={todayExpense}
-                      onExpand={() => setExpandedSection("finance")}
-                    />
                   </>
                 )}
 
@@ -360,7 +432,8 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="done" className="mt-0">
-            <div className="bg-card rounded-2xl p-4 shadow-card border border-border">
+            <div className="bg-card p-4 shadow-card border border-border space-y-3" style={{ borderRadius: 'var(--radius-card)' }}>
+              {/* Habits Progress - full width row */}
               <ProgressBar
                 icon={<Target className="w-4 h-4" />}
                 completed={completedHabits.length}
@@ -368,6 +441,8 @@ export default function Dashboard() {
                 label={t("habitsLabel")}
                 color={colors.habits}
               />
+              
+              {/* Tasks Progress - full width row */}
               <ProgressBar
                 icon={<CheckSquare className="w-4 h-4" />}
                 completed={completedTasks.length}
@@ -375,6 +450,8 @@ export default function Dashboard() {
                 label={t("tasksLabel")}
                 color={colors.tasks}
               />
+              
+              {/* Finance Progress - full width row */}
               <ProgressBar
                 icon={<Wallet className="w-4 h-4" />}
                 completed={completedTransactions.length}

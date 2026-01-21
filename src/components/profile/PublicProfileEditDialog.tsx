@@ -154,10 +154,10 @@ export function PublicProfileEditDialog({
   const toggleInterest = (interest: string) => {
     if (interests.includes(interest)) {
       setInterests(interests.filter(i => i !== interest));
-    } else if (interests.length < 10) {
+    } else if (interests.length < 6) {
       setInterests([...interests, interest]);
     } else {
-      toast.error('Максимум 10 интересов');
+      toast.error('Максимум 6 интересов');
     }
   };
 
@@ -391,7 +391,7 @@ export function PublicProfileEditDialog({
 
             {/* Interests */}
             <div className="space-y-2">
-              <Label>Интересы (до 10)</Label>
+              <Label>Интересы (до 6)</Label>
               <div className="flex flex-wrap gap-1.5">
                 {INTEREST_OPTIONS.map(interest => (
                   <Badge

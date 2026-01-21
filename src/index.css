@@ -35,7 +35,8 @@
     --input: 220 15% 88%;
     --ring: 168 80% 40%;
 
-    --radius: 1rem;
+    --radius: 0.5rem;
+    --radius-card: 0.35rem;
 
     --success: 145 70% 45%;
     --success-foreground: 0 0% 100%;
@@ -276,4 +277,50 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+}
+
+/* Force light theme for PDF export */
+.force-light-theme,
+.force-light-theme * {
+  --background: 220 20% 97% !important;
+  --foreground: 220 20% 10% !important;
+  --card: 0 0% 100% !important;
+  --card-foreground: 220 20% 10% !important;
+  --muted: 220 15% 94% !important;
+  --muted-foreground: 220 10% 50% !important;
+  --border: 220 15% 88% !important;
+  color: hsl(220 20% 10%) !important;
+  background-color: hsl(0 0% 100%) !important;
+}
+
+.force-light-theme .bg-background {
+  background-color: hsl(0 0% 100%) !important;
+}
+
+.force-light-theme .text-foreground {
+  color: hsl(220 20% 10%) !important;
+}
+
+.force-light-theme .text-muted-foreground {
+  color: hsl(220 10% 50%) !important;
+}
+
+.force-light-theme .border-border {
+  border-color: hsl(220 15% 88%) !important;
+}
+
+.force-light-theme [class*="bg-card"] {
+  background-color: hsl(0 0% 100%) !important;
+}
+
+.force-light-theme .text-green-500 {
+  color: hsl(145 70% 45%) !important;
+}
+
+.force-light-theme .text-red-500 {
+  color: hsl(0 70% 55%) !important;
+}
+
+.force-light-theme .text-amber-500 {
+  color: hsl(38 92% 50%) !important;
 }

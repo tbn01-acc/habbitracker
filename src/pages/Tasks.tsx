@@ -171,6 +171,11 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     });
   }, [filteredTasks]);
 
+  // For the list tab, hide completed tasks
+  const tasksForList = useMemo(() => {
+    return sortedTasks.filter(task => !task.completed);
+  }, [sortedTasks]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -272,7 +277,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
           <AnimatePresence mode="popLayout">
             {activeView === 'list' && (
               <>
-                {sortedTasks.length === 0 ? (
+                {tasksForList.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -297,7 +302,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
-                    {sortedTasks.map((task, index) => (
+                    {tasksForList.map((task, index) => (
                       <TaskCard
                         key={task.id}
                         task={task}

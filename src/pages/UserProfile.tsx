@@ -16,10 +16,9 @@ export default function UserProfile() {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader />
-        <main className="container mx-auto px-4 py-6 pb-24">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад
+        <main className="container mx-auto px-2 py-2 pb-24">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-2">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="text-center py-12">
             <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -33,29 +32,32 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="container mx-auto px-4 py-6 pb-24">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Назад
-        </Button>
+      <main className="container mx-auto px-2 py-1 pb-24">
+        {/* Back button + Tabs in one row */}
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 h-9 w-9">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'feed')} className="flex-1">
+            <TabsList className="grid w-full grid-cols-2 h-9">
+              <TabsTrigger value="profile" className="flex items-center gap-1.5 text-xs h-8">
+                <User className="h-3.5 w-3.5" />
+                Профиль
+              </TabsTrigger>
+              <TabsTrigger value="feed" className="flex items-center gap-1.5 text-xs h-8">
+                <Image className="h-3.5 w-3.5" />
+                Публикации
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'feed')}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Профиль
-            </TabsTrigger>
-            <TabsTrigger value="feed" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
-              Публикации
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="profile">
+          <TabsContent value="profile" className="mt-0">
             <PublicProfileView userId={userId} />
           </TabsContent>
 
-          <TabsContent value="feed">
+          <TabsContent value="feed" className="mt-0">
             <UserFeed userId={userId} />
           </TabsContent>
         </Tabs>

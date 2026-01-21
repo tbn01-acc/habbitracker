@@ -43,6 +43,8 @@ import GoalDetail from "./pages/GoalDetail";
 import LifeFocus from "./pages/LifeFocus";
 import SphereDetail from "./pages/SphereDetail";
 import NotFound from "./pages/NotFound";
+import DayPlan from "./pages/DayPlan";
+import DaySummary from "./pages/DaySummary";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +147,8 @@ const AppContent = () => {
         <Route path="/goals/:id" element={<GoalDetail />} />
         <Route path="/life-focus" element={<LifeFocus />} />
         <Route path="/sphere/:sphereKey" element={<SphereDetail />} />
+        <Route path="/day-plan" element={<DayPlan />} />
+        <Route path="/day-summary" element={<DaySummary />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNavigation 

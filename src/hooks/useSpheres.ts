@@ -52,17 +52,17 @@ export function useSpheres() {
     const today = format(now, 'yyyy-MM-dd');
 
     try {
-      // Get active goals for this sphere
+      // Get ALL goals for this sphere (both active and completed)
       const { data: goals } = await supabase
         .from('goals')
-        .select('id')
+        .select('id, status')
         .eq('user_id', user.id)
         .eq('sphere_id', sphereId)
-        .eq('status', 'active');
+        .is('archived_at', null);
 
       const goalIds = goals?.map(g => g.id) || [];
 
-      // Get tasks in active goals of this sphere
+      // Get ALL tasks in goals of this sphere (including completed)
       let totalTasks = 0;
       let completedTasks = 0;
 
@@ -75,6 +75,19 @@ export function useSpheres() {
 
         totalTasks = tasks?.length || 0;
         completedTasks = tasks?.filter(t => t.completed).length || 0;
+      }
+      
+      // Also get tasks directly assigned to sphere (without goal)
+      const { data: sphereTasks } = await supabase
+        .from('tasks')
+        .select('id, completed')
+        .eq('user_id', user.id)
+        .eq('sphere_id', sphereId)
+        .is('goal_id', null);
+      
+      if (sphereTasks) {
+        totalTasks += sphereTasks.length;
+        completedTasks += sphereTasks.filter(t => t.completed).length;
       }
 
       // Get habits for this sphere (current week completion)

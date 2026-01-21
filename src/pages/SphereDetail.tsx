@@ -12,6 +12,7 @@ import {
   Plus,
   TrendingUp,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -64,7 +65,7 @@ export default function SphereDetail() {
     timeSpent: { ru: 'Время', en: 'Time', es: 'Tiempo' },
     balance: { ru: 'Баланс', en: 'Balance', es: 'Balance' },
     index: { ru: 'Индекс', en: 'Index', es: 'Índice' },
-    noGoals: { ru: 'Нет активных целей', en: 'No active goals', es: 'Sin metas activas' },
+    noGoals: { ru: 'Нет целей', en: 'No goals', es: 'Sin metas' },
     noTasks: { ru: 'Нет задач', en: 'No tasks', es: 'Sin tareas' },
     noHabits: { ru: 'Нет привычек', en: 'No habits', es: 'Sin hábitos' },
     noContacts: { ru: 'Нет контактов', en: 'No contacts', es: 'Sin contactos' },
@@ -88,13 +89,14 @@ export default function SphereDetail() {
     
     setLoading(true);
     try {
-      // Fetch goals
+      // Fetch goals (both active and completed, excluding archived)
       const { data: goals } = await supabase
         .from('goals')
         .select('*')
         .eq('user_id', user.id)
         .eq('sphere_id', sphere.id)
-        .eq('status', 'active')
+        .is('archived_at', null)
+        .order('status', { ascending: true })
         .order('created_at', { ascending: false });
 
       // Fetch tasks
@@ -313,13 +315,18 @@ export default function SphereDetail() {
               data.goals.map((goal) => (
                 <Card 
                   key={goal.id} 
-                  className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  className={cn(
+                    "p-4 cursor-pointer hover:shadow-md transition-shadow",
+                    goal.status === 'completed' && "opacity-70"
+                  )}
                   onClick={() => navigate(`/goals/${goal.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{goal.icon || '🎯'}</span>
                     <div className="flex-1">
-                      <p className="font-medium">{goal.name}</p>
+                      <p className={cn("font-medium", goal.status === 'completed' && "line-through")}>
+                        {goal.name}
+                      </p>
                       {goal.target_date && (
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(goal.target_date), 'dd.MM.yyyy')}
@@ -327,7 +334,11 @@ export default function SphereDetail() {
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-medium">{goal.progress_percent || 0}%</span>
+                      {goal.status === 'completed' ? (
+                        <span className="text-sm font-medium text-success">✓</span>
+                      ) : (
+                        <span className="text-sm font-medium">{goal.progress_percent || 0}%</span>
+                      )}
                     </div>
                   </div>
                 </Card>
