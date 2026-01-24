@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, Wallet, Settings } from 'lucide-react';
 import { useFinance } from '@/hooks/useFinance';
@@ -8,7 +8,7 @@ import { TransactionCard } from '@/components/TransactionCard';
 import { TransactionDialog } from '@/components/TransactionDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { FinanceViewTabs, FinanceViewType } from '@/components/finance/FinanceViewTabs';
-import { FinanceCalendarView } from '@/components/finance/FinanceCalendarView';
+import { FinanceMonthCalendar } from '@/components/finance/FinanceMonthCalendar';
 import { FinanceProgressView } from '@/components/finance/FinanceProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { ExportButtons } from '@/components/ExportButtons';
@@ -19,6 +19,7 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { exportFinanceToCSV, exportFinanceToPDF } from '@/utils/exportData';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +52,8 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
   const [activeView, setActiveView] = useState<FinanceViewType>('transactions');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isRussian = language === 'ru';
 
   const handleSaveTransaction = (transactionData: Omit<FinanceTransaction, 'id' | 'createdAt' | 'completed'>) => {
     if (editingTransaction) {
@@ -59,7 +61,7 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
     } else {
       // Check limit before adding
       if (!transactionsLimit.canAdd) {
-        toast.error(t('language') === 'ru' ? 'Достигнут лимит операций. Перейдите на PRO!' : 'Transaction limit reached. Upgrade to PRO!');
+        toast.error(isRussian ? 'Достигнут лимит операций. Перейдите на PRO!' : 'Transaction limit reached. Upgrade to PRO!');
         return;
       }
       addTransaction(transactionData);
@@ -99,10 +101,29 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
   const totalExpense = filteredTransactions.filter(t => t.type === 'expense' && t.completed).reduce((acc, t) => acc + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  // Sort by date
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
+  // Get today's date string
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Separate completed today transactions and other transactions
+  const completedTodayTransactions = useMemo(() => {
+    return filteredTransactions.filter(t => t.completed && t.date === today);
+  }, [filteredTransactions, today]);
+
+  const otherTransactions = useMemo(() => {
+    return filteredTransactions.filter(t => !(t.completed && t.date === today));
+  }, [filteredTransactions, today]);
+
+  // Sort other transactions by date (newest first)
+  const sortedOtherTransactions = useMemo(() => {
+    return [...otherTransactions].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+  }, [otherTransactions]);
+
+  // Combined list: completed today first, then others
+  const sortedTransactions = useMemo(() => {
+    return [...completedTodayTransactions, ...sortedOtherTransactions];
+  }, [completedTodayTransactions, sortedOtherTransactions]);
 
   if (isLoading) {
     return (
@@ -149,6 +170,17 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                 className="w-9 h-9"
               >
                 <Settings className="w-5 h-5 text-finance" />
+              </Button>
+              {/* Add button in header */}
+              <Button
+                onClick={() => {
+                  setEditingTransaction(null);
+                  setDialogOpen(true);
+                }}
+                size="icon"
+                className="w-9 h-9 rounded-[0.35rem] bg-finance hover:bg-finance/90 p-0"
+              >
+                <Plus className="w-5 h-5 text-white" />
               </Button>
             </div>
           }
@@ -313,7 +345,10 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <FinanceCalendarView transactions={filteredTransactions} initialPeriod="7" />
+                <FinanceMonthCalendar 
+                  transactions={filteredTransactions}
+                  onToggle={toggleTransactionCompletion}
+                />
               </motion.div>
             )}
 
@@ -330,27 +365,6 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* FAB */}
-      {sortedTransactions.length > 0 && activeView === 'transactions' && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: 'spring' }}
-          className="fixed bottom-24 right-6"
-        >
-          <Button
-            onClick={() => {
-              setEditingTransaction(null);
-              setDialogOpen(true);
-            }}
-            size="lg"
-            className="w-14 h-14 rounded-full bg-finance hover:bg-finance/90 shadow-lg p-0"
-          >
-            <Plus className="w-6 h-6 text-white" />
-          </Button>
-        </motion.div>
-      )}
 
       {/* Dialogs */}
       <TransactionDialog

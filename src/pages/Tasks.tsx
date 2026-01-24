@@ -14,15 +14,14 @@ import { TaskDialog } from '@/components/TaskDialog';
 import { TaskSettingsDialog } from '@/components/TaskSettingsDialog';
 import { TaskViewTabs } from '@/components/TaskViewTabs';
 import { TaskProgressView } from '@/components/TaskProgressView';
-import { TaskCalendarView } from '@/components/TaskCalendarView';
-import { TaskFilters } from '@/components/TaskFilters';
-import { PeriodSelector } from '@/components/PeriodSelector';
+import { TaskMonthCalendar } from '@/components/task/TaskMonthCalendar';
 import { PageHeader } from '@/components/PageHeader';
 import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 import { exportTasksToCSV, exportTasksToPDF } from '@/utils/exportData';
 import { exportTasksToICS } from '@/utils/icsExport';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
@@ -62,7 +61,6 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteConfirmTask, setDeleteConfirmTask] = useState<Task | null>(null);
   const [activeView, setActiveView] = useState<'list' | 'calendar' | 'progress'>('list');
-  const [period, setPeriod] = useState<'7' | '14' | '30'>('7');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<TaskStatus[]>([]);
@@ -163,18 +161,67 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     });
   }, [activeTasks, selectedCategories, selectedTags, selectedStatuses]);
 
-  // Sort: incomplete first, then by due date
-  const sortedTasks = useMemo(() => {
-    return [...filteredTasks].sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    });
+  // Get today's date string
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Separate completed today tasks and incomplete tasks
+  const completedTodayTasks = useMemo(() => {
+    return filteredTasks.filter(task => task.completed && task.dueDate === today);
+  }, [filteredTasks, today]);
+
+  const incompleteTasks = useMemo(() => {
+    return filteredTasks.filter(task => !task.completed);
   }, [filteredTasks]);
 
-  // For the list tab, hide completed tasks
+  // Sort incomplete tasks by due date
+  const sortedIncompleteTasks = useMemo(() => {
+    return [...incompleteTasks].sort((a, b) => {
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [incompleteTasks]);
+
+  // Combined list: completed today first, then incomplete sorted by due date
   const tasksForList = useMemo(() => {
-    return sortedTasks.filter(task => !task.completed);
-  }, [sortedTasks]);
+    return [...completedTodayTasks, ...sortedIncompleteTasks];
+  }, [completedTodayTasks, sortedIncompleteTasks]);
+
+  const hasFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0;
+
+  const statuses: { value: TaskStatus; label: string }[] = [
+    { value: 'not_started', label: t('statusNotStarted') },
+    { value: 'in_progress', label: t('statusInProgress') },
+    { value: 'done', label: t('statusDone') },
+  ];
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategories(
+      selectedCategories.includes(id)
+        ? selectedCategories.filter(c => c !== id)
+        : [...selectedCategories, id]
+    );
+  };
+
+  const toggleTag = (id: string) => {
+    setSelectedTags(
+      selectedTags.includes(id)
+        ? selectedTags.filter(t => t !== id)
+        : [...selectedTags, id]
+    );
+  };
+
+  const toggleStatus = (status: TaskStatus) => {
+    setSelectedStatuses(
+      selectedStatuses.includes(status)
+        ? selectedStatuses.filter(s => s !== status)
+        : [...selectedStatuses, status]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setSelectedStatuses([]);
+  };
 
   if (isLoading) {
     return (
@@ -236,41 +283,116 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSettingsOpen(true)}
-                className="rounded-xl hover:bg-task/10 w-12 h-12"
+                className="w-9 h-9"
               >
-                <Settings className="w-7 h-7 text-task" />
+                <Settings className="w-5 h-5 text-task" />
+              </Button>
+              {/* Add button in header */}
+              <Button
+                onClick={() => {
+                  setEditingTask(null);
+                  setDialogOpen(true);
+                }}
+                size="icon"
+                className="w-9 h-9 rounded-[0.35rem] bg-task hover:bg-task/90 p-0"
+              >
+                <Plus className="w-5 h-5 text-white" />
               </Button>
             </div>
           }
         />
 
+        {/* Limit Warning */}
+        <LimitWarning current={tasks.length} max={tasksLimit.max} type="tasks" />
+
+        {/* Inline Filters */}
+        <div className="mb-4 space-y-2">
+          {/* Categories */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedCategories([])}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                  selectedCategories.length === 0 ? "bg-task text-white" : "bg-muted text-muted-foreground"
+                )}
+              >
+                {t('uncategorized')}
+              </button>
+              {categories.map(cat => {
+                const isSelected = selectedCategories.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => toggleCategory(cat.id)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1",
+                      isSelected ? "text-white" : "bg-muted text-muted-foreground"
+                    )}
+                    style={isSelected ? { backgroundColor: cat.color } : undefined}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tags.map(tag => {
+                const isSelected = selectedTags.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.id)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-xs font-medium transition-all flex items-center gap-1",
+                      isSelected ? "text-white" : "bg-muted/50 text-muted-foreground"
+                    )}
+                    style={isSelected ? { backgroundColor: tag.color } : undefined}
+                  >
+                    #{tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Status */}
+          <div className="flex flex-wrap gap-2">
+            {statuses.map(status => (
+              <button
+                key={status.value}
+                onClick={() => toggleStatus(status.value)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs transition-all",
+                  selectedStatuses.includes(status.value)
+                    ? "bg-task text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {status.label}
+              </button>
+            ))}
+          </div>
+
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              {t('clearFilters')}
+            </button>
+          )}
+        </div>
+
         {/* View Tabs */}
         <div className="mt-4">
           <TaskViewTabs activeView={activeView} onViewChange={setActiveView} />
         </div>
-
-        {/* Period Selector for calendar/progress views */}
-        {activeView !== 'list' && (
-          <div className="mt-4">
-            <PeriodSelector value={period} onValueChange={setPeriod} />
-          </div>
-        )}
-
-        {/* Filters for list view */}
-        {activeView === 'list' && (
-          <div className="mt-4">
-            <TaskFilters
-              categories={categories}
-              tags={tags}
-              selectedCategories={selectedCategories}
-              selectedTags={selectedTags}
-              selectedStatuses={selectedStatuses}
-              onCategoriesChange={setSelectedCategories}
-              onTagsChange={setSelectedTags}
-              onStatusesChange={setSelectedStatuses}
-            />
-          </div>
-        )}
 
         {/* Content */}
         <div className="mt-6">
@@ -325,10 +447,9 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
             )}
 
             {activeView === 'calendar' && (
-              <TaskCalendarView
+              <TaskMonthCalendar
                 tasks={filteredTasks}
                 categories={categories}
-                period={parseInt(period) as 7 | 14 | 30}
                 onToggleTask={toggleTaskCompletion}
               />
             )}
@@ -338,7 +459,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                 tasks={filteredTasks}
                 categories={categories}
                 tags={tags}
-                period={parseInt(period) as 7 | 14 | 30}
+                period={7}
                 timeEntries={timeTracker.entries}
                 formatDuration={timeTracker.formatDuration}
               />
@@ -346,27 +467,6 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* FAB */}
-      {tasks.length > 0 && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: 'spring' }}
-          className="fixed bottom-24 right-6"
-        >
-          <Button
-            onClick={() => {
-              setEditingTask(null);
-              setDialogOpen(true);
-            }}
-            size="lg"
-            className="w-14 h-14 rounded-full bg-task hover:bg-task/90 shadow-lg p-0"
-          >
-            <Plus className="w-6 h-6 text-white" />
-          </Button>
-        </motion.div>
-      )}
 
       {/* Dialogs */}
       <TaskDialog

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, Target, Settings } from 'lucide-react';
 import { useHabits, getTodayString, isFullyCompleted } from '@/hooks/useHabits';
@@ -9,7 +9,7 @@ import { HabitCard } from '@/components/HabitCard';
 import { HabitDialog } from '@/components/HabitDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { ViewTabs, ViewType } from '@/components/ViewTabs';
-import { CalendarViewNew } from '@/components/CalendarViewNew';
+import { HabitMonthCalendar } from '@/components/habit/HabitMonthCalendar';
 import { ProgressView } from '@/components/ProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { CalendarExportButtons } from '@/components/CalendarExportButtons';
@@ -141,8 +141,19 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     return true;
   });
 
-  // For the habits tab, hide habits that are fully completed today
-  const habitsForList = filteredHabits.filter(habit => !isFullyCompleted(habit, today));
+  // Separate completed today habits and incomplete habits
+  const completedTodayHabits = useMemo(() => {
+    return filteredHabits.filter(habit => isFullyCompleted(habit, today));
+  }, [filteredHabits, today]);
+
+  const incompleteHabits = useMemo(() => {
+    return filteredHabits.filter(habit => !isFullyCompleted(habit, today));
+  }, [filteredHabits, today]);
+
+  // Combined list: completed today first, then incomplete
+  const habitsForList = useMemo(() => {
+    return [...completedTodayHabits, ...incompleteHabits];
+  }, [completedTodayHabits, incompleteHabits]);
 
   const hasFilters = filterCategory || filterTag;
 
@@ -200,6 +211,17 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 className="w-9 h-9"
               >
                 <Settings className="w-5 h-5 text-habit" />
+              </Button>
+              {/* Add button in header */}
+              <Button
+                onClick={() => {
+                  setEditingHabit(null);
+                  setDialogOpen(true);
+                }}
+                size="icon"
+                className="w-9 h-9 rounded-[0.35rem] bg-habit hover:bg-habit/90 p-0"
+              >
+                <Plus className="w-5 h-5 text-white" />
               </Button>
             </div>
           }
@@ -334,10 +356,9 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <CalendarViewNew 
+                <HabitMonthCalendar 
                   habits={filteredHabits} 
                   onToggle={toggleHabitCompletion}
-                  initialPeriod="7"
                 />
               </motion.div>
             )}
@@ -355,27 +376,6 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* FAB */}
-      {activeHabits.length > 0 && activeView === 'habits' && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: 'spring' }}
-          className="fixed bottom-24 right-6"
-        >
-          <Button
-            onClick={() => {
-              setEditingHabit(null);
-              setDialogOpen(true);
-            }}
-            size="lg"
-            className="w-14 h-14 rounded-full bg-habit hover:bg-habit/90 shadow-lg p-0"
-          >
-            <Plus className="w-6 h-6 text-white" />
-          </Button>
-        </motion.div>
-      )}
 
       {/* Dialogs */}
       <HabitDialog
