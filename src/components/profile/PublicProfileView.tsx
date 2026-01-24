@@ -234,12 +234,12 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
         supabase.from('user_stars').select('total_stars').eq('user_id', userId).single(),
         supabase.from('user_levels').select('current_level, tasks_completed, habits_completed').eq('user_id', userId).single(),
         supabase.from('subscriptions').select('plan, expires_at').eq('user_id', userId).single(),
-        // Unique habits (distinct habit records with at least one completion)
-        supabase.from('habits').select('id', { count: 'exact', head: true })
+        // Unique habits with at least one completion
+        supabase.from('habits').select('id, completed_dates').eq('user_id', userId),
+        // Total tasks completed (count directly from tasks table)
+        supabase.from('tasks').select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .not('completed_dates', 'eq', '{}'),
-        // Total tasks completed from user_levels
-        supabase.from('user_levels').select('tasks_completed').eq('user_id', userId).single(),
+          .eq('completed', true),
         // Goals achieved
         supabase.from('goals').select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
@@ -247,6 +247,16 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
         // User achievements
         supabase.from('user_achievements').select('achievement_key').eq('user_id', userId),
       ]);
+
+      // Count unique habits with at least one completion
+      let uniqueCompletedHabits = 0;
+      if (habitsRes.data) {
+        for (const habit of habitsRes.data) {
+          if (habit.completed_dates && Array.isArray(habit.completed_dates) && habit.completed_dates.length > 0) {
+            uniqueCompletedHabits++;
+          }
+        }
+      }
 
       // Get likes count
       let likesCount = 0;
@@ -277,8 +287,8 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
         total_stars: starsRes.data?.total_stars || 0,
         user_level: levelRes.data?.current_level || 1,
         is_pro: isPro,
-        unique_habits_count: habitsRes.count || 0,
-        tasks_completed_count: levelRes.data?.tasks_completed || tasksRes.data?.tasks_completed || 0,
+        unique_habits_count: uniqueCompletedHabits,
+        tasks_completed_count: tasksRes.count || 0,
         goals_achieved_count: goalsRes.count || 0,
         earned_achievements: achievementsRes.data?.map(a => a.achievement_key) || [],
       });
@@ -488,21 +498,26 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
           )}
         </div>
 
-        {/* Location: flag, country, city only */}
-        {profile.location && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            {countryFlag && <span>{countryFlag}</span>}
-            {profile.location}
-          </p>
-        )}
-
-        {/* Status, Job */}
-        <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground" style={{ lineHeight: '1.8' }}>
-          {profile.status_tag && (
-            <span>{STATUS_LABELS[profile.status_tag] || profile.status_tag}</span>
+        {/* Location + Status/Job - tighter spacing, right aligned */}
+        <div className="space-y-0.5 mt-2 text-right">
+          {/* Location: Flag -> Country -> City */}
+          {profile.location && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1 justify-end">
+              {countryFlag && <span>{countryFlag}</span>}
+              {profile.location}
+            </p>
           )}
-          {profile.status_tag && profile.job_title && <span>·</span>}
-          {profile.job_title && <span>{profile.job_title}</span>}
+
+          {/* Status, Job */}
+          {(profile.status_tag || profile.job_title) && (
+            <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground justify-end">
+              {profile.status_tag && (
+                <span>{STATUS_LABELS[profile.status_tag] || profile.status_tag}</span>
+              )}
+              {profile.status_tag && profile.job_title && <span>·</span>}
+              {profile.job_title && <span>{profile.job_title}</span>}
+            </div>
+          )}
         </div>
 
         {/* Interests - 2 rows of 3 */}

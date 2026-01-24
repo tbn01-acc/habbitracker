@@ -27,6 +27,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Area, AreaChart } f
 import { useBalanceSpread, SpreadLevel, calculateSpread } from '@/hooks/useBalanceSpread';
 import { BalanceStatusModal } from '@/components/spheres/BalanceStatusModal';
 import { BalanceStatusBadge } from '@/components/spheres/BalanceStatusBadge';
+import { useDailyBalanceBonus } from '@/hooks/useDailyBalanceBonus';
 
 interface BalanceFlowerProps {
   sphereIndices: SphereIndex[];
@@ -803,7 +804,17 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
     openModal,
     notificationsEnabled
   } = useBalanceSpread(sphereIndices);
-  
+
+  // Daily balance bonus - award +5 stars for maintaining Spread < 10 for 24 hours
+  const { checkAndAwardBonus, hoursRemaining, isEligible } = useDailyBalanceBonus();
+
+  // Check for daily balance bonus when spread state changes
+  useEffect(() => {
+    if (spreadState?.level) {
+      checkAndAwardBonus(spreadState.level);
+    }
+  }, [spreadState?.level, checkAndAwardBonus]);
+
   const personalSpheres = getPersonalSpheres();
   const socialSpheres = getSocialSpheres();
   

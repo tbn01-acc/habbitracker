@@ -39,7 +39,7 @@ export default function UserProfile() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'feed')} className="flex-1">
-            <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsList className="grid w-full grid-cols-2 h-11">
               <TabsTrigger value="profile" className="flex items-center gap-1.5 text-xs h-8">
                 <User className="h-3.5 w-3.5" />
                 Профиль
