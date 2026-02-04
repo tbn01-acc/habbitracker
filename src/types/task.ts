@@ -55,6 +55,9 @@ export interface Task {
   postponeCount?: number;
   postponedUntil?: string;
   archivedAt?: string;
+  // Goal and sphere linking
+  goalId?: string;
+  sphereId?: number;
 }
 
 export const TASK_ICONS = [

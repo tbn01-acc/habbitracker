@@ -14,8 +14,10 @@ export interface AchievementPost {
   dislikes_count: number;
   comments_count: number;
   is_visible: boolean;
+  is_verified: boolean;
   created_at: string;
   updated_at: string;
+  post_type: string;
   // Joined data
   user_profile?: {
     display_name: string | null;
@@ -137,7 +139,8 @@ export function useAchievementsFeed() {
     description: string,
     taskId?: string,
     habitId?: string,
-    postType: 'achievement' | 'success_story' | 'idea' = 'achievement'
+    postType: 'achievement' | 'success_story' | 'idea' = 'achievement',
+    isVerified: boolean = false
   ): Promise<string | null> => {
     if (!user) return null;
 
@@ -168,7 +171,10 @@ export function useAchievementsFeed() {
         imageUrl = urlData.publicUrl;
       }
 
-      // Create post
+      // Map post type for database
+      const dbPostType = postType === 'achievement' ? 'activity' : postType === 'success_story' ? 'success_story' : 'idea';
+
+      // Create post with is_verified flag
       const { data: post, error: postError } = await supabase
         .from('achievement_posts')
         .insert({
@@ -177,7 +183,8 @@ export function useAchievementsFeed() {
           description,
           task_id: taskId,
           habit_id: habitId,
-          post_type: postType
+          post_type: dbPostType,
+          is_verified: isVerified
         })
         .select()
         .single();

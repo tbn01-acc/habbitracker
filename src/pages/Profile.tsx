@@ -1,12 +1,19 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Archive, BarChart3 } from 'lucide-react';
+import { 
+  User, Settings, Trophy, Users, Crown, Lock, 
+  LogIn, Archive, BarChart3, Mail, Send, CheckCircle2 
+} from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TileProps {
   icon: React.ReactNode;
@@ -56,8 +63,13 @@ function ProfileTile({ icon, title, subtitle, gradient, onClick, locked, delay =
 export default function Profile() {
   const { language } = useTranslation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, profile, loading, refetchProfile } = useAuth();
   const { isProActive } = useSubscription();
+  const { toast } = useToast();
+  
+  const [emailInput, setEmailInput] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
+  
   const isRussian = language === 'ru';
 
   const handleTileClick = (path: string, requiresAuth: boolean) => {
@@ -65,6 +77,48 @@ export default function Profile() {
       navigate('/auth');
     } else {
       navigate(path);
+    }
+  };
+
+  const handleLinkEmail = async () => {
+    if (!emailInput.includes('@')) {
+      toast({
+        title: isRussian ? "Ошибка" : "Error",
+        description: isRussian ? "Введите корректный email" : "Enter a valid email",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLinking(true);
+    try {
+      // 1. Обновляем email в таблице public.profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ public_email: emailInput })
+        .eq('id', user?.id);
+
+      if (profileError) throw profileError;
+
+      // 2. Обновляем email в метаданных пользователя Auth
+      const { error: authError } = await supabase.auth.updateUser({ email: emailInput });
+      if (authError) throw authError;
+
+      toast({
+        title: isRussian ? "Успешно" : "Success",
+        description: isRussian ? "Email успешно привязан" : "Email linked successfully",
+      });
+      
+      await refetchProfile();
+      setEmailInput('');
+    } catch (error: any) {
+      toast({
+        title: isRussian ? "Ошибка" : "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -78,19 +132,16 @@ export default function Profile() {
     );
   }
 
-  // Always show 6 tiles - Archive for PRO users, otherwise show About/Info
   const showArchive = user && isProActive;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <AppHeader />
       <div className="max-w-4xl mx-auto px-4 py-4">
+        
         {/* Guest Banner */}
         {!user && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="mb-4 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
               <CardContent className="py-3">
                 <div className="flex items-center justify-between">
@@ -117,11 +168,67 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* 2x3 Tile Grid - fixed height to fill screen */}
+        {/* Universal Access / Email Linking Block (Visible if logged in) */}
+        {user && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/10">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3 text-blue-600 dark:text-blue-400">
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm font-semibold uppercase tracking-wider">
+                    {isRussian ? 'Универсальный доступ' : 'Universal Access'}
+                  </span>
+                </div>
+
+                {profile?.public_email && !profile.public_email.includes('@top-focus.ru') ? (
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100">
+                    <span className="text-sm font-medium">{profile.public_email}</span>
+                    <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {isRussian ? 'ПРИВЯЗАН' : 'LINKED'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {isRussian 
+                        ? 'Привяжите почту, чтобы входить в аккаунт через браузер и сохранять прогресс вне Telegram.' 
+                        : 'Link your email to access your account via browser and save progress outside of Telegram.'}
+                    </p>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="email"
+                        placeholder="example@mail.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="h-9 bg-white dark:bg-slate-900"
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={handleLinkEmail} 
+                        disabled={isLinking}
+                        className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                      >
+                        {isLinking ? '...' : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* 2x3 Tile Grid */}
         <div 
           className="grid grid-cols-2 gap-3"
           style={{ 
-            height: user ? 'calc(100vh - 180px)' : 'calc(100vh - 260px)',
+            height: user ? 'calc(100vh - 320px)' : 'calc(100vh - 260px)',
+            minHeight: '400px',
             gridTemplateRows: 'repeat(3, 1fr)'
           }}
         >
@@ -172,7 +279,6 @@ export default function Profile() {
             delay={0.2}
           />
 
-          {/* 6th tile - Archive for PRO, or locked Archive for non-PRO */}
           <ProfileTile
             icon={<Archive className="w-5 h-5 text-white" />}
             title={isRussian ? 'Архив' : 'Archive'}

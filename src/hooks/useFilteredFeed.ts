@@ -18,6 +18,7 @@ export interface FeedPost {
   votes_count: number;
   created_at: string;
   is_visible: boolean;
+  is_verified: boolean;
   user_profile?: {
     display_name: string | null;
     avatar_url: string | null;

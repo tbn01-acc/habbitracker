@@ -150,6 +150,7 @@ export function useTasks() {
       );
       saveTasks([...updatedTasks, newTask]);
     } else {
+      // Allow both completing and uncompleting tasks
       updateTask(id, { 
         completed: newCompleted,
         status: newCompleted ? 'done' : 'not_started',
@@ -157,6 +158,33 @@ export function useTasks() {
       });
     }
   }, [tasks, updateTask, saveTasks]);
+
+  // Toggle subtask completion
+  const toggleSubtaskCompletion = useCallback((taskId: string, subtaskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+    
+    const updatedSubtasks = task.subtasks.map(st => 
+      st.id === subtaskId ? { ...st, completed: !st.completed } : st
+    );
+    
+    // Check if all subtasks are now completed
+    const allCompleted = updatedSubtasks.every(st => st.completed);
+    const wasCompleted = task.completed;
+    
+    // Trigger celebration when completing last subtask
+    if (allCompleted && !wasCompleted) {
+      triggerCompletionCelebration();
+    }
+    
+    updateTask(taskId, { 
+      subtasks: updatedSubtasks,
+      // Auto-update task status based on subtasks
+      completed: allCompleted,
+      status: allCompleted ? 'done' : (updatedSubtasks.some(st => st.completed) ? 'in_progress' : 'not_started'),
+      completedAt: allCompleted ? new Date().toISOString() : undefined
+    });
+  }, [tasks, updateTask]);
 
   const updateTaskStatus = useCallback((id: string, status: TaskStatus) => {
     updateTask(id, { status });
@@ -220,6 +248,7 @@ export function useTasks() {
     updateTask,
     deleteTask,
     toggleTaskCompletion,
+    toggleSubtaskCompletion,
     updateTaskStatus,
     getTodayTasks,
     getTasksForPeriod,

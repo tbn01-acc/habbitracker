@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertical, EyeOff, Trash2, Users, Aperture, FileQuestion } from 'lucide-react';
+import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertical, EyeOff, Trash2, Users, Aperture, FileQuestion, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -224,6 +224,14 @@ export default function Focus() {
                         alt=""
                         className="w-full h-full object-cover"
                       />
+                      {post.is_verified && (
+                        <Badge 
+                          className="absolute top-2 left-2 bg-primary text-primary-foreground gap-1"
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                          Верифицировано
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Post Actions */}

@@ -8,6 +8,8 @@ import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useOverdueNotifications } from '@/hooks/useOverdueNotifications';
 import { useOverdueTasks } from '@/hooks/useOverdueTasks';
+import { useGoals } from '@/hooks/useGoals';
+import { useDeadlineNotifications } from '@/hooks/useDeadlineNotifications';
 import { Task, TaskStatus } from '@/types/task';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDialog } from '@/components/TaskDialog';
@@ -18,6 +20,8 @@ import { TaskMonthCalendar } from '@/components/task/TaskMonthCalendar';
 import { PageHeader } from '@/components/PageHeader';
 import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
+import { StatusGroupedList } from '@/components/StatusGroupedList';
+import { SphereGoalFilter } from '@/components/SphereGoalFilter';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -26,7 +30,7 @@ import { exportTasksToCSV, exportTasksToPDF } from '@/utils/exportData';
 import { exportTasksToICS } from '@/utils/icsExport';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
-import { addDays, format } from 'date-fns';
+import { addDays, format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +56,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     addCategory, updateCategory, deleteCategory,
     addTag, updateTag, deleteTag
   } = useTasks();
+  const { goals } = useGoals();
   const timeTracker = useTimeTracker();
   const { getTasksLimit } = useUsageLimits();
   const tasksLimit = getTasksLimit(tasks.length);
@@ -64,6 +69,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<TaskStatus[]>([]);
+  const [filterSphereId, setFilterSphereId] = useState<number | null>(null);
+  const [filterGoalId, setFilterGoalId] = useState<string | null>(null);
   const { t } = useTranslation();
 
   // Show notifications for overdue and high-priority tasks
@@ -77,6 +84,15 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   
   // Task reminders with push notifications
   const { requestPermission } = useTaskReminders(tasks, updateTask);
+
+  // Deadline notifications for tasks and goals
+  useDeadlineNotifications(
+    tasks.map(t => ({ id: t.id, name: t.name, dueDate: t.dueDate, completed: t.completed })),
+    goals.map(g => ({ id: g.id, name: g.name, target_date: g.target_date || null, status: g.status }))
+  );
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const todayDate = startOfDay(new Date());
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
     if (editingTask) {
@@ -142,8 +158,21 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     toast.success(isRussian ? 'Задача перемещена в архив' : 'Task moved to archive');
   };
 
-  // Filter out archived tasks
-  const activeTasks = tasks.filter(t => !t.archivedAt);
+  // Filter out archived tasks and get unique tasks (for recurring, show only the base task)
+  const activeTasks = useMemo(() => {
+    const nonArchived = tasks.filter(t => !t.archivedAt);
+    // Show unique tasks - recurring tasks shown once with recurrence indicator
+    const seen = new Set<string>();
+    return nonArchived.filter(task => {
+      // For recurring tasks, only show the first instance
+      if (task.recurrence && task.recurrence !== 'none') {
+        const baseKey = `${task.name}-${task.recurrence}`;
+        if (seen.has(baseKey)) return false;
+        seen.add(baseKey);
+      }
+      return true;
+    });
+  }, [tasks]);
 
   // Filter tasks
   const filteredTasks = useMemo(() => {
@@ -157,35 +186,57 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
       if (selectedStatuses.length > 0 && !selectedStatuses.includes(task.status)) {
         return false;
       }
+      // Sphere filter - check if task's goal is in the selected sphere
+      if (filterSphereId) {
+        const taskGoal = goals.find(g => g.id === (task as any).goalId);
+        if (!taskGoal || taskGoal.sphere_id !== filterSphereId) return false;
+      }
+      // Goal filter
+      if (filterGoalId && (task as any).goalId !== filterGoalId) return false;
       return true;
     });
-  }, [activeTasks, selectedCategories, selectedTags, selectedStatuses]);
+  }, [activeTasks, selectedCategories, selectedTags, selectedStatuses, filterSphereId, filterGoalId, goals]);
 
-  // Get today's date string
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Group tasks by status
+  const groupedTasks = useMemo(() => {
+    const completed: Task[] = [];
+    const inProgress: Task[] = [];
+    const todayList: Task[] = [];
+    const future: Task[] = [];
 
-  // Separate completed today tasks and incomplete tasks
-  const completedTodayTasks = useMemo(() => {
-    return filteredTasks.filter(task => task.completed && task.dueDate === today);
-  }, [filteredTasks, today]);
+    filteredTasks.forEach(task => {
+      const taskDueDate = startOfDay(parseISO(task.dueDate));
+      const isTaskToday = task.dueDate === today;
+      const isTaskFuture = isAfter(taskDueDate, todayDate);
+      const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
+      const totalSubtasks = task.subtasks?.length || 0;
+      const hasSubtasks = totalSubtasks > 0;
 
-  const incompleteTasks = useMemo(() => {
-    return filteredTasks.filter(task => !task.completed);
-  }, [filteredTasks]);
-
-  // Sort incomplete tasks by due date
-  const sortedIncompleteTasks = useMemo(() => {
-    return [...incompleteTasks].sort((a, b) => {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      if (task.completed && isTaskToday) {
+        // Completed today
+        completed.push(task);
+      } else if (hasSubtasks && completedSubtasks > 0 && completedSubtasks < totalSubtasks && isTaskToday) {
+        // Partially completed subtasks today
+        inProgress.push(task);
+      } else if (isTaskToday && !task.completed) {
+        // Due today, not completed
+        todayList.push(task);
+      } else if (isTaskFuture && !task.completed) {
+        // Future tasks
+        future.push(task);
+      } else if (!task.completed) {
+        // Overdue or other - show in today
+        todayList.push(task);
+      }
     });
-  }, [incompleteTasks]);
 
-  // Combined list: completed today first, then incomplete sorted by due date
-  const tasksForList = useMemo(() => {
-    return [...completedTodayTasks, ...sortedIncompleteTasks];
-  }, [completedTodayTasks, sortedIncompleteTasks]);
+    // Sort future by due date
+    future.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-  const hasFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0;
+    return { completed, inProgress, today: todayList, future };
+  }, [filteredTasks, today, todayDate]);
+
+  const hasFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0 || filterSphereId || filterGoalId;
 
   const statuses: { value: TaskStatus; label: string }[] = [
     { value: 'not_started', label: t('statusNotStarted') },
@@ -221,6 +272,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     setSelectedCategories([]);
     setSelectedTags([]);
     setSelectedStatuses([]);
+    setFilterSphereId(null);
+    setFilterGoalId(null);
   };
 
   if (isLoading) {
@@ -304,6 +357,17 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
 
         {/* Limit Warning */}
         <LimitWarning current={tasks.length} max={tasksLimit.max} type="tasks" />
+
+        {/* Sphere/Goal Filters */}
+        <div className="mb-4">
+          <SphereGoalFilter
+            selectedSphereId={filterSphereId}
+            selectedGoalId={filterGoalId}
+            onSphereChange={setFilterSphereId}
+            onGoalChange={setFilterGoalId}
+            accentColor="hsl(var(--task))"
+          />
+        </div>
 
         {/* Inline Filters */}
         <div className="mb-4 space-y-2">
@@ -398,8 +462,28 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
         <div className="mt-6">
           <AnimatePresence mode="popLayout">
             {activeView === 'list' && (
-              <>
-                {tasksForList.length === 0 ? (
+              <StatusGroupedList
+                items={groupedTasks}
+                getItemKey={(task) => task.id}
+                showInProgress={true}
+                renderItem={(task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    onToggle={() => toggleTaskCompletion(task.id)}
+                    onEdit={() => handleEditTask(task)}
+                    onDelete={() => handleDeleteTask(task)}
+                    onPostpone={handlePostpone}
+                    onArchive={handleArchive}
+                    activeTimer={timeTracker.activeTimer}
+                    elapsedTime={timeTracker.elapsedTime}
+                    onStartTimer={timeTracker.startTimer}
+                    onStopTimer={timeTracker.stopTimer}
+                    formatDuration={timeTracker.formatDuration}
+                  />
+                )}
+                emptyState={
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -422,28 +506,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                       {t('createTask')}
                     </Button>
                   </motion.div>
-                ) : (
-                  <div className="space-y-3">
-                    {tasksForList.map((task, index) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        index={index}
-                        onToggle={() => toggleTaskCompletion(task.id)}
-                        onEdit={() => handleEditTask(task)}
-                        onDelete={() => handleDeleteTask(task)}
-                        onPostpone={handlePostpone}
-                        onArchive={handleArchive}
-                        activeTimer={timeTracker.activeTimer}
-                        elapsedTime={timeTracker.elapsedTime}
-                        onStartTimer={timeTracker.startTimer}
-                        onStopTimer={timeTracker.stopTimer}
-                        formatDuration={timeTracker.formatDuration}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+                }
+              />
             )}
 
             {activeView === 'calendar' && (
@@ -501,7 +565,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
       <AlertDialog open={!!deleteConfirmTask} onOpenChange={() => setDeleteConfirmTask(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteTask')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('delete')} {t('tasks').toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
               {t('deleteTaskDescription')}
             </AlertDialogDescription>

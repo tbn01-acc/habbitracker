@@ -227,36 +227,21 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
         return;
       }
 
-      // Fetch stats in parallel
-      const [postsRes, referralsRes, starsRes, levelRes, subRes, habitsRes, tasksRes, goalsRes, achievementsRes] = await Promise.all([
+      // Fetch stats in parallel - use public tables that anyone can read
+      const [postsRes, referralsRes, starsRes, levelRes, subRes, productivityRes, achievementsRes] = await Promise.all([
         supabase.from('achievement_posts').select('id').eq('user_id', userId),
         supabase.from('referrals').select('id', { count: 'exact' }).eq('referrer_id', userId),
         supabase.from('user_stars').select('total_stars').eq('user_id', userId).single(),
         supabase.from('user_levels').select('current_level, tasks_completed, habits_completed').eq('user_id', userId).single(),
         supabase.from('subscriptions').select('plan, expires_at').eq('user_id', userId).single(),
-        // Unique habits with at least one completion
-        supabase.from('habits').select('id, completed_dates').eq('user_id', userId),
-        // Total tasks completed (count directly from tasks table)
-        supabase.from('tasks').select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('completed', true),
-        // Goals achieved
-        supabase.from('goals').select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('status', 'completed'),
+        // Get productivity stats from public table
+        supabase.from('user_productivity_stats').select('unique_habits_count, tasks_completed_count, goals_achieved_count').eq('user_id', userId).single(),
         // User achievements
         supabase.from('user_achievements').select('achievement_key').eq('user_id', userId),
       ]);
 
-      // Count unique habits with at least one completion
-      let uniqueCompletedHabits = 0;
-      if (habitsRes.data) {
-        for (const habit of habitsRes.data) {
-          if (habit.completed_dates && Array.isArray(habit.completed_dates) && habit.completed_dates.length > 0) {
-            uniqueCompletedHabits++;
-          }
-        }
-      }
+      // Get productivity stats from public table
+      const productivityData = productivityRes.data;
 
       // Get likes count
       let likesCount = 0;
@@ -287,9 +272,9 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
         total_stars: starsRes.data?.total_stars || 0,
         user_level: levelRes.data?.current_level || 1,
         is_pro: isPro,
-        unique_habits_count: uniqueCompletedHabits,
-        tasks_completed_count: tasksRes.count || 0,
-        goals_achieved_count: goalsRes.count || 0,
+        unique_habits_count: productivityData?.unique_habits_count || 0,
+        tasks_completed_count: productivityData?.tasks_completed_count || 0,
+        goals_achieved_count: productivityData?.goals_achieved_count || 0,
         earned_achievements: achievementsRes.data?.map(a => a.achievement_key) || [],
       });
     } catch (err: any) {

@@ -23,6 +23,7 @@ export type Database = {
           habit_id: string | null
           id: string
           image_url: string
+          is_verified: boolean | null
           is_visible: boolean
           likes_count: number
           post_type: string
@@ -39,6 +40,7 @@ export type Database = {
           habit_id?: string | null
           id?: string
           image_url: string
+          is_verified?: boolean | null
           is_visible?: boolean
           likes_count?: number
           post_type?: string
@@ -55,6 +57,7 @@ export type Database = {
           habit_id?: string | null
           id?: string
           image_url?: string
+          is_verified?: boolean | null
           is_visible?: boolean
           likes_count?: number
           post_type?: string
@@ -62,6 +65,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           votes_count?: number
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1010,8 +1037,10 @@ export type Database = {
           created_at: string
           display_name: string | null
           dob: string | null
+          email: string | null
           expertise: string | null
           first_day_of_week: number | null
+          full_name: string | null
           id: string
           interests: string[] | null
           is_banned: boolean | null
@@ -1024,6 +1053,7 @@ export type Database = {
           referral_code: string | null
           referred_by: string | null
           status_tag: string | null
+          telegram_id: number | null
           telegram_username: string | null
           updated_at: string
           user_id: string
@@ -1039,8 +1069,10 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           dob?: string | null
+          email?: string | null
           expertise?: string | null
           first_day_of_week?: number | null
+          full_name?: string | null
           id?: string
           interests?: string[] | null
           is_banned?: boolean | null
@@ -1053,6 +1085,7 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           status_tag?: string | null
+          telegram_id?: number | null
           telegram_username?: string | null
           updated_at?: string
           user_id: string
@@ -1068,8 +1101,10 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           dob?: string | null
+          email?: string | null
           expertise?: string | null
           first_day_of_week?: number | null
+          full_name?: string | null
           id?: string
           interests?: string[] | null
           is_banned?: boolean | null
@@ -1082,6 +1117,7 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           status_tag?: string | null
+          telegram_id?: number | null
           telegram_username?: string | null
           updated_at?: string
           user_id?: string
@@ -1956,6 +1992,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_productivity_stats: {
+        Row: {
+          goals_achieved_count: number
+          id: string
+          tasks_completed_count: number
+          unique_habits_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          goals_achieved_count?: number
+          id?: string
+          tasks_completed_count?: number
+          unique_habits_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          goals_achieved_count?: number
+          id?: string
+          tasks_completed_count?: number
+          unique_habits_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2159,6 +2222,14 @@ export type Database = {
         Args: { referrer_user_id: string }
         Returns: Record<string, unknown>
       }
+      find_user_by_telegram: {
+        Args: { tg_id: number }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          user_id: string
+        }[]
+      }
       generate_invite_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -2166,6 +2237,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      link_telegram_account: {
+        Args: { tg_id: number; tg_username?: string }
+        Returns: Json
       }
     }
     Enums: {

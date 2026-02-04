@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Ticket, ChevronDown, ChevronUp, Loader2, RefreshCw, Target, CheckSquare, Star, TrendingUp } from 'lucide-react';
+import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Ticket, ChevronDown, ChevronUp, Loader2, RefreshCw, Target, CheckSquare, Star, TrendingUp, Lock, Home, UserPlus, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { AdminReferrals } from '@/components/admin/AdminReferrals';
 import { usePromoCodes } from '@/hooks/usePromoCodes';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import {
   Select,
   SelectContent,
@@ -94,6 +95,19 @@ export default function Admin() {
   // Settings sections
   const [bonusSettingsOpen, setBonusSettingsOpen] = useState(false);
   const [limitSettingsOpen, setLimitSettingsOpen] = useState(false);
+  const [accessControlOpen, setAccessControlOpen] = useState(false);
+  const [accessControlConfirmOpen, setAccessControlConfirmOpen] = useState(false);
+  
+  // App Settings
+  const { 
+    localAccessControl, 
+    updateLocalAccessControl, 
+    saveAccessControl,
+    resetLocalAccessControl,
+    loading: accessLoading, 
+    saving: accessSaving,
+    hasChanges: accessHasChanges 
+  } = useAppSettings();
 
   const isRussian = language === 'ru';
   const [adminChecked, setAdminChecked] = useState(false);
@@ -565,6 +579,123 @@ export default function Admin() {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="mt-4 space-y-4">
+            {/* Access Control */}
+            <Collapsible open={accessControlOpen} onOpenChange={setAccessControlOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-red-500" />
+                        {isRussian ? 'Управление доступом' : 'Access Control'}
+                      </div>
+                      {accessControlOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </CardTitle>
+                    <CardDescription>
+                      {isRussian ? 'Настройки доступа к приложению' : 'App access settings'}
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    {accessLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {/* Start Page */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4 text-muted-foreground" />
+                            <Label>{isRussian ? 'Стартовая страница' : 'Start Page'}</Label>
+                          </div>
+                          <Select
+                            value={localAccessControl.start_page}
+                            onValueChange={(value) => updateLocalAccessControl({ start_page: value as 'dashboard' | 'auth' })}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="dashboard">
+                                {isRussian ? 'Главная' : 'Dashboard'}
+                              </SelectItem>
+                              <SelectItem value="auth">
+                                {isRussian ? 'Авторизация' : 'Auth'}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Registration */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label>{isRussian ? 'Новые регистрации' : 'New Registrations'}</Label>
+                              <p className="text-xs text-muted-foreground">
+                                {isRussian ? 'Разрешить регистрацию новых пользователей' : 'Allow new user registrations'}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={localAccessControl.registration_enabled}
+                            onCheckedChange={(checked) => updateLocalAccessControl({ registration_enabled: checked })}
+                          />
+                        </div>
+
+                        {/* Guest Access */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <Label>{isRussian ? 'Гостевой доступ' : 'Guest Access'}</Label>
+                              <p className="text-xs text-muted-foreground">
+                                {isRussian ? 'Разрешить вход без авторизации' : 'Allow access without login'}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={localAccessControl.guest_access_enabled}
+                            onCheckedChange={(checked) => updateLocalAccessControl({ guest_access_enabled: checked })}
+                          />
+                        </div>
+
+                        {/* Action Buttons */}
+                        {accessHasChanges && (
+                          <div className="flex gap-2 mt-2">
+                            <Button 
+                              variant="outline"
+                              className="flex-1" 
+                              onClick={resetLocalAccessControl}
+                              disabled={accessSaving}
+                            >
+                              {isRussian ? 'Отменить' : 'Cancel'}
+                            </Button>
+                            <Button 
+                              className="flex-1" 
+                              onClick={() => setAccessControlConfirmOpen(true)}
+                              disabled={accessSaving}
+                            >
+                              {accessSaving ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  {isRussian ? 'Сохранение...' : 'Saving...'}
+                                </>
+                              ) : (
+                                isRussian ? 'Сохранить' : 'Save'
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
             {/* Bonus Settings */}
             <Collapsible open={bonusSettingsOpen} onOpenChange={setBonusSettingsOpen}>
               <Card>
@@ -852,6 +983,53 @@ export default function Admin() {
             <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleRoleChange}>
               {isRussian ? 'Подтвердить' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Access Control Confirmation */}
+      <AlertDialog open={accessControlConfirmOpen} onOpenChange={setAccessControlConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {isRussian ? 'Изменить настройки доступа?' : 'Change access settings?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                {isRussian 
+                  ? 'Вы собираетесь изменить настройки доступа к приложению. Это может повлиять на работу приложения для всех пользователей.'
+                  : 'You are about to change the app access settings. This may affect the app availability for all users.'
+                }
+              </p>
+              <div className="mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+                <p className="font-medium text-amber-600 dark:text-amber-400 mb-1">
+                  {isRussian ? '⚠️ Внимание:' : '⚠️ Warning:'}
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  {!localAccessControl.registration_enabled && (
+                    <li>{isRussian ? 'Новые пользователи не смогут зарегистрироваться' : 'New users will not be able to register'}</li>
+                  )}
+                  {!localAccessControl.guest_access_enabled && (
+                    <li>{isRussian ? 'Неавторизованные пользователи будут перенаправлены на страницу входа' : 'Unauthorized users will be redirected to the login page'}</li>
+                  )}
+                  {localAccessControl.start_page === 'auth' && (
+                    <li>{isRussian ? 'Все пользователи будут попадать на страницу авторизации' : 'All users will land on the authentication page'}</li>
+                  )}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRussian ? 'Отмена' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                await saveAccessControl();
+                setAccessControlConfirmOpen(false);
+              }}
+            >
+              {isRussian ? 'Применить изменения' : 'Apply changes'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

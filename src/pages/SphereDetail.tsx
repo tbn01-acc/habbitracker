@@ -30,6 +30,14 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { SphereIndexChart } from '@/components/spheres/SphereIndexChart';
+import { ContactDialog } from '@/components/contacts/ContactDialog';
+import { GoalDialog } from '@/components/goals/GoalDialog';
+import { TaskDialog } from '@/components/TaskDialog';
+import { HabitDialog } from '@/components/HabitDialog';
+import { useGoals } from '@/hooks/useGoals';
+import { useTasks } from '@/hooks/useTasks';
+import { useHabits } from '@/hooks/useHabits';
 
 interface SphereData {
   goals: any[];
@@ -51,6 +59,15 @@ export default function SphereDetail() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SphereData | null>(null);
   const [sphereIndex, setSphereIndex] = useState(0);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any | null>(null);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [habitDialogOpen, setHabitDialogOpen] = useState(false);
+
+  const { addGoal } = useGoals();
+  const { addTask, categories: taskCategories, tags: taskTags } = useTasks();
+  const { addHabit, categories: habitCategories, tags: habitTags } = useHabits();
 
   const sphere = useMemo(() => {
     return getSphereByKey(sphereKey as SphereKey);
@@ -69,9 +86,9 @@ export default function SphereDetail() {
     noTasks: { ru: 'Нет задач', en: 'No tasks', es: 'Sin tareas' },
     noHabits: { ru: 'Нет привычек', en: 'No habits', es: 'Sin hábitos' },
     noContacts: { ru: 'Нет контактов', en: 'No contacts', es: 'Sin contactos' },
-    addGoal: { ru: 'Добавить цель', en: 'Add Goal', es: 'Añadir meta' },
-    addTask: { ru: 'Добавить задачу', en: 'Add Task', es: 'Añadir tarea' },
-    addHabit: { ru: 'Добавить привычку', en: 'Add Habit', es: 'Añadir hábito' },
+    addGoal: { ru: '+ Новая цель', en: '+ New Goal', es: '+ Nueva meta' },
+    addTask: { ru: '+ Новая задача', en: '+ New Task', es: '+ Nueva tarea' },
+    addHabit: { ru: '+ Новая привычка', en: '+ New Habit', es: '+ Nuevo hábito' },
     hours: { ru: 'ч', en: 'h', es: 'h' },
     minutes: { ru: 'мин', en: 'min', es: 'min' },
     income: { ru: 'Доход', en: 'Income', es: 'Ingresos' },
@@ -134,16 +151,33 @@ export default function SphereDetail() {
         contacts = contactsData || [];
       }
 
-      // Fetch time entries
+      // Fetch time entries from Supabase
       const { data: timeEntries } = await supabase
         .from('time_entries')
         .select('duration')
         .eq('user_id', user.id)
         .eq('sphere_id', sphere.id);
 
-      const timeMinutes = Math.round(
-        (timeEntries?.reduce((sum, t) => sum + (t.duration || 0), 0) || 0) / 60
-      );
+      let dbTimeSeconds = timeEntries?.reduce((sum, t) => sum + (t.duration || 0), 0) || 0;
+      
+      // Also add local time entries not yet synced
+      const localEntriesStr = localStorage.getItem('habitflow_time_entries');
+      if (localEntriesStr) {
+        try {
+          const localEntries = JSON.parse(localEntriesStr);
+          const localTimeForSphere = localEntries
+            .filter((e: any) => e.sphereId === sphere.id)
+            .reduce((sum: number, e: any) => sum + (e.duration || 0), 0);
+          // Avoid double-counting: only add if we got 0 from DB (not synced yet)
+          if (dbTimeSeconds === 0) {
+            dbTimeSeconds = localTimeForSphere;
+          }
+        } catch (e) {
+          console.error('Failed to parse local time entries:', e);
+        }
+      }
+
+      const timeMinutes = Math.round(dbTimeSeconds / 60);
 
       // Fetch transactions
       const { data: transactions } = await supabase
@@ -268,17 +302,20 @@ export default function SphereDetail() {
               <p className="text-xs text-muted-foreground">{labels.timeSpent[language]}</p>
             </div>
             <div className="text-center">
-              <TrendingUp className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
-              <p className="text-sm font-medium text-emerald-600">+{data?.income?.toLocaleString() || 0}₽</p>
+              <TrendingUp className="w-5 h-5 mx-auto mb-1 text-success" />
+              <p className="text-sm font-medium text-success">+{data?.income?.toLocaleString() || 0}₽</p>
               <p className="text-xs text-muted-foreground">{labels.income[language]}</p>
             </div>
             <div className="text-center">
-              <DollarSign className="w-5 h-5 mx-auto mb-1 text-rose-500" />
-              <p className="text-sm font-medium text-rose-600">-{data?.expense?.toLocaleString() || 0}₽</p>
+              <DollarSign className="w-5 h-5 mx-auto mb-1 text-destructive" />
+              <p className="text-sm font-medium text-destructive">-{data?.expense?.toLocaleString() || 0}₽</p>
               <p className="text-xs text-muted-foreground">{labels.expense[language]}</p>
             </div>
           </div>
         </Card>
+
+        {/* Sphere Index Dynamics Chart */}
+        <SphereIndexChart sphereId={sphere.id} sphereColor={sphere.color} />
 
         {/* Tabs */}
         <Tabs defaultValue="goals" className="w-full">
@@ -304,7 +341,7 @@ export default function SphereDetail() {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => navigate('/goals', { state: { prefillSphereId: sphere.id } })}
+                onClick={() => setGoalDialogOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {labels.addGoal[language]}
@@ -357,7 +394,7 @@ export default function SphereDetail() {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => navigate('/tasks', { state: { prefillSphereId: sphere.id } })}
+                onClick={() => setTaskDialogOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {labels.addTask[language]}
@@ -396,7 +433,7 @@ export default function SphereDetail() {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => navigate('/habits', { state: { prefillSphereId: sphere.id } })}
+                onClick={() => setHabitDialogOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {labels.addHabit[language]}
@@ -424,7 +461,7 @@ export default function SphereDetail() {
                         </p>
                       </div>
                       {isCompletedToday && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        <CheckCircle2 className="w-5 h-5 text-success" />
                       )}
                     </div>
                   </Card>
@@ -439,11 +476,31 @@ export default function SphereDetail() {
 
           {/* Contacts Tab */}
           <TabsContent value="contacts" className="mt-4 space-y-3">
-            <h3 className="font-semibold">{labels.contacts[language]}</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">{labels.contacts[language]}</h3>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  setSelectedContact(null);
+                  setContactDialogOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                {language === 'ru' ? 'Добавить' : 'Add'}
+              </Button>
+            </div>
             
             {data?.contacts && data.contacts.length > 0 ? (
               data.contacts.map((contact) => (
-                <Card key={contact.id} className="p-3">
+                <Card 
+                  key={contact.id} 
+                  className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedContact(contact);
+                    setContactDialogOpen(true);
+                  }}
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                       {contact.photo_url ? (
@@ -461,6 +518,9 @@ export default function SphereDetail() {
                       {contact.phone && (
                         <p className="text-xs text-muted-foreground">{contact.phone}</p>
                       )}
+                      {contact.email && (
+                        <p className="text-xs text-muted-foreground">{contact.email}</p>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -473,6 +533,56 @@ export default function SphereDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Contact Dialog */}
+      <ContactDialog
+        open={contactDialogOpen}
+        onClose={() => {
+          setContactDialogOpen(false);
+          setSelectedContact(null);
+        }}
+        onSave={() => loadSphereData()}
+        contact={selectedContact}
+        prefillSphereId={sphere.id}
+      />
+
+      {/* Goal Dialog */}
+      <GoalDialog
+        open={goalDialogOpen}
+        onOpenChange={setGoalDialogOpen}
+        onSave={async (goalData) => {
+          await addGoal({ ...goalData, sphere_id: sphere.id });
+          setGoalDialogOpen(false);
+          loadSphereData();
+        }}
+        initialData={{ sphere_id: sphere.id }}
+      />
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={taskDialogOpen}
+        onClose={() => setTaskDialogOpen(false)}
+        onSave={async (taskData) => {
+          await addTask({ ...taskData, sphereId: sphere.id });
+          setTaskDialogOpen(false);
+          loadSphereData();
+        }}
+        categories={taskCategories}
+        tags={taskTags}
+      />
+
+      {/* Habit Dialog */}
+      <HabitDialog
+        open={habitDialogOpen}
+        onClose={() => setHabitDialogOpen(false)}
+        onSave={async (habitData) => {
+          await addHabit({ ...habitData, sphereId: sphere.id });
+          setHabitDialogOpen(false);
+          loadSphereData();
+        }}
+        categories={habitCategories}
+        tags={habitTags}
+      />
     </div>
   );
 }

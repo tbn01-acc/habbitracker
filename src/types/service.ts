@@ -38,6 +38,9 @@ export interface TimeEntry {
   endTime?: string;
   duration: number; // seconds
   description?: string;
+  // Goal and sphere linking
+  goalId?: string;
+  sphereId?: number;
 }
 
 // Currency types

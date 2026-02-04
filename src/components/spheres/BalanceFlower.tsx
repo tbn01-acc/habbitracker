@@ -1031,28 +1031,48 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
   }, [sphereIndices, orderedSpheres, colorScheme, labelRadius]);
 
   const getTooltipContent = (petal: typeof petals[0]) => {
-    const stats = getSphereStats(petal.sphere.id);
+    // Get stats from the SphereIndex (already contains extended stats)
+    const sphereData = sphereIndices.find(s => s.sphereId === petal.sphere.id);
+    
     const labels = {
       ru: {
         index: 'Индекс',
-        tasks: 'Задач',
-        lastActivity: 'Активность',
+        goals: 'Цели',
+        tasks: 'Задачи',
+        habits: 'Привычки',
+        contacts: 'Контакты',
+        time: 'Время',
         of: 'из 100',
       },
       en: {
         index: 'Index',
+        goals: 'Goals',
         tasks: 'Tasks',
-        lastActivity: 'Activity',
+        habits: 'Habits',
+        contacts: 'Contacts',
+        time: 'Time',
         of: 'of 100',
       },
       es: {
         index: 'Índice',
+        goals: 'Metas',
         tasks: 'Tareas',
-        lastActivity: 'Actividad',
+        habits: 'Hábitos',
+        contacts: 'Contactos',
+        time: 'Tiempo',
         of: 'de 100',
       },
     };
     const t = labels[language] || labels.en;
+    
+    const formatTime = (minutes: number) => {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      if (hours > 0) {
+        return `${hours}${language === 'ru' ? 'ч' : 'h'} ${mins}${language === 'ru' ? 'м' : 'm'}`;
+      }
+      return `${mins}${language === 'ru' ? 'м' : 'm'}`;
+    };
     
     return (
       <div className="p-2 space-y-1 text-sm">
@@ -1063,14 +1083,36 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
           <span className="text-muted-foreground">{t.index}:</span>
           <span className="font-medium">{Math.round(petal.index)} {t.of}</span>
         </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">{t.tasks}:</span>
-          <span className="font-medium">{stats.taskCount}</span>
-        </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">{t.lastActivity}:</span>
-          <span className="font-medium">{stats.lastActivity || '-'}</span>
-        </div>
+        {(sphereData?.totalGoals || 0) > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t.goals}:</span>
+            <span className="font-medium">🎯 {sphereData?.totalGoals}</span>
+          </div>
+        )}
+        {(sphereData?.totalTasks || 0) > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t.tasks}:</span>
+            <span className="font-medium">✓ {sphereData?.completedTasks}/{sphereData?.totalTasks}</span>
+          </div>
+        )}
+        {(sphereData?.totalHabits || 0) > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t.habits}:</span>
+            <span className="font-medium">🔄 {sphereData?.totalHabits} ({sphereData?.habitsProgress || 0}%)</span>
+          </div>
+        )}
+        {(sphereData?.totalContacts || 0) > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t.contacts}:</span>
+            <span className="font-medium">👤 {sphereData?.totalContacts}</span>
+          </div>
+        )}
+        {(sphereData?.totalTimeMinutes || 0) > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t.time}:</span>
+            <span className="font-medium">⏱ {formatTime(sphereData?.totalTimeMinutes || 0)}</span>
+          </div>
+        )}
       </div>
     );
   };

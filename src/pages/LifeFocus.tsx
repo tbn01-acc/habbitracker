@@ -19,19 +19,43 @@ import { format } from 'date-fns';
 // Constants for progress threshold
 const MINIMUM_THRESHOLD = 25;
 
-// Sphere Card Component with progress animation
+// Sphere Card Component with progress animation and stats
 interface SphereCardProps {
   sphere: Sphere;
-  indexValue: number;
+  indexData: {
+    index: number;
+    totalGoals?: number;
+    totalTasks?: number;
+    completedTasks?: number;
+    totalHabits?: number;
+    habitsProgress?: number;
+    totalContacts?: number;
+    totalTimeMinutes?: number;
+  };
   delay: number;
   language: 'ru' | 'en' | 'es';
   onClick: () => void;
 }
 
-function SphereCard({ sphere, indexValue, delay, language, onClick }: SphereCardProps) {
+function SphereCard({ sphere, indexData, delay, language, onClick }: SphereCardProps) {
+  const indexValue = indexData.index || 0;
   const isApproachingThreshold = indexValue > 0 && indexValue < MINIMUM_THRESHOLD;
   const progressToThreshold = Math.min((indexValue / MINIMUM_THRESHOLD) * 100, 100);
   const isAboveThreshold = indexValue >= MINIMUM_THRESHOLD;
+
+  // Format time
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours}${language === 'ru' ? 'ч' : 'h'}`;
+    }
+    return `${mins}${language === 'ru' ? 'м' : 'm'}`;
+  };
+
+  const hasContent = (indexData.totalGoals || 0) > 0 || 
+                    (indexData.totalTasks || 0) > 0 || 
+                    (indexData.totalHabits || 0) > 0;
 
   return (
     <motion.div
@@ -119,6 +143,37 @@ function SphereCard({ sphere, indexValue, delay, language, onClick }: SphereCard
             ))}
           </div>
         </div>
+
+        {/* Stats row - show linked components */}
+        {hasContent && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            {(indexData.totalGoals || 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                🎯 {indexData.totalGoals}
+              </span>
+            )}
+            {(indexData.totalTasks || 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                ✓ {indexData.completedTasks}/{indexData.totalTasks}
+              </span>
+            )}
+            {(indexData.totalHabits || 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                🔄 {indexData.totalHabits}
+              </span>
+            )}
+            {(indexData.totalContacts || 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                👤 {indexData.totalContacts}
+              </span>
+            )}
+            {(indexData.totalTimeMinutes || 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                ⏱ {formatTime(indexData.totalTimeMinutes || 0)}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Progress to 25% threshold text */}
         {isApproachingThreshold && (
@@ -295,13 +350,21 @@ export default function LifeFocus() {
             <div className="space-y-3">
               {SPHERES.filter(s => s.group_type === 'personal').map((sphere, index) => {
                 const sphereIndex = data?.sphereIndices.find(s => s.sphereId === sphere.id);
-                const indexValue = sphereIndex?.index || 0;
                 
                 return (
                   <SphereCard 
                     key={sphere.id}
                     sphere={sphere}
-                    indexValue={indexValue}
+                    indexData={{
+                      index: sphereIndex?.index || 0,
+                      totalGoals: sphereIndex?.totalGoals,
+                      totalTasks: sphereIndex?.totalTasks,
+                      completedTasks: sphereIndex?.completedTasks,
+                      totalHabits: sphereIndex?.totalHabits,
+                      habitsProgress: sphereIndex?.habitsProgress,
+                      totalContacts: sphereIndex?.totalContacts,
+                      totalTimeMinutes: sphereIndex?.totalTimeMinutes,
+                    }}
                     delay={index * 0.05}
                     language={language}
                     onClick={() => navigate(`/sphere/${sphere.key}`)}
@@ -314,13 +377,21 @@ export default function LifeFocus() {
             <div className="space-y-3">
               {SPHERES.filter(s => s.group_type === 'social').map((sphere, index) => {
                 const sphereIndex = data?.sphereIndices.find(s => s.sphereId === sphere.id);
-                const indexValue = sphereIndex?.index || 0;
                 
                 return (
                   <SphereCard 
                     key={sphere.id}
                     sphere={sphere}
-                    indexValue={indexValue}
+                    indexData={{
+                      index: sphereIndex?.index || 0,
+                      totalGoals: sphereIndex?.totalGoals,
+                      totalTasks: sphereIndex?.totalTasks,
+                      completedTasks: sphereIndex?.completedTasks,
+                      totalHabits: sphereIndex?.totalHabits,
+                      habitsProgress: sphereIndex?.habitsProgress,
+                      totalContacts: sphereIndex?.totalContacts,
+                      totalTimeMinutes: sphereIndex?.totalTimeMinutes,
+                    }}
                     delay={index * 0.05 + 0.2}
                     language={language}
                     onClick={() => navigate(`/sphere/${sphere.key}`)}

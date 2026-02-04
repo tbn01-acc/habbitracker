@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useGoals } from '@/hooks/useGoals';
+import { useAuth } from '@/hooks/useAuth';
 import { GoalDialog } from '@/components/goals/GoalDialog';
 import { GoalProgressChart } from '@/components/goals/GoalProgressChart';
 import { GoalContactsManager } from '@/components/goals/GoalContactsManager';
@@ -22,11 +23,22 @@ import { GoalAnalyticsTab } from '@/components/goals/GoalAnalyticsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
+import { Task } from '@/types/task';
+import { Habit } from '@/types/habit';
+import { FinanceTransaction } from '@/types/finance';
+import { TimeEntry } from '@/types/service';
+
+// Storage keys for localStorage
+const TASKS_KEY = 'habitflow_tasks';
+const HABITS_KEY = 'habitflow_habits';
+const FINANCE_KEY = 'habitflow_finance';
+const TIME_ENTRIES_KEY = 'habitflow_time_entries';
 
 export default function GoalDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { language } = useTranslation();
+  const { user } = useAuth();
   const isRussian = language === 'ru';
   const { goals, updateGoal, deleteGoal, completeGoal, addContact, getGoalContacts, deleteContact } = useGoals();
   
@@ -39,23 +51,124 @@ export default function GoalDetail() {
 
   const goal = goals.find(g => g.id === id);
 
+  // Helper to load from localStorage
+  const loadFromLocalStorage = useCallback(() => {
+    if (!id) return;
+
+    try {
+      // Load tasks
+      const storedTasks = localStorage.getItem(TASKS_KEY);
+      if (storedTasks) {
+        const allTasks: Task[] = JSON.parse(storedTasks);
+        const goalTasks = allTasks.filter(t => t.goalId === id);
+        setTasks(goalTasks.map(t => ({
+          id: t.id,
+          name: t.name,
+          icon: t.icon,
+          completed: t.completed,
+          due_date: t.dueDate,
+          priority: t.priority,
+          status: t.status,
+          subtasks: t.subtasks,
+        })));
+      }
+
+      // Load habits
+      const storedHabits = localStorage.getItem(HABITS_KEY);
+      if (storedHabits) {
+        const allHabits: Habit[] = JSON.parse(storedHabits);
+        const goalHabits = allHabits.filter(h => h.goalId === id);
+        setHabits(goalHabits.map(h => ({
+          id: h.id,
+          name: h.name,
+          icon: h.icon,
+          completed_dates: h.completedDates,
+          streak: h.streak,
+        })));
+      }
+
+      // Load transactions
+      const storedFinance = localStorage.getItem(FINANCE_KEY);
+      if (storedFinance) {
+        const allTransactions: FinanceTransaction[] = JSON.parse(storedFinance);
+        const goalTransactions = allTransactions.filter(t => t.goalId === id);
+        setTransactions(goalTransactions.map(t => ({
+          id: t.id,
+          name: t.name,
+          type: t.type,
+          amount: t.amount,
+          date: t.date,
+        })));
+      }
+
+      // Load time entries
+      const storedTimeEntries = localStorage.getItem(TIME_ENTRIES_KEY);
+      if (storedTimeEntries) {
+        const allTimeEntries: TimeEntry[] = JSON.parse(storedTimeEntries);
+        const goalTimeEntries = allTimeEntries.filter(t => t.goalId === id);
+        setTimeEntries(goalTimeEntries.map(t => ({
+          id: t.id,
+          task_name: t.description,
+          start_time: t.startTime,
+          duration: t.duration,
+        })));
+      }
+    } catch (e) {
+      console.error('Error loading from localStorage:', e);
+    }
+  }, [id]);
+
   const fetchRelatedData = useCallback(async () => {
     if (!id) return;
 
-    const [tasksRes, habitsRes, transactionsRes, timeRes, contactsRes] = await Promise.all([
-      supabase.from('tasks').select('*').eq('goal_id', id).order('created_at', { ascending: false }),
-      supabase.from('habits').select('*').eq('goal_id', id).order('created_at', { ascending: false }),
-      supabase.from('transactions').select('*').eq('goal_id', id).order('date', { ascending: false }),
-      supabase.from('time_entries').select('*').eq('goal_id', id).order('start_time', { ascending: false }),
-      getGoalContacts(id),
-    ]);
+    // First load from localStorage (instant)
+    loadFromLocalStorage();
 
-    setTasks(tasksRes.data || []);
-    setHabits(habitsRes.data || []);
-    setTransactions(transactionsRes.data || []);
-    setTimeEntries(timeRes.data || []);
-    setContacts(contactsRes);
-  }, [id, getGoalContacts]);
+    // Then try to fetch from Supabase if user is authenticated
+    if (user) {
+      try {
+        const [tasksRes, habitsRes, transactionsRes, timeRes, contactsRes] = await Promise.all([
+          supabase.from('tasks').select('*').eq('goal_id', id).order('created_at', { ascending: false }),
+          supabase.from('habits').select('*').eq('goal_id', id).order('created_at', { ascending: false }),
+          supabase.from('transactions').select('*').eq('goal_id', id).order('date', { ascending: false }),
+          supabase.from('time_entries').select('*').eq('goal_id', id).order('start_time', { ascending: false }),
+          getGoalContacts(id),
+        ]);
+
+        // Use Supabase data if available, otherwise keep localStorage data
+        if (tasksRes.data && tasksRes.data.length > 0) {
+          setTasks(tasksRes.data);
+        }
+        if (habitsRes.data && habitsRes.data.length > 0) {
+          setHabits(habitsRes.data);
+        }
+        if (transactionsRes.data && transactionsRes.data.length > 0) {
+          setTransactions(transactionsRes.data);
+        }
+        if (timeRes.data && timeRes.data.length > 0) {
+          setTimeEntries(timeRes.data);
+        }
+        setContacts(contactsRes);
+      } catch (e) {
+        console.error('Error fetching from Supabase:', e);
+        // Keep localStorage data on error
+      }
+    } else {
+      // Load contacts for non-authenticated users too
+      const contactsData = await getGoalContacts(id);
+      setContacts(contactsData);
+    }
+  }, [id, user, getGoalContacts, loadFromLocalStorage]);
+
+  // Reload when localStorage changes
+  useEffect(() => {
+    const handleDataChange = () => {
+      loadFromLocalStorage();
+    };
+
+    window.addEventListener('habitflow-data-changed', handleDataChange);
+    return () => window.removeEventListener('habitflow-data-changed', handleDataChange);
+  }, [loadFromLocalStorage]);
 
   useEffect(() => {
     fetchRelatedData();
@@ -441,11 +554,11 @@ export default function GoalDetail() {
                 {transactions.length > 0 && (
                   <div className="flex gap-4 mb-4 p-3 rounded-lg bg-muted/50">
                     <div className="flex-1 text-center">
-                      <div className="text-sm text-red-500 font-medium">-{totalSpent.toLocaleString()}₽</div>
+                      <div className="text-sm text-destructive font-medium">-{totalSpent.toLocaleString()}₽</div>
                       <div className="text-xs text-muted-foreground">{isRussian ? 'Расходы' : 'Expenses'}</div>
                     </div>
                     <div className="flex-1 text-center">
-                      <div className="text-sm text-green-500 font-medium">+{totalIncome.toLocaleString()}₽</div>
+                      <div className="text-sm text-chart-2 font-medium">+{totalIncome.toLocaleString()}₽</div>
                       <div className="text-xs text-muted-foreground">{isRussian ? 'Доходы' : 'Income'}</div>
                     </div>
                   </div>
@@ -463,7 +576,7 @@ export default function GoalDetail() {
                           <span className="text-sm">{tx.name}</span>
                           <div className="text-xs text-muted-foreground">{tx.date}</div>
                         </div>
-                        <span className={`font-medium ${tx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                        <span className={`font-medium ${tx.type === 'income' ? 'text-chart-2' : 'text-destructive'}`}>
                           {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString()}₽
                         </span>
                       </div>

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, Github, Eye, EyeOff, Loader2, Gift, ArrowLeft, KeyRound } from 'lucide-react';
+import { Mail, Lock, User, Github, Eye, EyeOff, Loader2, Gift, ArrowLeft, KeyRound, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { z } from 'zod';
 
@@ -40,6 +41,9 @@ export default function Auth() {
     resetPassword,
     updatePassword,
   } = useAuth();
+  
+  const { accessControl, loading: settingsLoading } = useAppSettings();
+  const registrationDisabled = !accessControl.registration_enabled;
 
   useEffect(() => {
     if (user && mode !== 'reset') {
@@ -110,6 +114,17 @@ export default function Auth() {
           });
         }
       } else if (mode === 'signup') {
+        // Check if registration is disabled
+        if (registrationDisabled) {
+          toast({
+            title: t('error'),
+            description: isRussian ? 'Регистрация временно отключена' : 'Registration is currently disabled',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         if (!validateEmail() || !validatePassword()) {
           setIsLoading(false);
           return;
@@ -429,15 +444,28 @@ export default function Auth() {
 
           {/* Toggle login/signup */}
           {(mode === 'login' || mode === 'signup') && (
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}
-              <button
-                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-primary hover:underline font-medium"
-              >
-                {mode === 'login' ? t('signUp') : t('signIn')}
-              </button>
-            </p>
+            <>
+              {/* Registration disabled warning */}
+              {registrationDisabled && mode === 'signup' && (
+                <div className="flex items-center gap-2 mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm text-destructive">
+                    {isRussian ? 'Регистрация временно отключена' : 'Registration is currently disabled'}
+                  </span>
+                </div>
+              )}
+              
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}
+                <button
+                  onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                  className="text-primary hover:underline font-medium"
+                  disabled={registrationDisabled && mode === 'login'}
+                >
+                  {mode === 'login' ? t('signUp') : t('signIn')}
+                </button>
+              </p>
+            </>
           )}
         </div>
       </motion.div>

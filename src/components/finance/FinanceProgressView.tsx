@@ -242,8 +242,22 @@ function CategoryBreakdown({ transactions, days }: { transactions: FinanceTransa
 }
 
 function getCategoryById(id: string) {
-  const { FINANCE_CATEGORIES } = require('@/types/finance');
-  return FINANCE_CATEGORIES.find((c: any) => c.id === id);
+  const categoryMap: Record<string, { icon: string }> = {
+    food: { icon: '🍔' },
+    transport: { icon: '🚗' },
+    entertainment: { icon: '🎬' },
+    bills: { icon: '📄' },
+    shopping: { icon: '🛒' },
+    health: { icon: '💊' },
+    home: { icon: '🏠' },
+    salary: { icon: '💰' },
+    freelance: { icon: '💻' },
+    investment: { icon: '📈' },
+    gift: { icon: '🎁' },
+    other_income: { icon: '💵' },
+    other_expense: { icon: '📦' },
+  };
+  return categoryMap[id] || { icon: '📦' };
 }
 
 function getCategoryLabel(category: string, t: (key: string) => string) {

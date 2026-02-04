@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, Target, Settings } from 'lucide-react';
-import { useHabits, getTodayString, isFullyCompleted } from '@/hooks/useHabits';
+import { useHabits, getTodayString, isFullyCompleted, getCompletedReps } from '@/hooks/useHabits';
 import { useHabitNotifications } from '@/hooks/useHabitNotifications';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { useGoals } from '@/hooks/useGoals';
 import { Habit, HABIT_COLORS } from '@/types/habit';
 import { HabitCard } from '@/components/HabitCard';
 import { HabitDialog } from '@/components/HabitDialog';
@@ -14,6 +15,8 @@ import { ProgressView } from '@/components/ProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
+import { StatusGroupedList } from '@/components/StatusGroupedList';
+import { SphereGoalFilter } from '@/components/SphereGoalFilter';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -22,7 +25,7 @@ import { exportHabitsToCSV, exportHabitsToPDF } from '@/utils/exportData';
 import { exportHabitsToICS } from '@/utils/icsExport';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { toast } from 'sonner';
-import { addDays, format } from 'date-fns';
+import { addDays, format, isAfter, parseISO, startOfDay } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +49,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     addCategory, updateCategory, deleteCategory,
     addTag, updateTag, deleteTag
   } = useHabits();
+  const { goals } = useGoals();
   
   // Enable habit notifications
   useHabitNotifications(habits);
@@ -62,11 +66,16 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
   const [activeView, setActiveView] = useState<ViewType>('habits');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [filterSphereId, setFilterSphereId] = useState<number | null>(null);
+  const [filterGoalId, setFilterGoalId] = useState<string | null>(null);
   const { t, language } = useTranslation();
   const isRussian = language === 'ru';
 
   // Filter out archived habits
   const activeHabits = habits.filter(h => !h.archivedAt);
+  const today = getTodayString();
+  const todayDate = startOfDay(new Date());
+  const todayDayOfWeek = new Date().getDay();
 
   const handleSaveHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'completedDates' | 'streak'>) => {
     if (editingHabit) {
@@ -132,31 +141,71 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
     toast.success(isRussian ? 'Привычка перемещена в архив' : 'Habit moved to archive');
   };
 
-  // Filter habits (excluding archived and completed today for the habits tab)
-  const today = getTodayString();
-  
+  // Filter habits
   const filteredHabits = activeHabits.filter(habit => {
     if (filterCategory && habit.categoryId !== filterCategory) return false;
     if (filterTag && !habit.tagIds?.includes(filterTag)) return false;
+    // Sphere filter - check if habit's goal is in the selected sphere
+    if (filterSphereId) {
+      const habitGoal = goals.find(g => g.id === (habit as any).goalId);
+      if (!habitGoal || habitGoal.sphere_id !== filterSphereId) return false;
+    }
+    // Goal filter
+    if (filterGoalId && (habit as any).goalId !== filterGoalId) return false;
     return true;
   });
 
-  // Separate completed today habits and incomplete habits
-  const completedTodayHabits = useMemo(() => {
-    return filteredHabits.filter(habit => isFullyCompleted(habit, today));
-  }, [filteredHabits, today]);
+  // Group habits by status
+  const groupedHabits = useMemo(() => {
+    const completed: Habit[] = [];
+    const inProgress: Habit[] = [];
+    const todayList: Habit[] = [];
+    const future: Habit[] = [];
 
-  const incompleteHabits = useMemo(() => {
-    return filteredHabits.filter(habit => !isFullyCompleted(habit, today));
-  }, [filteredHabits, today]);
+    filteredHabits.forEach(habit => {
+      const targetReps = habit.targetRepsPerDay || 1;
+      const todayReps = getCompletedReps(habit, today);
+      const isTargetDayToday = habit.targetDays.includes(todayDayOfWeek);
+      const isPostponed = habit.postponedUntil && isAfter(parseISO(habit.postponedUntil), todayDate);
 
-  // Combined list: completed today first, then incomplete
-  const habitsForList = useMemo(() => {
-    return [...completedTodayHabits, ...incompleteHabits];
-  }, [completedTodayHabits, incompleteHabits]);
+      if (isFullyCompleted(habit, today)) {
+        // Fully completed today
+        completed.push(habit);
+      } else if (todayReps > 0 && todayReps < targetReps) {
+        // Partially completed today (in progress)
+        inProgress.push(habit);
+      } else if (isTargetDayToday && !isPostponed) {
+        // Active for today, not started
+        todayList.push(habit);
+      } else {
+        // Future or not scheduled for today
+        future.push(habit);
+      }
+    });
 
-  const hasFilters = filterCategory || filterTag;
+    // Sort future by next target day
+    future.sort((a, b) => {
+      const getNextTargetDay = (h: Habit) => {
+        for (let i = 1; i <= 7; i++) {
+          const dayOfWeek = (todayDayOfWeek + i) % 7;
+          if (h.targetDays.includes(dayOfWeek)) return i;
+        }
+        return 8;
+      };
+      return getNextTargetDay(a) - getNextTargetDay(b);
+    });
 
+    return { completed, inProgress, today: todayList, future };
+  }, [filteredHabits, today, todayDayOfWeek, todayDate]);
+
+  const hasFilters = filterCategory || filterTag || filterSphereId || filterGoalId;
+
+  const clearAllFilters = () => {
+    setFilterCategory(null);
+    setFilterTag(null);
+    setFilterSphereId(null);
+    setFilterGoalId(null);
+  };
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -230,6 +279,17 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
         {/* Limit Warning */}
         <LimitWarning current={activeHabits.length} max={habitsLimit.max} type="habits" />
 
+        {/* Sphere/Goal Filters */}
+        <div className="mb-4">
+          <SphereGoalFilter
+            selectedSphereId={filterSphereId}
+            selectedGoalId={filterGoalId}
+            onSphereChange={setFilterSphereId}
+            onGoalChange={setFilterGoalId}
+            accentColor="hsl(var(--habit))"
+          />
+        </div>
+
         {/* Category/Tag Filters */}
         {(categories.length > 0 || tags.length > 0) && (
           <div className="mb-4 space-y-2">
@@ -279,7 +339,7 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
             )}
             {hasFilters && (
               <button
-                onClick={() => { setFilterCategory(null); setFilterTag(null); }}
+                onClick={clearAllFilters}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 {t('clearFilters')}
@@ -303,8 +363,23 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <AnimatePresence mode="popLayout">
-                  {habitsForList.length === 0 ? (
+                <StatusGroupedList
+                  items={groupedHabits}
+                  getItemKey={(habit) => habit.id}
+                  showInProgress={true}
+                  renderItem={(habit, index) => (
+                    <HabitCard
+                      key={habit.id}
+                      habit={habit}
+                      index={index}
+                      onToggle={(date) => toggleHabitCompletion(habit.id, date)}
+                      onEdit={() => handleEditHabit(habit)}
+                      onDelete={() => handleDeleteHabit(habit)}
+                      onPostpone={handlePostpone}
+                      onArchive={handleArchive}
+                    />
+                  )}
+                  emptyState={
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -329,23 +404,8 @@ export default function Habits({ openDialog, onDialogClose }: HabitsProps) {
                         </Button>
                       )}
                     </motion.div>
-                  ) : (
-                    <div className="space-y-3">
-                      {habitsForList.map((habit, index) => (
-                        <HabitCard
-                          key={habit.id}
-                          habit={habit}
-                          index={index}
-                          onToggle={(date) => toggleHabitCompletion(habit.id, date)}
-                          onEdit={() => handleEditHabit(habit)}
-                          onDelete={() => handleDeleteHabit(habit)}
-                          onPostpone={handlePostpone}
-                          onArchive={handleArchive}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </AnimatePresence>
+                  }
+                />
               </motion.div>
             )}
 

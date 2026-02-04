@@ -39,42 +39,85 @@ interface GoalAnalyticsTabProps {
 const COLORS = ['hsl(262, 80%, 55%)', 'hsl(200, 80%, 50%)', 'hsl(168, 80%, 40%)', 'hsl(35, 95%, 55%)', 'hsl(340, 80%, 55%)'];
 
 export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRussian }: GoalAnalyticsTabProps) {
-  // Time vs Progress data
+  // Time vs Progress data - shows actual vs planned time
   const timeProgressData = useMemo(() => {
-    const dailyData: Record<string, { date: string; minutes: number; progress: number }> = {};
+    const dailyData: Record<string, { date: string; actual: number; planned: number }> = {};
     
+    // Calculate actual time per day
     timeEntries.forEach(entry => {
       const date = entry.start_time.split('T')[0];
       if (!dailyData[date]) {
-        dailyData[date] = { date, minutes: 0, progress: 0 };
+        dailyData[date] = { date, actual: 0, planned: 0 };
       }
-      dailyData[date].minutes += Math.round(entry.duration / 60);
+      dailyData[date].actual += Math.round(entry.duration / 60);
     });
 
-    return Object.values(dailyData)
+    // Calculate planned time per day (distribute evenly)
+    const totalDays = Object.keys(dailyData).length || 1;
+    const plannedPerDay = goal.time_goal_minutes ? Math.round(goal.time_goal_minutes / totalDays) : 0;
+    
+    Object.keys(dailyData).forEach(date => {
+      dailyData[date].planned = plannedPerDay;
+    });
+
+    const result = Object.values(dailyData)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-14) // Last 14 days
       .map(d => ({
         ...d,
         label: format(parseISO(d.date), 'd MMM', { locale: ru }),
       }));
-  }, [timeEntries]);
+      
+    return result;
+  }, [timeEntries, goal.time_goal_minutes]);
 
-  // Expense structure
+  // Calculate time efficiency
+  const timeEfficiency = useMemo(() => {
+    if (!goal.time_goal_minutes || goal.time_goal_minutes === 0) return null;
+    const actualMinutes = timeEntries.reduce((sum, e) => sum + e.duration / 60, 0);
+    const efficiency = (actualMinutes / goal.time_goal_minutes) * 100;
+    return {
+      actual: Math.round(actualMinutes),
+      planned: goal.time_goal_minutes,
+      efficiency: Math.round(efficiency),
+      isEfficient: efficiency <= 110 // Within 10% is efficient
+    };
+  }, [timeEntries, goal.time_goal_minutes]);
+
+  // Expense structure with planned vs actual
   const expenseStructure = useMemo(() => {
-    const byCategory: Record<string, number> = {};
+    const byCategory: Record<string, { actual: number; name: string }> = {};
     
     transactions
       .filter(t => t.type === 'expense')
       .forEach(t => {
         const cat = t.category || 'Другое';
-        byCategory[cat] = (byCategory[cat] || 0) + t.amount;
+        if (!byCategory[cat]) {
+          byCategory[cat] = { actual: 0, name: cat };
+        }
+        byCategory[cat].actual += t.amount;
       });
 
-    return Object.entries(byCategory)
-      .map(([name, value]) => ({ name, value }))
+    return Object.values(byCategory)
+      .map(item => ({ name: item.name, value: item.actual }))
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
+
+  // Calculate expense efficiency
+  const expenseEfficiency = useMemo(() => {
+    if (!goal.budget_goal || goal.budget_goal === 0) return null;
+    const totalSpent = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const efficiency = (totalSpent / goal.budget_goal) * 100;
+    return {
+      actual: totalSpent,
+      planned: goal.budget_goal,
+      efficiency: Math.round(efficiency),
+      remaining: goal.budget_goal - totalSpent,
+      isEfficient: efficiency <= 100
+    };
+  }, [transactions, goal.budget_goal]);
 
   // Habit impact analysis
   const habitImpact = useMemo(() => {
@@ -125,7 +168,7 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
 
   return (
     <div className="space-y-4">
-      {/* Time vs Result Chart */}
+      {/* Time vs Result Chart - with efficiency */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -135,9 +178,34 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               {isRussian ? 'Время vs Результат' : 'Time vs Result'}
+              {timeEfficiency && (
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                  timeEfficiency.isEfficient ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {timeEfficiency.efficiency}% {isRussian ? 'эфф.' : 'eff.'}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {timeEfficiency && (
+              <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className="font-semibold">{Math.round(timeEfficiency.actual / 60)}{isRussian ? 'ч' : 'h'}</div>
+                  <div className="text-muted-foreground">{isRussian ? 'Затрачено' : 'Spent'}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className="font-semibold">{Math.round(timeEfficiency.planned / 60)}{isRussian ? 'ч' : 'h'}</div>
+                  <div className="text-muted-foreground">{isRussian ? 'План' : 'Planned'}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className={`font-semibold ${timeEfficiency.isEfficient ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {timeEfficiency.efficiency}%
+                  </div>
+                  <div className="text-muted-foreground">{isRussian ? 'Эффект.' : 'Efficiency'}</div>
+                </div>
+              </div>
+            )}
             {timeProgressData.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -150,14 +218,27 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip 
-                    formatter={(value: number) => [`${value} мин`, isRussian ? 'Время' : 'Time']}
+                    formatter={(value: number, name: string) => [
+                      `${value} ${isRussian ? 'мин' : 'min'}`, 
+                      name === 'actual' ? (isRussian ? 'Факт' : 'Actual') : (isRussian ? 'План' : 'Planned')
+                    ]}
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="minutes" 
+                    dataKey="actual" 
                     stroke="hsl(262, 80%, 55%)" 
                     strokeWidth={2}
                     dot={{ r: 3 }}
+                    name="actual"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="planned" 
+                    stroke="hsl(200, 80%, 50%)" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ r: 2 }}
+                    name="planned"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -166,7 +247,7 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
         </Card>
       </motion.div>
 
-      {/* Expense Structure */}
+      {/* Expense Structure with Efficiency */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -177,9 +258,36 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
             <CardTitle className="text-base flex items-center gap-2">
               <PieChart className="w-4 h-4" />
               {isRussian ? 'Структура затрат' : 'Expense Structure'}
+              {expenseEfficiency && (
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                  expenseEfficiency.isEfficient ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {expenseEfficiency.efficiency}% {isRussian ? 'эфф.' : 'eff.'}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Expense efficiency metrics */}
+            {expenseEfficiency && (
+              <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className="font-semibold">{expenseEfficiency.actual.toLocaleString()}₽</div>
+                  <div className="text-muted-foreground">{isRussian ? 'Затрачено' : 'Spent'}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className="font-semibold">{expenseEfficiency.planned.toLocaleString()}₽</div>
+                  <div className="text-muted-foreground">{isRussian ? 'План' : 'Planned'}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <div className={`font-semibold ${expenseEfficiency.isEfficient ? 'text-green-600' : 'text-red-600'}`}>
+                    {expenseEfficiency.remaining >= 0 ? '+' : ''}{expenseEfficiency.remaining.toLocaleString()}₽
+                  </div>
+                  <div className="text-muted-foreground">{isRussian ? 'Остаток' : 'Remaining'}</div>
+                </div>
+              </div>
+            )}
+            
             {expenseStructure.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -241,7 +349,7 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
             <CardContent>
               <div className="flex items-start gap-3">
                 <Lightbulb className={`w-5 h-5 mt-0.5 ${
-                  habitImpact.correlation === 'positive' ? 'text-yellow-500' : 'text-muted-foreground'
+                  habitImpact.correlation === 'positive' ? 'text-chart-4' : 'text-muted-foreground'
                 }`} />
                 <p className="text-sm text-muted-foreground">
                   {habitImpact.message}
@@ -289,7 +397,7 @@ export function GoalAnalyticsTab({ goal, timeEntries, transactions, habits, isRu
                 </p>
               </div>
             ) : goal.tasks_completed === goal.tasks_count ? (
-              <p className="text-center text-green-500 font-medium py-2">
+              <p className="text-center text-chart-2 font-medium py-2">
                 🎉 {isRussian ? 'Цель достигнута!' : 'Goal achieved!'}
               </p>
             ) : (

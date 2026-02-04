@@ -245,16 +245,17 @@ export function HabitCard({
                       <button
                         key={i}
                         onClick={() => {
-                          if (i < todayReps) return; // Already completed
+                          // Allow toggling any rep - clicking completed rep will decrement
                           onToggle(today);
                         }}
                         className={cn(
                           "w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center transition-all",
                           i < todayReps
-                            ? "text-white"
+                            ? "text-white hover:opacity-80"
                             : "bg-muted text-muted-foreground hover:bg-muted/80"
                         )}
                         style={i < todayReps ? { backgroundColor: habit.color } : undefined}
+                        title={i < todayReps ? (isRussian ? 'Снять отметку' : 'Unmark') : (isRussian ? 'Отметить' : 'Mark')}
                       >
                         {i < todayReps ? <Check className="w-3 h-3" /> : i + 1}
                       </button>

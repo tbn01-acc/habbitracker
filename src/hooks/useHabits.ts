@@ -156,7 +156,10 @@ export function useHabits() {
     let justFullyCompleted = false;
     
     if (currentReps >= targetReps) {
-      // Reset to 0 if already fully completed (toggle off)
+      // Decrement by 1 if fully completed (allow unchecking)
+      newReps = currentReps - 1;
+    } else if (currentReps > 0 && targetReps === 1) {
+      // For single rep habits, toggle off
       newReps = 0;
     } else {
       // Increment by 1

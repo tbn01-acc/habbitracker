@@ -31,6 +31,15 @@ export interface SphereIndex {
   habitsProgress: number; // H component (0-100)
   activityScore: number;  // A component (0 or 100)
   index: number;          // Final index (0-100)
+  // Extended stats for display
+  totalGoals?: number;
+  totalTasks?: number;
+  completedTasks?: number;
+  totalHabits?: number;
+  totalTimeMinutes?: number;
+  totalContacts?: number;
+  monthlyIncome?: number;
+  monthlyExpense?: number;
 }
 
 export interface LifeIndexData {

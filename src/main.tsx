@@ -1,14 +1,24 @@
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
 
-// Configure QueryClient with sensible defaults
+// Расширяем интерфейс Window для работы с Telegram SDK
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: any;
+    };
+  }
+}
+
+// Конфигурация QueryClient с оптимальными настройками для мобильных сетей
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 2, // 2 minutes
-      gcTime: 1000 * 60 * 10, // 10 minutes
+      staleTime: 1000 * 60 * 2, // 2 минуты
+      gcTime: 1000 * 60 * 10, // 10 минут
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -18,64 +28,58 @@ const queryClient = new QueryClient({
   },
 });
 
-const initTelegramWebApp = () => {
-  try {
-    const tg = (window as any)?.Telegram?.WebApp;
-    if (tg) {
-      tg.ready?.();
-      tg.expand?.();
-
-      // Apply Telegram theme early (Telegram can open in light mode)
-      if (tg.colorScheme === "light") {
-        document.documentElement.classList.remove("dark");
-      }
-      return;
+/**
+ * Инициализация Telegram Mini App
+ */
+const initTelegram = () => {
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    
+    // Синхронизация темной/светлой темы с системной темой Telegram
+    if (tg.colorScheme === "dark" || !tg.colorScheme) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
-
-    // If we're inside Telegram but SDK is not present yet, load it without blocking the app.
-    const ua = navigator.userAgent || "";
-    const looksLikeTelegram = /Telegram/i.test(ua);
-    if (!looksLikeTelegram) return;
-
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-web-app.js";
-    script.async = true;
-    script.onload = () => {
-      const tgAfterLoad = (window as any)?.Telegram?.WebApp;
-      tgAfterLoad?.ready?.();
-      tgAfterLoad?.expand?.();
-      if (tgAfterLoad?.colorScheme === "light") {
-        document.documentElement.classList.remove("dark");
-      }
-    };
-    script.onerror = () => {
-      // Fail silently: the app must still load in any WebView.
-      console.warn("Telegram WebApp SDK failed to load");
-    };
-    document.head.appendChild(script);
-  } catch (e) {
-    console.warn("Telegram WebApp init error", e);
+    
+    console.log("Telegram WebApp SDK инициализирован успешно");
+  } else {
+    console.warn("Telegram WebApp SDK не найден. Приложение запущено в обычном браузере.");
   }
 };
 
-initTelegramWebApp();
+// Запускаем инициализацию немедленно
+initTelegram();
 
-// Register service worker for push notifications
+/**
+ * Регистрация Service Worker для PWA и уведомлений
+ */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw-notifications.js")
-      .then((registration) => {
-        console.log("SW registered:", registration.scope);
-      })
-      .catch((error) => {
-        console.log("SW registration failed:", error);
-      });
+      .then((reg) => console.log("Service Worker зарегистрирован:", reg.scope))
+      .catch((err) => console.error("Ошибка регистрации Service Worker:", err));
   });
 }
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>
+/**
+ * Рендеринг приложения с обработкой критических ошибок
+ */
+const container = document.getElementById("root");
+
+if (!container) {
+  throw new Error("Не удалось найти элемент #root. Проверьте ваш index.html.");
+}
+
+const root = createRoot(container);
+
+root.render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </React.StrictMode>
 );

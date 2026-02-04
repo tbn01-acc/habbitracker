@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { FinanceTransaction, FINANCE_CATEGORIES, FinanceCategory, FinanceTag } from '@/types/finance';
+import { FinanceTransaction, FINANCE_CATEGORIES, FinanceCategory, FinanceTag, TransactionRecurrence } from '@/types/finance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TagSelector } from '@/components/TagSelector';
@@ -35,6 +35,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
   const [sphereLockedByGoal, setSphereLockedByGoal] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [commonTagIds, setCommonTagIds] = useState<string[]>([]);
+  const [recurrence, setRecurrence] = useState<TransactionRecurrence>('none');
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -45,9 +46,10 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       setCategory(transaction.category);
       setDate(transaction.date);
       setCustomCategoryId(transaction.customCategoryId);
-      setGoalId((transaction as any).goalId || null);
-      setSphereId((transaction as any).sphereId || null);
-      setSphereLockedByGoal(!!(transaction as any).goalId);
+      setGoalId(transaction.goalId || null);
+      setSphereId(transaction.sphereId || null);
+      setSphereLockedByGoal(!!transaction.goalId);
+      setRecurrence(transaction.recurrence || 'none');
       const localTagIdSet = new Set(tags.map(t => t.id));
       setTagIds((transaction.tagIds || []).filter(id => localTagIdSet.has(id)));
       setCommonTagIds((transaction.tagIds || []).filter(id => !localTagIdSet.has(id)));
@@ -63,6 +65,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       setSphereLockedByGoal(false);
       setTagIds([]);
       setCommonTagIds([]);
+      setRecurrence('none');
     }
   }, [transaction, open, tags]);
 
@@ -81,9 +84,17 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       tagIds: allTagIds,
       goalId: goalId || undefined,
       sphereId: sphereId,
-    } as any);
+      recurrence,
+    });
     onClose();
   };
+
+  const recurrenceOptions: { value: TransactionRecurrence; label: string }[] = [
+    { value: 'none', label: isRussian ? 'Нет' : 'None' },
+    { value: 'daily', label: isRussian ? 'Ежедневно' : 'Daily' },
+    { value: 'weekly', label: isRussian ? 'Еженедельно' : 'Weekly' },
+    { value: 'monthly', label: isRussian ? 'Ежемесячно' : 'Monthly' },
+  ];
 
   const handleGoalChange = (newGoalId: string | null, goalSphereId?: number | null) => {
     setGoalId(newGoalId);
@@ -198,7 +209,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
             {/* Date */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-foreground mb-2">
-                Дата
+                {isRussian ? 'Дата' : 'Date'}
               </label>
               <Input
                 type="date"
@@ -206,6 +217,29 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
                 onChange={(e) => setDate(e.target.value)}
                 className="bg-background border-border"
               />
+            </div>
+
+            {/* Recurrence */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {isRussian ? 'Повторение' : 'Recurrence'}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {recurrenceOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setRecurrence(option.value)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                      recurrence === option.value
+                        ? "bg-finance text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Category with Icons */}

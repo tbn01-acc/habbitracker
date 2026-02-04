@@ -244,16 +244,17 @@ export function useReferralActivityTracker() {
       }
     }, SAVE_INTERVAL);
 
-    // Save on page unload
+    // Save on page unload - используем прокси URL
     const handleUnload = () => {
       if (sessionStartRef.current && lastActivityRef.current) {
         const minutes = Math.floor(
           (lastActivityRef.current.getTime() - sessionStartRef.current.getTime()) / 60000
         );
-        // Use sendBeacon for reliable unload saving
+        // Use sendBeacon for reliable unload saving through proxy
         if (minutes > 0) {
+          const proxyUrl = `${window.location.origin}/api/db/rest/v1/referral_activity_log`;
           navigator.sendBeacon?.(
-            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/referral_activity_log`,
+            proxyUrl,
             JSON.stringify({
               user_id: user.id,
               activity_date: new Date().toISOString().split('T')[0],

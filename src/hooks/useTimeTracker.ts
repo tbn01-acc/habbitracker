@@ -7,8 +7,11 @@ const ACTIVE_KEY = 'habitflow_active_timer';
 interface ActiveTimer {
   taskId: string;
   subtaskId?: string;
+  habitId?: string;
   startTime: string;
   description?: string;
+  goalId?: string;
+  sphereId?: number;
 }
 
 export function useTimeTracker() {
@@ -71,19 +74,32 @@ export function useTimeTracker() {
   const saveEntries = useCallback((newEntries: TimeEntry[]) => {
     setEntries(newEntries);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newEntries));
+    // Dispatch event for other components to sync
+    window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
   }, []);
 
-  const startTimer = useCallback((taskId: string, subtaskId?: string, description?: string) => {
+  // Start timer with optional goal/sphere linking
+  const startTimer = useCallback((
+    taskId: string, 
+    subtaskId?: string, 
+    description?: string,
+    goalId?: string,
+    sphereId?: number,
+    habitId?: string
+  ) => {
     // Stop existing timer if running
     if (activeTimer) {
-      stopTimer();
+      stopTimerInternal();
     }
     
     const timer: ActiveTimer = {
       taskId,
       subtaskId,
+      habitId,
       startTime: new Date().toISOString(),
       description,
+      goalId,
+      sphereId,
     };
     
     setActiveTimer(timer);
@@ -91,8 +107,8 @@ export function useTimeTracker() {
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(timer));
   }, [activeTimer]);
 
-  const stopTimer = useCallback(() => {
-    if (!activeTimer) return;
+  const stopTimerInternal = useCallback(() => {
+    if (!activeTimer) return null;
     
     const endTime = new Date().toISOString();
     const duration = Math.floor(
@@ -103,20 +119,66 @@ export function useTimeTracker() {
     if (duration > 5) {
       const newEntry: TimeEntry = {
         id: crypto.randomUUID(),
-        taskId: activeTimer.taskId,
+        taskId: activeTimer.habitId || activeTimer.taskId, // Use habitId if available
         subtaskId: activeTimer.subtaskId,
         startTime: activeTimer.startTime,
         endTime,
         duration,
         description: activeTimer.description,
+        goalId: activeTimer.goalId,
+        sphereId: activeTimer.sphereId,
       };
-      saveEntries([...entries, newEntry]);
+      const updatedEntries = [...entries, newEntry];
+      saveEntries(updatedEntries);
+      
+      // Dispatch event for unified time tracking to update
+      window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
+      
+      return newEntry;
     }
     
+    return null;
+  }, [activeTimer, entries, saveEntries]);
+
+  const stopTimer = useCallback(() => {
+    const entry = stopTimerInternal();
     setActiveTimer(null);
     setElapsedTime(0);
     localStorage.removeItem(ACTIVE_KEY);
-  }, [activeTimer, entries, saveEntries]);
+    return entry;
+  }, [stopTimerInternal]);
+
+  // Add a manual time entry (for saving time that was tracked without binding)
+  const addManualEntry = useCallback((
+    taskId: string,
+    duration: number,
+    goalId?: string,
+    sphereId?: number,
+    habitId?: string,
+    description?: string
+  ) => {
+    const now = new Date();
+    const startTime = new Date(now.getTime() - duration * 1000).toISOString();
+    const endTime = now.toISOString();
+    
+    const newEntry: TimeEntry = {
+      id: crypto.randomUUID(),
+      taskId: habitId || taskId, // Use habitId as taskId if provided
+      startTime,
+      endTime,
+      duration,
+      description,
+      goalId,
+      sphereId,
+    };
+    
+    saveEntries([...entries, newEntry]);
+    
+    // Dispatch event for unified time tracking to update
+    window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
+    
+    return newEntry;
+  }, [entries, saveEntries]);
 
   const deleteEntry = useCallback((id: string) => {
     saveEntries(entries.filter(e => e.id !== id));
@@ -132,6 +194,26 @@ export function useTimeTracker() {
       .reduce((sum, e) => sum + e.duration, 0);
   }, [entries]);
 
+  const getEntriesForGoal = useCallback((goalId: string) => {
+    return entries.filter(e => e.goalId === goalId);
+  }, [entries]);
+
+  const getTotalTimeForGoal = useCallback((goalId: string) => {
+    return entries
+      .filter(e => e.goalId === goalId)
+      .reduce((sum, e) => sum + e.duration, 0);
+  }, [entries]);
+
+  const getEntriesForSphere = useCallback((sphereId: number) => {
+    return entries.filter(e => e.sphereId === sphereId);
+  }, [entries]);
+
+  const getTotalTimeForSphere = useCallback((sphereId: number) => {
+    return entries
+      .filter(e => e.sphereId === sphereId)
+      .reduce((sum, e) => sum + e.duration, 0);
+  }, [entries]);
+
   const getTodayEntries = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     return entries.filter(e => e.startTime.startsWith(today));
@@ -140,6 +222,28 @@ export function useTimeTracker() {
   const getTodayTotalTime = useCallback(() => {
     return getTodayEntries().reduce((sum, e) => sum + e.duration, 0);
   }, [getTodayEntries]);
+
+  const getWeekEntries = useCallback(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - 7);
+    return entries.filter(e => new Date(e.startTime) >= startOfWeek);
+  }, [entries]);
+
+  const getWeekTotalTime = useCallback(() => {
+    return getWeekEntries().reduce((sum, e) => sum + e.duration, 0);
+  }, [getWeekEntries]);
+
+  const getMonthEntries = useCallback(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now);
+    startOfMonth.setMonth(now.getMonth() - 1);
+    return entries.filter(e => new Date(e.startTime) >= startOfMonth);
+  }, [entries]);
+
+  const getMonthTotalTime = useCallback(() => {
+    return getMonthEntries().reduce((sum, e) => sum + e.duration, 0);
+  }, [getMonthEntries]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -159,11 +263,20 @@ export function useTimeTracker() {
     isLoading,
     startTimer,
     stopTimer,
+    addManualEntry,
     deleteEntry,
     getEntriesForTask,
     getTotalTimeForTask,
+    getEntriesForGoal,
+    getTotalTimeForGoal,
+    getEntriesForSphere,
+    getTotalTimeForSphere,
     getTodayEntries,
     getTodayTotalTime,
+    getWeekEntries,
+    getWeekTotalTime,
+    getMonthEntries,
+    getMonthTotalTime,
     formatDuration,
     isTimerRunning: !!activeTimer,
   };

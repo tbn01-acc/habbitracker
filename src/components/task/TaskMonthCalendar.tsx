@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isBefore, startOfDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isBefore, startOfDay, parseISO, addDays, addWeeks, isAfter } from 'date-fns';
 import { ru, enUS, es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Repeat } from 'lucide-react';
 import { Task, TaskCategory } from '@/types/task';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { subDays } from 'date-fns';
 
 interface TaskMonthCalendarProps {
   tasks: Task[];
@@ -81,10 +82,58 @@ export function TaskMonthCalendar({ tasks, categories, onToggleTask }: TaskMonth
     return dayOfWeek;
   }, [periodRange.start, firstDayOfWeek]);
 
-  // Get tasks for a specific day
+  // Generate recurring task instances for a date range
+  const getRecurringTasksForDate = (date: Date, task: Task): boolean => {
+    if (!task.recurrence || task.recurrence === 'none') return false;
+    
+    const taskDate = parseISO(task.dueDate);
+    const targetDate = startOfDay(date);
+    
+    // Don't show before original due date
+    if (isBefore(targetDate, startOfDay(taskDate))) return false;
+    
+    // Check if task was already completed
+    if (task.completed && task.completedAt) {
+      const completedDate = startOfDay(parseISO(task.completedAt));
+      if (!isBefore(targetDate, completedDate)) return false;
+    }
+    
+    // Check recurrence pattern
+    const daysDiff = Math.floor((targetDate.getTime() - startOfDay(taskDate).getTime()) / (1000 * 60 * 60 * 24));
+    
+    switch (task.recurrence) {
+      case 'daily':
+        return daysDiff >= 0;
+      case 'weekly':
+        return daysDiff >= 0 && daysDiff % 7 === 0;
+      case 'monthly':
+        return targetDate.getDate() === taskDate.getDate() && !isBefore(targetDate, startOfDay(taskDate));
+      default:
+        return false;
+    }
+  };
+
+  // Get tasks for a specific day (including recurring instances)
   const getTasksForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter(task => task.dueDate === dateStr);
+    const directTasks = tasks.filter(task => task.dueDate === dateStr);
+    
+    // Add recurring task instances
+    const recurringInstances = tasks.filter(task => {
+      if (task.dueDate === dateStr) return false; // Already included
+      return getRecurringTasksForDate(date, task);
+    });
+    
+    return [...directTasks, ...recurringInstances];
+  };
+
+  // Check if date is within allowed toggle range (last 2 days)
+  const canToggleForDate = (date: Date) => {
+    const today = startOfDay(new Date());
+    const targetDate = startOfDay(date);
+    const twoDaysAgo = subDays(today, 2);
+    
+    return !isAfter(targetDate, today) && !isBefore(targetDate, twoDaysAgo);
   };
 
   // Get day stats
@@ -215,9 +264,12 @@ export function TaskMonthCalendar({ tasks, categories, onToggleTask }: TaskMonth
             <div className="space-y-2">
               {selectedDayTasks.map((task) => {
                 const category = getCategory(task.categoryId);
+                const canToggle = canToggleForDate(selectedDay);
+                const isRecurring = task.recurrence && task.recurrence !== 'none';
+                
                 return (
                   <div
-                    key={task.id}
+                    key={`${task.id}-${format(selectedDay, 'yyyy-MM-dd')}`}
                     className={cn(
                       "p-3 rounded-lg border border-border",
                       task.completed ? "bg-muted/50 opacity-70" : "bg-card"
@@ -225,25 +277,37 @@ export function TaskMonthCalendar({ tasks, categories, onToggleTask }: TaskMonth
                   >
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => onToggleTask(task.id)}
+                        onClick={() => canToggle && onToggleTask(task.id)}
+                        disabled={!canToggle}
                         className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                           task.completed
                             ? "bg-task border-task"
-                            : "border-muted-foreground/50 hover:border-task"
+                            : canToggle 
+                              ? "border-muted-foreground/50 hover:border-task"
+                              : "border-muted-foreground/30 cursor-not-allowed",
+                          !canToggle && "opacity-50"
                         )}
+                        title={!canToggle ? (isRussian ? 'Можно отмечать только за последние 2 дня' : 'Can only mark last 2 days') : undefined}
                       >
                         {task.completed && (
                           <CheckCircle2 className="w-3 h-3 text-white" />
                         )}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-sm font-medium truncate",
-                          task.completed && "line-through text-muted-foreground"
-                        )}>
-                          {task.icon} {task.name}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className={cn(
+                            "text-sm font-medium truncate",
+                            task.completed && "line-through text-muted-foreground"
+                          )}>
+                            {task.icon} {task.name}
+                          </p>
+                          {isRecurring && (
+                            <span title={isRussian ? 'Повторяющаяся задача' : 'Recurring task'}>
+                              <Repeat className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                            </span>
+                          )}
+                        </div>
                         {category && (
                           <span 
                             className="text-xs px-2 py-0.5 rounded-full inline-block mt-1"

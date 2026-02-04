@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Square, RotateCcw, Timer, Clock, ChevronDown, X } from 'lucide-react';
+import { Play, Pause, Square, RotateCcw, Timer, ChevronDown, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { PomodoroPhase } from '@/types/service';
@@ -12,15 +11,19 @@ import { useTasks } from '@/hooks/useTasks';
 import { useHabits } from '@/hooks/useHabits';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { TaskDialog } from '@/components/TaskDialog';
+import { HabitDialog } from '@/components/HabitDialog';
 
 type TimerMode = 'pomodoro' | 'stopwatch';
+type SelectorCategory = 'task' | 'habit' | null;
 
 export function PomodoroWidgetCompact() {
   const { t } = useTranslation();
-  const { tasks } = useTasks();
-  const { habits } = useHabits();
+  const { tasks, categories: taskCategories, tags: taskTags, addTask, addCategory: addTaskCategory, addTag: addTaskTag } = useTasks();
+  const { habits, categories: habitCategories, tags: habitTags, addHabit } = useHabits();
   const [mode, setMode] = useState<TimerMode>('pomodoro');
   const [isTaskSelectorOpen, setIsTaskSelectorOpen] = useState(false);
+  const [selectorCategory, setSelectorCategory] = useState<SelectorCategory>(null);
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
   const [stopwatchStartTime, setStopwatchStartTime] = useState<number | null>(null);
@@ -29,9 +32,10 @@ export function PomodoroWidgetCompact() {
   const [unsavedTime, setUnsavedTime] = useState(0);
   const [selectedItemType, setSelectedItemType] = useState<'task' | 'habit'>('task');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [showHabitDialog, setShowHabitDialog] = useState(false);
   
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   
   const {
     currentPhase,
@@ -44,7 +48,7 @@ export function PomodoroWidgetCompact() {
     reset,
   } = usePomodoro();
 
-  const { startTimer, stopTimer, activeTimer } = useTimeTracker();
+  const { startTimer, stopTimer, activeTimer, addManualEntry } = useTimeTracker();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const dayOfWeek = new Date().getDay();
@@ -55,18 +59,6 @@ export function PomodoroWidgetCompact() {
 
   const selectedTask = tasks.find(t => t.id === currentTaskId);
   const selectedHabit = habits.find(h => h.id === currentHabitId);
-
-  // Calculate dropdown position when opening
-  useEffect(() => {
-    if (isTaskSelectorOpen && widgetRef.current) {
-      const rect = widgetRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: 8,
-        width: window.innerWidth - 16,
-      });
-    }
-  }, [isTaskSelectorOpen]);
 
   // Stopwatch logic
   useEffect(() => {
@@ -95,6 +87,14 @@ export function PomodoroWidgetCompact() {
 
   const displayColor = mode === 'pomodoro' ? getPhaseColor(currentPhase) : 'hsl(var(--task))';
 
+  const handleCategorySelect = (category: SelectorCategory) => {
+    if (selectorCategory === category) {
+      setSelectorCategory(null);
+    } else {
+      setSelectorCategory(category);
+    }
+  };
+
   const handleTaskSelect = (type: 'task' | 'habit', id: string) => {
     if (mode === 'pomodoro') {
       if (type === 'task') {
@@ -109,6 +109,7 @@ export function PomodoroWidgetCompact() {
       setIsStopped(false);
     }
     setIsTaskSelectorOpen(false);
+    setSelectorCategory(null);
   };
 
   const handlePlayPause = () => {
@@ -116,6 +117,7 @@ export function PomodoroWidgetCompact() {
       if (isRunning) {
         pause();
       } else {
+        // Allow start without task/habit selection
         if (!currentTaskId && !currentHabitId) {
           start(undefined, undefined, undefined);
         } else {
@@ -128,6 +130,7 @@ export function PomodoroWidgetCompact() {
         setIsStopwatchRunning(false);
         setIsStopped(false);
       } else {
+        // Allow start without task selection
         if (!activeTimer && stopwatchTime === 0) {
           setStopwatchStartTime(Date.now());
         } else if (stopwatchStartTime) {
@@ -146,6 +149,7 @@ export function PomodoroWidgetCompact() {
       if (isRunning) {
         pause();
         setIsStopped(true);
+        // Show save dialog if no task/habit selected and time elapsed
         if (!currentTaskId && !currentHabitId && timeLeft < 25 * 60) {
           const elapsed = 25 * 60 - timeLeft;
           if (elapsed > 10) {
@@ -162,6 +166,7 @@ export function PomodoroWidgetCompact() {
         setIsStopwatchRunning(false);
         stopTimer();
         setIsStopped(true);
+        // Show save dialog if no task selected and time elapsed
         if (!activeTimer && stopwatchTime > 10) {
           setUnsavedTime(stopwatchTime);
           setSaveDialogOpen(true);
@@ -179,9 +184,36 @@ export function PomodoroWidgetCompact() {
 
   const handleSaveTime = () => {
     if (selectedItemId) {
+      // Get goal and sphere from the selected item
+      let goalId: string | undefined;
+      let sphereId: number | undefined;
+      
       if (selectedItemType === 'task') {
-        startTimer(selectedItemId);
-        setTimeout(() => stopTimer(), 100);
+        const task = tasks.find(t => t.id === selectedItemId);
+        goalId = task?.goalId;
+        sphereId = task?.sphereId;
+        // Add manual entry with the elapsed time
+        addManualEntry(
+          selectedItemId,
+          unsavedTime,
+          goalId,
+          sphereId,
+          undefined,
+          task?.name
+        );
+      } else {
+        const habit = habits.find(h => h.id === selectedItemId);
+        goalId = habit?.goalId;
+        sphereId = habit?.sphereId;
+        // Add manual entry for habit
+        addManualEntry(
+          selectedItemId,
+          unsavedTime,
+          goalId,
+          sphereId,
+          selectedItemId,
+          habit?.name
+        );
       }
     }
     setSaveDialogOpen(false);
@@ -206,6 +238,15 @@ export function PomodoroWidgetCompact() {
       setStopwatchStartTime(null);
     }
     setIsStopped(false);
+  };
+
+  const handleCreateNew = (type: 'task' | 'habit') => {
+    setSaveDialogOpen(false);
+    if (type === 'task') {
+      setShowTaskDialog(true);
+    } else {
+      setShowHabitDialog(true);
+    }
   };
 
   const currentTime = mode === 'pomodoro' ? timeLeft : stopwatchTime;
@@ -308,121 +349,169 @@ export function PomodoroWidgetCompact() {
             )}
           </Button>
 
-          {/* Task selector chevron */}
-          <div className="relative flex-1 min-w-0">
-            <button 
-              onClick={() => setIsTaskSelectorOpen(!isTaskSelectorOpen)}
-              className="w-full flex items-center justify-between text-[9px] text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-muted/50"
-            >
-              <span className="truncate flex-1 text-left">
-                {selectedTask ? (
-                  <span className="flex items-center gap-0.5 text-foreground">
-                    {selectedTask.icon && <span>{selectedTask.icon}</span>}
-                    <span className="truncate">{selectedTask.name}</span>
-                  </span>
-                ) : selectedHabit ? (
-                  <span className="flex items-center gap-0.5 text-foreground">
-                    {selectedHabit.icon && <span>{selectedHabit.icon}</span>}
-                    <span className="truncate">{selectedHabit.name}</span>
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Выбрать...</span>
-                )}
+          {/* Selected item display */}
+          <div className="flex-1 min-w-0 text-[9px] text-muted-foreground px-1 truncate">
+            {selectedTask ? (
+              <span className="flex items-center gap-0.5 text-foreground">
+                {selectedTask.icon && <span>{selectedTask.icon}</span>}
+                <span className="truncate">{selectedTask.name}</span>
               </span>
-              <ChevronDown className={cn("w-3 h-3 transition-transform shrink-0", isTaskSelectorOpen && "rotate-180")} />
-            </button>
+            ) : selectedHabit ? (
+              <span className="flex items-center gap-0.5 text-foreground">
+                {selectedHabit.icon && <span>{selectedHabit.icon}</span>}
+                <span className="truncate">{selectedHabit.name}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground italic">Без привязки</span>
+            )}
           </div>
         </div>
-      </motion.div>
 
-      {/* Dropdown - positioned below widget, scrolls with page */}
-      <AnimatePresence>
-        {isTaskSelectorOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            className="bg-card border border-border rounded-lg shadow-lg z-40 max-h-60 overflow-auto mt-1"
-            style={{ 
-              minWidth: '100%',
-              maxWidth: '100%',
+        {/* Bottom chevron selector - inside widget */}
+        <div className="mt-1.5 pt-1 border-t border-border/50">
+          <button 
+            onClick={() => {
+              setIsTaskSelectorOpen(!isTaskSelectorOpen);
+              if (!isTaskSelectorOpen) setSelectorCategory(null);
             }}
+            className="w-full flex items-center justify-center text-[9px] text-muted-foreground hover:text-foreground transition-colors py-0.5"
           >
-            {/* Tasks section */}
-            {todayTasks.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-[8px] text-muted-foreground font-medium bg-muted/30 sticky top-0 z-10">
-                  Задачи
-                </div>
-                {todayTasks.map(task => (
+            <span className="mr-1">Привязать к</span>
+            <ChevronDown className={cn("w-3 h-3 transition-transform", isTaskSelectorOpen && "rotate-180")} />
+          </button>
+        </div>
+
+        {/* Inline Dropdown - inside widget, expands widget height */}
+        <AnimatePresence>
+          {isTaskSelectorOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-1.5 border-t border-border/50 pt-1.5">
+                {/* Category buttons */}
+                <div className="flex border border-border rounded-lg overflow-hidden">
                   <button
-                    key={task.id}
-                    onClick={() => handleTaskSelect('task', task.id)}
+                    onClick={() => handleCategorySelect('task')}
                     className={cn(
-                      "w-full px-2 py-1.5 text-left hover:bg-muted flex items-center gap-1.5 text-[10px] group",
-                      task.completed && "opacity-50"
+                      "flex-1 px-2 py-1.5 text-[10px] font-medium transition-colors",
+                      selectorCategory === 'task' 
+                        ? "bg-task/10 text-task" 
+                        : "text-muted-foreground hover:bg-muted"
                     )}
                   >
-                    {task.icon && <span className="shrink-0">{task.icon}</span>}
-                    <span className="overflow-hidden whitespace-nowrap flex-1">
-                      <span className={cn(
-                        "inline-block group-hover:animate-marquee",
-                        task.completed && "line-through"
-                      )}>
-                        {task.name}
-                      </span>
-                    </span>
-                    {task.completed && <span className="text-[8px] text-success">✓</span>}
+                    Задачи ({todayTasks.length})
                   </button>
-                ))}
-              </>
-            )}
-            
-            {/* Habits section */}
-            {todayHabits.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-[8px] text-muted-foreground font-medium bg-muted/30 sticky top-0 z-10">
-                  Привычки
+                  <button
+                    onClick={() => handleCategorySelect('habit')}
+                    className={cn(
+                      "flex-1 px-2 py-1.5 text-[10px] font-medium transition-colors border-l border-border",
+                      selectorCategory === 'habit' 
+                        ? "bg-habit/10 text-habit" 
+                        : "text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    Привычки ({todayHabits.length})
+                  </button>
                 </div>
-                {todayHabits.map(habit => {
-                  const isCompletedToday = habit.completedDates?.includes(today);
-                  return (
-                    <button
-                      key={habit.id}
-                      onClick={() => handleTaskSelect('habit', habit.id)}
-                      className={cn(
-                        "w-full px-2 py-1.5 text-left hover:bg-muted flex items-center gap-1.5 text-[10px] group",
-                        isCompletedToday && "opacity-50"
-                      )}
+
+                {/* Items list */}
+                <AnimatePresence mode="wait">
+                  {selectorCategory && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-1.5 max-h-32 overflow-auto bg-muted/30 rounded-lg"
                     >
-                      {habit.icon && <span className="shrink-0">{habit.icon}</span>}
-                      <span className="overflow-hidden whitespace-nowrap flex-1">
-                        <span className={cn(
-                          "inline-block group-hover:animate-marquee",
-                          isCompletedToday && "line-through"
-                        )}>
-                          {habit.name}
-                        </span>
-                      </span>
-                      {isCompletedToday && <span className="text-[8px] text-success">✓</span>}
-                    </button>
-                  );
-                })}
-              </>
-            )}
+                      {selectorCategory === 'task' && (
+                        <>
+                          {todayTasks.length > 0 ? (
+                            todayTasks.map(task => (
+                              <button
+                                key={task.id}
+                                onClick={() => handleTaskSelect('task', task.id)}
+                                className={cn(
+                                  "w-full px-2 py-1.5 text-left hover:bg-muted flex items-center gap-1.5 text-[10px] group",
+                                  task.completed && "opacity-50"
+                                )}
+                              >
+                                {task.icon && <span className="shrink-0">{task.icon}</span>}
+                                <span className="overflow-hidden whitespace-nowrap flex-1">
+                                  <span className={cn(
+                                    "inline-block group-hover:animate-marquee",
+                                    task.completed && "line-through"
+                                  )}>
+                                    {task.name}
+                                  </span>
+                                </span>
+                                {task.completed && <span className="text-[8px] text-success">✓</span>}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-2 py-2 text-[9px] text-muted-foreground text-center">
+                              Нет задач на сегодня
+                            </div>
+                          )}
+                        </>
+                      )}
 
-            {todayTasks.length === 0 && todayHabits.length === 0 && (
-              <div className="px-2 py-2 text-[9px] text-muted-foreground text-center">
-                Нет задач на сегодня
+                      {selectorCategory === 'habit' && (
+                        <>
+                          {todayHabits.length > 0 ? (
+                            todayHabits.map(habit => {
+                              const isCompletedToday = habit.completedDates?.includes(today);
+                              return (
+                                <button
+                                  key={habit.id}
+                                  onClick={() => handleTaskSelect('habit', habit.id)}
+                                  className={cn(
+                                    "w-full px-2 py-1.5 text-left hover:bg-muted flex items-center gap-1.5 text-[10px] group",
+                                    isCompletedToday && "opacity-50"
+                                  )}
+                                >
+                                  {habit.icon && <span className="shrink-0">{habit.icon}</span>}
+                                  <span className="overflow-hidden whitespace-nowrap flex-1">
+                                    <span className={cn(
+                                      "inline-block group-hover:animate-marquee",
+                                      isCompletedToday && "line-through"
+                                    )}>
+                                      {habit.name}
+                                    </span>
+                                  </span>
+                                  {isCompletedToday && <span className="text-[8px] text-success">✓</span>}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="px-2 py-2 text-[9px] text-muted-foreground text-center">
+                              Нет привычек на сегодня
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Hint when no category selected */}
+                {!selectorCategory && (
+                  <div className="px-2 py-1.5 text-[9px] text-muted-foreground text-center">
+                    Выберите категорию
+                  </div>
+                )}
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-      {/* Save time dialog */}
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent className="sm:max-w-sm p-3">
+      {/* Save time dialog - mandatory selection */}
+      <Dialog open={saveDialogOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm p-3" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader className="pb-2">
             <DialogTitle className="text-base">Сохранить время?</DialogTitle>
           </DialogHeader>
@@ -430,15 +519,19 @@ export function PomodoroWidgetCompact() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Вы отработали <span className="font-bold text-foreground">{formatTime(unsavedTime)}</span>. 
-              Привязать к задаче или привычке?
+              Выберите, куда привязать результат:
             </p>
             
             <div className="space-y-2">
+              {/* Type toggle */}
               <div className="flex gap-2">
                 <Button
                   variant={selectedItemType === 'task' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedItemType('task')}
+                  onClick={() => {
+                    setSelectedItemType('task');
+                    setSelectedItemId('');
+                  }}
                   className="flex-1 text-xs h-7"
                 >
                   Задача
@@ -446,36 +539,79 @@ export function PomodoroWidgetCompact() {
                 <Button
                   variant={selectedItemType === 'habit' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedItemType('habit')}
+                  onClick={() => {
+                    setSelectedItemType('habit');
+                    setSelectedItemId('');
+                  }}
                   className="flex-1 text-xs h-7"
                 >
                   Привычка
                 </Button>
               </div>
               
-              <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Выберите..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedItemType === 'task' ? (
+              {/* Items list */}
+              <div className="max-h-32 overflow-auto border border-border rounded-md">
+                {selectedItemType === 'task' ? (
+                  todayTasks.length > 0 ? (
                     todayTasks.map(task => (
-                      <SelectItem key={task.id} value={task.id} className="text-xs">
-                        {task.icon} {task.name}
-                      </SelectItem>
+                      <button
+                        key={task.id}
+                        onClick={() => setSelectedItemId(task.id)}
+                        className={cn(
+                          "w-full px-2 py-1.5 text-left text-xs flex items-center gap-1.5 transition-colors",
+                          selectedItemId === task.id 
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        {task.icon && <span>{task.icon}</span>}
+                        <span className="truncate">{task.name}</span>
+                      </button>
                     ))
                   ) : (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      Нет задач на сегодня
+                    </div>
+                  )
+                ) : (
+                  todayHabits.length > 0 ? (
                     todayHabits.map(habit => (
-                      <SelectItem key={habit.id} value={habit.id} className="text-xs">
-                        {habit.icon} {habit.name}
-                      </SelectItem>
+                      <button
+                        key={habit.id}
+                        onClick={() => setSelectedItemId(habit.id)}
+                        className={cn(
+                          "w-full px-2 py-1.5 text-left text-xs flex items-center gap-1.5 transition-colors",
+                          selectedItemId === habit.id 
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        {habit.icon && <span>{habit.icon}</span>}
+                        <span className="truncate">{habit.name}</span>
+                      </button>
                     ))
-                  )}
-                </SelectContent>
-              </Select>
+                  ) : (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      Нет привычек на сегодня
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* Create new button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCreateNew(selectedItemType)}
+                className="w-full text-xs h-7 gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                Создать новую {selectedItemType === 'task' ? 'задачу' : 'привычку'}
+              </Button>
             </div>
             
-            <div className="flex gap-2">
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-1">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -497,6 +633,40 @@ export function PomodoroWidgetCompact() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Task creation dialog */}
+      <TaskDialog
+        open={showTaskDialog}
+        onClose={() => setShowTaskDialog(false)}
+        categories={taskCategories}
+        tags={taskTags}
+        onAddCategory={addTaskCategory}
+        onAddTag={addTaskTag}
+        onSave={(taskData) => {
+          const newTask = addTask(taskData);
+          setShowTaskDialog(false);
+          // After creating, select this task and save time
+          setSelectedItemType('task');
+          setSelectedItemId(newTask.id);
+          setSaveDialogOpen(true);
+        }}
+      />
+
+      {/* Habit creation dialog */}
+      <HabitDialog
+        open={showHabitDialog}
+        onClose={() => setShowHabitDialog(false)}
+        categories={habitCategories}
+        tags={habitTags}
+        onSave={(habitData) => {
+          const newHabit = addHabit(habitData);
+          setShowHabitDialog(false);
+          // After creating, select this habit and save time
+          setSelectedItemType('habit');
+          setSelectedItemId(newHabit.id);
+          setSaveDialogOpen(true);
+        }}
+      />
     </>
   );
 }

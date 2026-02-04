@@ -23,46 +23,7 @@ interface TelegramWebAppState {
   error: string | null;
 }
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initData: string;
-        initDataUnsafe: {
-          user?: TelegramUser;
-          query_id?: string;
-          auth_date?: number;
-          hash?: string;
-        };
-        ready: () => void;
-        expand: () => void;
-        close: () => void;
-        MainButton: {
-          show: () => void;
-          hide: () => void;
-          setText: (text: string) => void;
-          onClick: (callback: () => void) => void;
-        };
-        BackButton: {
-          show: () => void;
-          hide: () => void;
-          onClick: (callback: () => void) => void;
-        };
-        themeParams: {
-          bg_color?: string;
-          text_color?: string;
-          hint_color?: string;
-          link_color?: string;
-          button_color?: string;
-          button_text_color?: string;
-        };
-        colorScheme: 'light' | 'dark';
-        setHeaderColor: (color: string) => void;
-        setBackgroundColor: (color: string) => void;
-      };
-    };
-  }
-}
+// Window.Telegram is declared elsewhere, avoid duplicate declarations
 
 export function useTelegramWebApp() {
   const [state, setState] = useState<TelegramWebAppState>({

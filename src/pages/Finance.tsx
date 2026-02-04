@@ -13,13 +13,14 @@ import { FinanceProgressView } from '@/components/finance/FinanceProgressView';
 import { GenericSettingsDialog } from '@/components/GenericSettingsDialog';
 import { ExportButtons } from '@/components/ExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
+import { StatusGroupedList } from '@/components/StatusGroupedList';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { exportFinanceToCSV, exportFinanceToPDF } from '@/utils/exportData';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, parseISO, isAfter, startOfDay } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,9 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
   const { t, language } = useTranslation();
   const isRussian = language === 'ru';
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const todayDate = startOfDay(new Date());
+
   const handleSaveTransaction = (transactionData: Omit<FinanceTransaction, 'id' | 'createdAt' | 'completed'>) => {
     if (editingTransaction) {
       updateTransaction(editingTransaction.id, transactionData);
@@ -87,8 +91,21 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
     }
   };
 
+  // Get unique transactions (for recurring, show only base)
+  const uniqueTransactions = useMemo(() => {
+    const seen = new Set<string>();
+    return transactions.filter(t => {
+      if (t.recurrence && t.recurrence !== 'none') {
+        const baseKey = `${t.name}-${t.recurrence}-${t.amount}`;
+        if (seen.has(baseKey)) return false;
+        seen.add(baseKey);
+      }
+      return true;
+    });
+  }, [transactions]);
+
   // Filter transactions
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = uniqueTransactions.filter(t => {
     if (filterCategory && t.customCategoryId !== filterCategory) return false;
     if (filterTag && !t.tagIds?.includes(filterTag)) return false;
     return true;
@@ -97,33 +114,41 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
   const hasFilters = filterCategory || filterTag;
 
   // Calculate totals
-  const totalIncome = filteredTransactions.filter(t => t.type === 'income' && t.completed).reduce((acc, t) => acc + t.amount, 0);
-  const totalExpense = filteredTransactions.filter(t => t.type === 'expense' && t.completed).reduce((acc, t) => acc + t.amount, 0);
+  const totalIncome = transactions.filter(t => t.type === 'income' && t.completed).reduce((acc, t) => acc + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense' && t.completed).reduce((acc, t) => acc + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  // Get today's date string
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Group transactions by status
+  const groupedTransactions = useMemo(() => {
+    const completed: FinanceTransaction[] = [];
+    const todayList: FinanceTransaction[] = [];
+    const future: FinanceTransaction[] = [];
 
-  // Separate completed today transactions and other transactions
-  const completedTodayTransactions = useMemo(() => {
-    return filteredTransactions.filter(t => t.completed && t.date === today);
-  }, [filteredTransactions, today]);
+    filteredTransactions.forEach(transaction => {
+      const transactionDate = startOfDay(parseISO(transaction.date));
+      const isTransactionToday = transaction.date === today;
+      const isTransactionFuture = isAfter(transactionDate, todayDate);
 
-  const otherTransactions = useMemo(() => {
-    return filteredTransactions.filter(t => !(t.completed && t.date === today));
-  }, [filteredTransactions, today]);
-
-  // Sort other transactions by date (newest first)
-  const sortedOtherTransactions = useMemo(() => {
-    return [...otherTransactions].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (transaction.completed && isTransactionToday) {
+        // Completed today
+        completed.push(transaction);
+      } else if (isTransactionToday && !transaction.completed) {
+        // Planned for today
+        todayList.push(transaction);
+      } else if (isTransactionFuture && !transaction.completed) {
+        // Future transactions
+        future.push(transaction);
+      } else if (!transaction.completed) {
+        // Past or other - show in today
+        todayList.push(transaction);
+      }
     });
-  }, [otherTransactions]);
 
-  // Combined list: completed today first, then others
-  const sortedTransactions = useMemo(() => {
-    return [...completedTodayTransactions, ...sortedOtherTransactions];
-  }, [completedTodayTransactions, sortedOtherTransactions]);
+    // Sort future by date
+    future.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return { completed, inProgress: [], today: todayList, future };
+  }, [filteredTransactions, today, todayDate]);
 
   if (isLoading) {
     return (
@@ -294,8 +319,21 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <AnimatePresence mode="popLayout">
-                  {sortedTransactions.length === 0 ? (
+                <StatusGroupedList
+                  items={groupedTransactions}
+                  getItemKey={(t) => t.id}
+                  showInProgress={false}
+                  renderItem={(transaction, index) => (
+                    <TransactionCard
+                      key={transaction.id}
+                      transaction={transaction}
+                      index={index}
+                      onToggle={() => toggleTransactionCompletion(transaction.id)}
+                      onEdit={() => handleEditTransaction(transaction)}
+                      onDelete={() => handleDeleteTransaction(transaction)}
+                    />
+                  )}
+                  emptyState={
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -320,21 +358,8 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                         </Button>
                       )}
                     </motion.div>
-                  ) : (
-                    <div className="space-y-3">
-                      {sortedTransactions.map((transaction, index) => (
-                        <TransactionCard
-                          key={transaction.id}
-                          transaction={transaction}
-                          index={index}
-                          onToggle={() => toggleTransactionCompletion(transaction.id)}
-                          onEdit={() => handleEditTransaction(transaction)}
-                          onDelete={() => handleDeleteTransaction(transaction)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </AnimatePresence>
+                  }
+                />
               </motion.div>
             )}
 
@@ -346,7 +371,7 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                 exit={{ opacity: 0, x: 10 }}
               >
                 <FinanceMonthCalendar 
-                  transactions={filteredTransactions}
+                  transactions={transactions}
                   onToggle={toggleTransactionCompletion}
                 />
               </motion.div>
@@ -359,7 +384,7 @@ export default function Finance({ openDialog, onDialogClose }: FinanceProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
               >
-                <FinanceProgressView transactions={filteredTransactions} initialPeriod="7" />
+                <FinanceProgressView transactions={transactions} initialPeriod="7" />
               </motion.div>
             )}
           </AnimatePresence>

@@ -10,6 +10,8 @@ export interface FinanceTag {
   color: string;
 }
 
+export type TransactionRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface FinanceTransaction {
   id: string;
   name: string;
@@ -23,6 +25,9 @@ export interface FinanceTransaction {
   createdAt: string;
   customCategoryId?: string;
   tagIds: string[];
+  recurrence?: TransactionRecurrence;
+  goalId?: string;
+  sphereId?: number;
 }
 
 export const FINANCE_CATEGORIES = [

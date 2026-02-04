@@ -10,6 +10,7 @@ export interface Goal {
   time_goal_minutes?: number | null;
   status: 'active' | 'completed' | 'paused' | 'archived';
   progress_percent: number;
+  sphere_id?: number | null;
   created_at: string;
   updated_at: string;
   completed_at?: string | null;

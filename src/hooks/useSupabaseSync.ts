@@ -80,6 +80,8 @@ export function useSupabaseSync() {
             category_id: habit.categoryId,
             tags: habit.tagIds,
             created_at: habit.createdAt,
+            goal_id: habit.goalId || null,
+            sphere_id: habit.sphereId ?? null,
           }, { onConflict: 'id' });
           
         if (error) console.error('Error syncing habit:', error);
@@ -119,6 +121,8 @@ export function useSupabaseSync() {
             subtasks: task.subtasks as unknown as any,
             attachments: task.attachments as unknown as any,
             created_at: task.createdAt,
+            goal_id: (task as any).goalId || null,
+            sphere_id: (task as any).sphereId ?? null,
           }, { onConflict: 'id' });
           
         if (error) console.error('Error syncing task:', error);
@@ -153,6 +157,8 @@ export function useSupabaseSync() {
             tags: tx.tagIds,
             recurrence: undefined,
             created_at: tx.createdAt,
+            goal_id: tx.goalId || null,
+            sphere_id: tx.sphereId ?? null,
           }, { onConflict: 'id' });
           
         if (error) console.error('Error syncing transaction:', error);
@@ -184,6 +190,8 @@ export function useSupabaseSync() {
             end_time: entry.endTime,
             duration: entry.duration,
             description: entry.description,
+            goal_id: (entry as any).goalId || null,
+            sphere_id: (entry as any).sphereId ?? null,
           }, { onConflict: 'id' });
           
         if (error) console.error('Error syncing time entry:', error);
@@ -207,7 +215,7 @@ export function useSupabaseSync() {
       return;
     }
     
-    if (data && data.length > 0) {
+  if (data && data.length > 0) {
       const habits: Habit[] = data.map(h => ({
         id: h.id,
         name: h.name,
@@ -220,6 +228,8 @@ export function useSupabaseSync() {
         streak: h.streak,
         categoryId: h.category_id || undefined,
         tagIds: h.tags || [],
+        goalId: h.goal_id || undefined,
+        sphereId: h.sphere_id ?? undefined,
       }));
       localStorage.setItem(HABITS_KEY, JSON.stringify(habits));
     }
@@ -239,7 +249,7 @@ export function useSupabaseSync() {
       return;
     }
     
-    if (data && data.length > 0) {
+  if (data && data.length > 0) {
       const tasks: Task[] = data.map(t => ({
         id: t.id,
         name: t.name,
@@ -258,6 +268,8 @@ export function useSupabaseSync() {
         subtasks: (Array.isArray(t.subtasks) ? t.subtasks : []) as unknown as SubTask[],
         attachments: (Array.isArray(t.attachments) ? t.attachments : []) as unknown as TaskAttachment[],
         notes: t.description || undefined,
+        goalId: t.goal_id || undefined,
+        sphereId: t.sphere_id ?? undefined,
       }));
       localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
     }
@@ -364,6 +376,35 @@ export function useSupabaseSync() {
       syncAll();
     }
   }, [user?.id]);
+
+  // Auto-sync on data changes (debounced)
+  useEffect(() => {
+    if (!user) return;
+
+    let debounceTimer: NodeJS.Timeout;
+    
+    const handleDataChange = () => {
+      // Debounce to avoid multiple syncs
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        // Sync only the data, not loading from cloud
+        Promise.all([
+          syncHabitsToSupabase(),
+          syncTasksToSupabase(),
+          syncTransactionsToSupabase(),
+          syncTimeEntriesToSupabase(),
+        ]).catch(e => console.error('Auto-sync error:', e));
+      }, 2000); // 2 second debounce
+    };
+
+    // Listen for custom event dispatched by data hooks
+    window.addEventListener('habitflow-data-changed', handleDataChange);
+    
+    return () => {
+      clearTimeout(debounceTimer);
+      window.removeEventListener('habitflow-data-changed', handleDataChange);
+    };
+  }, [user, syncHabitsToSupabase, syncTasksToSupabase, syncTransactionsToSupabase, syncTimeEntriesToSupabase]);
 
   return {
     isSyncing,

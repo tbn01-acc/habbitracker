@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Loader2, Image, X, Sparkles, Lightbulb, Trophy } from 'lucide-react';
+import { Camera, Upload, Loader2, Image, X, Sparkles, Lightbulb, Trophy, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
 import { useStars } from '@/hooks/useStars';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -34,13 +35,17 @@ export function AchievementPublishDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postType, setPostType] = useState<PostType>('achievement');
   const [usePreloadedImage, setUsePreloadedImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   
   // Initialize with preloaded image if provided
   useEffect(() => {
     if (open && preloadedImageUrl) {
       setImagePreview(preloadedImageUrl);
       setUsePreloadedImage(true);
+      setIsVerified(false);
     }
   }, [open, preloadedImageUrl]);
   
@@ -55,7 +60,7 @@ export function AchievementPublishDialog({
     { type: 'idea' as PostType, label: 'Идея', icon: Lightbulb, color: 'text-blue-500' },
   ];
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -70,6 +75,30 @@ export function AchievementPublishDialog({
     }
 
     setImageFile(file);
+    setIsVerified(true); // Camera photos are verified
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Выберите изображение');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Максимальный размер файла 10MB');
+      return;
+    }
+
+    setImageFile(file);
+    setIsVerified(false); // Gallery photos are not verified
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
@@ -81,8 +110,12 @@ export function AchievementPublishDialog({
     setImageFile(null);
     setImagePreview(null);
     setUsePreloadedImage(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    setIsVerified(false);
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+    }
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = '';
     }
   };
 
@@ -105,7 +138,7 @@ export function AchievementPublishDialog({
 
     setIsSubmitting(true);
     try {
-      const postId = await createPost(fileToUpload, description, taskId, habitId, postType);
+      const postId = await createPost(fileToUpload, description, taskId, habitId, postType, isVerified);
       
       if (postId) {
         // Award stars for posting
@@ -126,6 +159,7 @@ export function AchievementPublishDialog({
         setDescription('');
         setPostType('achievement');
         setUsePreloadedImage(false);
+        setIsVerified(false);
       }
     } catch (error) {
       console.error('Error publishing:', error);
@@ -142,6 +176,7 @@ export function AchievementPublishDialog({
     setDescription('');
     setPostType('achievement');
     setUsePreloadedImage(false);
+    setIsVerified(false);
   };
 
   const canPost = dailyPostCount < dailyLimit;
@@ -204,14 +239,24 @@ export function AchievementPublishDialog({
             </div>
           )}
 
-          {/* Image upload */}
+          {/* Image upload with separate camera and gallery inputs */}
           <div className="relative">
+            {/* Hidden camera input - triggers camera on mobile */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={handleFileSelect}
+              onChange={handleCameraCapture}
+              className="hidden"
+            />
+            
+            {/* Hidden gallery input - opens file picker */}
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleGallerySelect}
               className="hidden"
             />
 
@@ -222,6 +267,14 @@ export function AchievementPublishDialog({
                   alt="Preview"
                   className="w-full h-64 object-cover rounded-lg"
                 />
+                {isVerified && (
+                  <Badge 
+                    className="absolute top-2 left-2 bg-primary text-primary-foreground gap-1"
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    Верифицировано
+                  </Badge>
+                )}
                 <Button
                   variant="destructive"
                   size="icon"
@@ -232,26 +285,35 @@ export function AchievementPublishDialog({
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                className="w-full h-48 flex flex-col gap-3 border-dashed"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!canPost}
-              >
+              <div className="w-full h-48 flex flex-col gap-3 border-2 border-dashed border-border rounded-lg p-4 items-center justify-center">
                 <div className="flex gap-4">
-                  <div className="flex flex-col items-center gap-2">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-4 px-6"
+                    onClick={() => cameraInputRef.current?.click()}
+                    disabled={!canPost}
+                  >
+                    <Camera className="h-8 w-8 text-primary" />
                     <span className="text-sm">Камера</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px] gap-0.5">
+                      <ShieldCheck className="h-2.5 w-2.5" />
+                      Верифицировано
+                    </Badge>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col items-center gap-2 h-auto py-4 px-6"
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={!canPost}
+                  >
                     <Image className="h-8 w-8 text-muted-foreground" />
                     <span className="text-sm">Галерея</span>
-                  </div>
+                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Добавьте фото-подтверждение выполнения
+                <p className="text-xs text-muted-foreground text-center">
+                  Фото с камеры получают статус "Верифицировано"
                 </p>
-              </Button>
+              </div>
             )}
           </div>
 
@@ -283,7 +345,7 @@ export function AchievementPublishDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || (postType === 'achievement' && !imageFile) || !canPost}
+            disabled={isSubmitting || (postType === 'achievement' && !imageFile && !usePreloadedImage) || !canPost}
           >
             {isSubmitting ? (
               <>

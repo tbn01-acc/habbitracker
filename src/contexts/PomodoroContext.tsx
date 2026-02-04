@@ -233,12 +233,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (sessionStartRef.current && currentPhase === 'work') {
       const endTime = new Date().toISOString();
       const startTime = sessionStartRef.current;
-      const durationMinutes = Math.floor(
-        (new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000
+      const durationSeconds = Math.floor(
+        (new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000
       );
+      const durationMinutes = Math.floor(durationSeconds / 60);
       
+      const sessionId = crypto.randomUUID();
       const newSession: PomodoroSession = {
-        id: crypto.randomUUID(),
+        id: sessionId,
         taskId: currentTaskId,
         subtaskId: currentSubtaskId,
         startTime,
@@ -247,6 +249,32 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         completed: true,
       };
       saveSessions([...sessions, newSession]);
+      
+      // Also save to time_entries for unified tracking (if duration > 10 seconds)
+      if (durationSeconds > 10) {
+        const TIME_ENTRIES_KEY = 'habitflow_time_entries';
+        const storedEntries = localStorage.getItem(TIME_ENTRIES_KEY);
+        const entries = storedEntries ? JSON.parse(storedEntries) : [];
+        
+        const taskId = currentTaskId || currentHabitId || `pomodoro_${sessionId}`;
+        const newEntry = {
+          id: crypto.randomUUID(),
+          taskId,
+          subtaskId: currentSubtaskId,
+          startTime,
+          endTime,
+          duration: durationSeconds,
+          description: currentHabitId ? 'Помодоро (привычка)' : 'Помодоро',
+          goalId: undefined, // Will be enriched by sync
+          sphereId: undefined,
+        };
+        
+        entries.push(newEntry);
+        localStorage.setItem(TIME_ENTRIES_KEY, JSON.stringify(entries));
+        
+        // Dispatch event for other components to sync
+        window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
+      }
       
       // Award stars for completed pomodoro session (minimum 5 minutes)
       const referenceId = currentTaskId || currentHabitId;

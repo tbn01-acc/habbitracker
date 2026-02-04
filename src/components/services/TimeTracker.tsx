@@ -1,15 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Square, Clock, Trash2, ChevronDown } from 'lucide-react';
+import { Play, Square, Clock, Trash2, ChevronDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { useTasks } from '@/hooks/useTasks';
+import { useHabits } from '@/hooks/useHabits';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 type Period = 'today' | 'week' | 'month';
 
+/**
+ * Time Tracker Service Component
+ * 
+ * Displays unified time tracking that:
+ * 1. Shows accumulated time for the selected period
+ * 2. Includes both Pomodoro and Stopwatch time
+ * 3. Groups time by task/habit
+ * 4. Persists throughout the day and resets at midnight
+ */
 export function TimeTracker() {
   const { t } = useTranslation();
   const {
@@ -23,20 +33,20 @@ export function TimeTracker() {
     isTimerRunning,
   } = useTimeTracker();
   
-  const { getPomodoroTimeByPeriod, getPomodoroTimeByTask } = usePomodoro();
+  const { isRunning: isPomodoroRunning, timeLeft, currentPhase, settings } = usePomodoro();
   const { tasks } = useTasks();
+  const { habits } = useHabits();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedSubtaskId, setSelectedSubtaskId] = useState<string | null>(null);
   const [isTaskSelectorOpen, setIsTaskSelectorOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('today');
+  const [displayTotal, setDisplayTotal] = useState(0);
 
   const selectedTask = tasks.find(t => t.id === selectedTaskId);
+  const selectedHabit = habits.find(h => h.id === selectedTaskId);
 
-  // Get pomodoro time for selected period
-  const pomodoroTime = useMemo(() => getPomodoroTimeByPeriod(selectedPeriod), [getPomodoroTimeByPeriod, selectedPeriod]);
-  const pomodoroByTask = useMemo(() => getPomodoroTimeByTask(selectedPeriod), [getPomodoroTimeByTask, selectedPeriod]);
-
-  // Filter entries by period
+  // Filter entries by period - time_entries is now the single source of truth
+  // It includes both stopwatch and completed pomodoro sessions
   const filteredEntries = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -59,50 +69,83 @@ export function TimeTracker() {
     return entries.filter(e => new Date(e.startTime) >= startDate);
   }, [entries, selectedPeriod]);
 
-  const timeTrackerTotal = useMemo(() => {
+  // Total from time_entries (single source of truth - includes both stopwatch and pomodoro)
+  const baseTotal = useMemo(() => {
     return filteredEntries.reduce((sum, e) => sum + e.duration, 0);
   }, [filteredEntries]);
 
-  // Combined total (time tracker + pomodoro)
-  const totalTime = timeTrackerTotal + pomodoroTime;
+  // Calculate real-time display total
+  useEffect(() => {
+    const calculateRealTimeTotal = () => {
+      let activeTime = 0;
+      
+      // Add currently running stopwatch time
+      if (isTimerRunning) {
+        activeTime += elapsedTime;
+      }
+      
+      // Add currently running pomodoro time (work phase only)
+      if (isPomodoroRunning && currentPhase === 'work') {
+        const phaseDuration = 25 * 60;
+        const pomodoroElapsed = phaseDuration - timeLeft;
+        if (pomodoroElapsed > 0) {
+          activeTime += pomodoroElapsed;
+        }
+      }
+      
+      return baseTotal + activeTime;
+    };
 
+    setDisplayTotal(calculateRealTimeTotal());
+
+    // Update every second if any timer is running
+    if (isTimerRunning || isPomodoroRunning) {
+      const interval = setInterval(() => {
+        setDisplayTotal(calculateRealTimeTotal());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [baseTotal, isTimerRunning, isPomodoroRunning, elapsedTime, timeLeft, currentPhase]);
+
+  // Group entries by task/habit - time_entries includes all sources
   const groupedEntries = useMemo(() => {
-    const groups: Record<string, { name: string; icon?: string; duration: number; entryIds: string[]; isPomodoroOnly?: boolean }> = {};
+    const groups: Record<string, { 
+      name: string; 
+      icon?: string; 
+      duration: number; 
+      entryIds: string[]; 
+      isHabit?: boolean;
+    }> = {};
     
-    // Add time tracker entries
     filteredEntries.forEach(entry => {
       const task = tasks.find(t => t.id === entry.taskId);
+      const habit = habits.find(h => h.id === entry.taskId);
       const key = entry.taskId || 'none';
-      const name = task?.name || 'Без задачи';
-      const icon = task?.icon;
+      const name = task?.name || habit?.name || entry.description || 'Без задачи';
+      const icon = task?.icon || habit?.icon;
       
       if (!groups[key]) {
-        groups[key] = { name, icon, duration: 0, entryIds: [] };
+        groups[key] = { name, icon, duration: 0, entryIds: [], isHabit: !!habit };
       }
       groups[key].duration += entry.duration;
       groups[key].entryIds.push(entry.id);
     });
 
-    // Add pomodoro time to existing groups or create new ones
-    Object.entries(pomodoroByTask).forEach(([taskId, duration]) => {
-      const task = tasks.find(t => t.id === taskId);
-      const key = taskId === 'no_task' ? 'pomodoro_no_task' : taskId;
-      const name = taskId === 'no_task' ? 'Помодоро (без задачи)' : (task?.name || 'Без задачи');
-      const icon = task?.icon;
-      
-      if (groups[key]) {
-        groups[key].duration += duration;
-      } else {
-        groups[key] = { name, icon, duration, entryIds: [], isPomodoroOnly: taskId === 'no_task' };
-      }
-    });
-
     return Object.entries(groups).sort((a, b) => b[1].duration - a[1].duration);
-  }, [filteredEntries, tasks, pomodoroByTask]);
+  }, [filteredEntries, tasks, habits]);
 
   const handleStart = () => {
     if (selectedTaskId) {
-      startTimer(selectedTaskId, selectedSubtaskId || undefined);
+      const task = tasks.find(t => t.id === selectedTaskId);
+      const habit = habits.find(h => h.id === selectedTaskId);
+      startTimer(
+        selectedTaskId, 
+        selectedSubtaskId || undefined,
+        undefined,
+        task?.goalId || habit?.goalId,
+        task?.sphereId || habit?.sphereId,
+        habit ? selectedTaskId : undefined
+      );
     }
   };
 
@@ -122,21 +165,34 @@ export function TimeTracker() {
     month: t('month') || 'Месяц',
   };
 
+  const isAnyTimerRunning = isTimerRunning || isPomodoroRunning;
+
   return (
     <div className="space-y-4">
       {/* Active timer display */}
       <div className="text-center py-4">
-        <div className="text-4xl font-bold text-foreground tracking-tight">
+        <div className={cn(
+          "text-4xl font-bold tracking-tight transition-colors",
+          isAnyTimerRunning ? "text-success" : "text-foreground"
+        )}>
           {formatDuration(isTimerRunning ? elapsedTime : 0)}
         </div>
         {isTimerRunning && activeTimer && (
           <p className="text-sm text-muted-foreground mt-1">
-            {tasks.find(t => t.id === activeTimer.taskId)?.name || 'Задача'}
+            {tasks.find(t => t.id === activeTimer.taskId)?.name || 
+             habits.find(h => h.id === activeTimer.taskId)?.name || 
+             'Задача'}
           </p>
+        )}
+        {isAnyTimerRunning && (
+          <div className="flex items-center justify-center gap-1 text-xs text-success mt-2">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span>Таймер активен</span>
+          </div>
         )}
       </div>
 
-      {/* Task selector */}
+      {/* Task/Habit selector */}
       <div className="space-y-2">
         <div className="relative">
           <Button
@@ -151,9 +207,14 @@ export function TimeTracker() {
                   <span>{selectedTask.icon}</span>
                   <span>{selectedTask.name}</span>
                 </>
+              ) : selectedHabit ? (
+                <>
+                  <span>{selectedHabit.icon}</span>
+                  <span>{selectedHabit.name}</span>
+                </>
               ) : (
                 <span className="text-muted-foreground">
-                  {t('selectTask') || 'Выберите задачу'}
+                  {t('selectTask') || 'Выберите задачу или привычку'}
                 </span>
               )}
             </span>
@@ -166,9 +227,13 @@ export function TimeTracker() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-auto"
+                className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-64 overflow-auto"
               >
-                {tasks.filter(t => !t.completed).map(task => (
+                {/* Tasks section */}
+                <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
+                  Задачи
+                </div>
+                {tasks.filter(t => !t.completed && !t.archivedAt).map(task => (
                   <button
                     key={task.id}
                     onClick={() => handleTaskSelect(task.id)}
@@ -183,9 +248,29 @@ export function TimeTracker() {
                     )}
                   </button>
                 ))}
-                {tasks.filter(t => !t.completed).length === 0 && (
+                {tasks.filter(t => !t.completed && !t.archivedAt).length === 0 && (
                   <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                    {t('noActiveTasks') || 'Нет активных задач'}
+                    Нет активных задач
+                  </div>
+                )}
+                
+                {/* Habits section */}
+                <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 border-t border-border">
+                  Привычки
+                </div>
+                {habits.filter(h => !h.archivedAt).map(habit => (
+                  <button
+                    key={habit.id}
+                    onClick={() => handleTaskSelect(habit.id)}
+                    className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2"
+                  >
+                    <span>{habit.icon}</span>
+                    <span className="flex-1">{habit.name}</span>
+                  </button>
+                ))}
+                {habits.filter(h => !h.archivedAt).length === 0 && (
+                  <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                    Нет активных привычек
                   </div>
                 )}
               </motion.div>
@@ -265,9 +350,17 @@ export function TimeTracker() {
             <Clock className="w-4 h-4" />
             {periodLabels[selectedPeriod]}
           </h4>
-          <span className="text-lg font-bold text-service">
-            {formatDuration(totalTime)}
-          </span>
+          <div className="flex items-center gap-2">
+            {selectedPeriod === 'today' && isAnyTimerRunning && (
+              <TrendingUp className="w-4 h-4 text-success" />
+            )}
+            <span className={cn(
+              "text-lg font-bold",
+              selectedPeriod === 'today' && isAnyTimerRunning ? "text-success" : "text-service"
+            )}>
+              {formatDuration(selectedPeriod === 'today' ? displayTotal : baseTotal)}
+            </span>
+          </div>
         </div>
 
         {groupedEntries.length > 0 ? (
@@ -276,20 +369,22 @@ export function TimeTracker() {
               <div key={key} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   {data.icon && <span>{data.icon}</span>}
-                  <span>{data.name}</span>
+                  <span className={data.isHabit ? 'text-habit' : ''}>{data.name}</span>
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">
                     {formatDuration(data.duration)}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleDeleteTaskEntries(data.entryIds)}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  {data.entryIds.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleDeleteTaskEntries(data.entryIds)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
