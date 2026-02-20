@@ -58,8 +58,8 @@ export function useLeaderboard() {
       // Get profiles for these users
       const userIds = starsData.map(s => s.user_id);
       const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, avatar_url, is_public, is_banned')
+        .from('public_profiles')
+        .select('user_id, display_name, avatar_url, is_public')
         .in('user_id', userIds);
 
       const profilesMap = (profilesData || []).reduce((acc, p) => {
@@ -70,7 +70,7 @@ export function useLeaderboard() {
       const leaderboardData: LeaderboardUser[] = starsData
         .filter(s => {
           const profile = profilesMap[s.user_id];
-          return profile && !profile.is_banned;
+          return !!profile;
         })
         .slice(0, 100) // Take only first 100 after filtering banned users
         .map((s, index) => {
@@ -146,8 +146,8 @@ export function useLeaderboard() {
         { data: referrals }
       ] = await Promise.all([
         supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url, bio, telegram_username, public_email, is_public, is_banned')
+          .from('public_profiles')
+          .select('user_id, display_name, avatar_url, bio, public_email, is_public')
           .eq('user_id', userId)
           .single(),
         supabase
@@ -161,20 +161,20 @@ export function useLeaderboard() {
           .eq('referrer_id', userId)
       ]);
 
-      if (!profile || profile.is_banned) return null;
+      if (!profile) return null;
 
       return {
         user_id: userId,
         display_name: profile.display_name,
         avatar_url: profile.avatar_url,
         bio: profile.bio,
-        telegram_username: profile.telegram_username,
-        public_email: (profile as any).public_email || null,
+        telegram_username: null,
+        public_email: profile.public_email || null,
         total_stars: stars?.total_stars || 0,
         current_streak_days: stars?.current_streak_days || 0,
         total_referrals: referrals?.length || 0,
         is_public: profile.is_public,
-        is_banned: profile.is_banned
+        is_banned: false
       };
     } catch (err) {
       console.error('Error fetching public profile:', err);

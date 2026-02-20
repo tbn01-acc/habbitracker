@@ -11,6 +11,7 @@ interface Profile {
   referred_by: string | null;
   bio: string | null;
   telegram_username: string | null;
+  telegram_id: number | null;
   public_email: string | null;
   created_at: string;
   updated_at: string;

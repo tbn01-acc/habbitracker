@@ -45,7 +45,7 @@ export function useUserSubscriptions() {
       if (followingData && followingData.length > 0) {
         const followingIds = followingData.map(s => s.following_id);
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('user_id, display_name, avatar_url')
           .in('user_id', followingIds);
 
@@ -66,7 +66,7 @@ export function useUserSubscriptions() {
       if (followersData && followersData.length > 0) {
         const followerIds = followersData.map(s => s.follower_id);
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('user_id, display_name, avatar_url')
           .in('user_id', followerIds);
 

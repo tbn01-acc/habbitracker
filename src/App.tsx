@@ -14,7 +14,7 @@ import { useReferralNotifications } from "@/hooks/useReferralNotifications";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { useUnifiedAuth } from "@/hooks/useUnifiedAuth"; 
+import { AuthProvider, useAuthContext } from "@/providers/AuthProvider";
 import { CloudRestoreDialog } from "@/components/profile/CloudRestoreDialog";
 
 // Импорт страниц
@@ -61,40 +61,23 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 60 * 24, // 24 часа хранения в памяти
       retry: 1,
       refetchOnWindowFocus: false,
-      networkMode: 'offlineFirst', // Использовать кэш при сбоях сети
     },
   },
 });
 
-const TelegramAccessBlocked = () => (
-  <div className="fixed inset-0 bg-background flex items-center justify-center z-[9999] p-5 text-center">
-    <div className="bg-card p-8 rounded-3xl max-w-sm shadow-2xl border">
-      <h2 className="text-destructive text-xl font-bold mb-4">Доступ ограничен</h2>
-      <p className="text-muted-foreground mb-6">
-        Для работы синхронизации и уведомлений необходимо разрешить приложению отправку сообщений в настройках Telegram.
-      </p>
-      <button 
-        onClick={() => window.location.reload()} 
-        className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-opacity"
-      >
-        Попробовать снова
-      </button>
-    </div>
-  </div>
-);
 
 const AppErrorFallback = ({ error }: { error: Error }) => (
   <div className="h-screen flex flex-col items-center justify-center p-6 text-center bg-background">
-    <h2 className="text-xl font-bold text-destructive mb-2">Ошибка инициализации</h2>
+    <h2 className="text-xl font-bold text-red-500 mb-2">Ошибка инициализации</h2>
     <p className="text-sm text-muted-foreground mb-4">
-      Не удалось запустить службы Telegram или базу данных.
+      Не удалось запустить приложение.
     </p>
-    <pre className="text-[10px] bg-muted p-2 rounded mb-4 max-w-full overflow-auto text-left text-foreground">
+    <pre className="text-[10px] bg-muted p-2 rounded mb-4 max-w-full overflow-auto text-left">
       {error.message}
     </pre>
     <button 
       onClick={() => window.location.href = '/'}
-      className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
+      className="px-6 py-2 bg-primary text-white rounded-lg font-medium"
     >
       Перезагрузить приложение
     </button>
@@ -156,21 +139,17 @@ const AppContent = () => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 
-  const { isAccessDenied, isLoading: isTgAuthLoading } = useUnifiedAuth();
+  const { loading: authLoading } = useAuthContext();
 
   useReferralActivityTracker();
   useReferralNotifications();
 
-  if (isTgAuthLoading) {
+  if (authLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
-  }
-
-  if (isAccessDenied) {
-    return <TelegramAccessBlocked />;
   }
 
   return (
@@ -226,15 +205,17 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <PomodoroProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <SubscriptionWrapper>
-                <AppContent />
-              </SubscriptionWrapper>
-            </BrowserRouter>
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <SubscriptionWrapper>
+                  <AppContent />
+                </SubscriptionWrapper>
+              </BrowserRouter>
+            </TooltipProvider>
+          </AuthProvider>
         </PomodoroProvider>
       </LanguageProvider>
     </QueryClientProvider>

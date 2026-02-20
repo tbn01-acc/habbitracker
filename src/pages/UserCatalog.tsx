@@ -80,9 +80,8 @@ export default function UserCatalog() {
   useEffect(() => {
     const fetchInterests = async () => {
       const { data } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('interests')
-        .eq('is_public', true)
         .not('interests', 'is', null);
 
       if (data) {
@@ -101,9 +100,8 @@ export default function UserCatalog() {
       const offset = pageNum * PAGE_SIZE;
       
       let query = supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, bio, status_tag, interests, location')
-        .eq('is_public', true)
         .neq('user_id', user?.id || '');
 
       // Filter by search

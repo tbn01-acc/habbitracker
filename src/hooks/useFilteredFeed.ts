@@ -69,7 +69,7 @@ export function useFilteredFeed(feedType: FeedType) {
       // Get profiles
       const userIds = [...new Set((data || []).map(p => p.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, active_frame, active_badges')
         .in('user_id', userIds);
 
@@ -159,7 +159,7 @@ export function useFilteredFeed(feedType: FeedType) {
 
           // Fetch profile for new post
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('public_profiles')
             .select('user_id, display_name, avatar_url, active_frame, active_badges')
             .eq('user_id', newPost.user_id)
             .single();

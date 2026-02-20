@@ -273,7 +273,7 @@ export function useGroupChats() {
     
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url')
         .ilike('display_name', `%${query}%`)
         .limit(20);
@@ -401,7 +401,7 @@ export function useChatMessages(chatId: string | null) {
       // Fetch sender profiles
       const userIds = [...new Set(data?.map(m => m.user_id) || [])];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
@@ -441,7 +441,7 @@ export function useChatMessages(chatId: string | null) {
       // Fetch profiles
       const userIds = data?.map(m => m.user_id) || [];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
@@ -475,7 +475,7 @@ export function useChatMessages(chatId: string | null) {
         async (payload) => {
           const newMsg = payload.new as ChatMessage;
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('public_profiles')
             .select('user_id, display_name, avatar_url')
             .eq('user_id', newMsg.user_id)
             .single();

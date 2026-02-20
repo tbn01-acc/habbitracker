@@ -432,11 +432,13 @@ export type Database = {
           icon: string | null
           id: string
           name: string
+          progress: number | null
           progress_percent: number | null
           sphere_id: number | null
           status: string | null
           target_date: string | null
           time_goal_minutes: number | null
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -450,11 +452,13 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
+          progress?: number | null
           progress_percent?: number | null
           sphere_id?: number | null
           status?: string | null
           target_date?: string | null
           time_goal_minutes?: number | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -468,11 +472,13 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
+          progress?: number | null
           progress_percent?: number | null
           sphere_id?: number | null
           status?: string | null
           target_date?: string | null
           time_goal_minutes?: number | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -608,6 +614,38 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          habit_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          habit_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          habit_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habits: {
         Row: {
           archived_at: string | null
@@ -625,6 +663,7 @@ export type Database = {
           streak: number
           tags: string[] | null
           target_days: number[]
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -644,6 +683,7 @@ export type Database = {
           streak?: number
           tags?: string[] | null
           target_days?: number[]
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -663,6 +703,7 @@ export type Database = {
           streak?: number
           tags?: string[] | null
           target_days?: number[]
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1752,6 +1793,44 @@ export type Database = {
           },
         ]
       }
+      time_logs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          goal_id: string | null
+          id: string
+          sphere_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          goal_id?: string | null
+          id?: string
+          sphere_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          goal_id?: string | null
+          id?: string
+          sphere_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_logs_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
@@ -2195,7 +2274,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          active_badges: string[] | null
+          active_frame: string | null
+          avatar_url: string | null
+          bio: string | null
+          can_help: string | null
+          created_at: string | null
+          display_name: string | null
+          expertise: string | null
+          interests: string[] | null
+          is_public: boolean | null
+          job_title: string | null
+          location: string | null
+          public_email: string | null
+          referral_code: string | null
+          status_tag: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          active_badges?: string[] | null
+          active_frame?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          can_help?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          expertise?: string | null
+          interests?: string[] | null
+          is_public?: boolean | null
+          job_title?: string | null
+          location?: string | null
+          public_email?: string | null
+          referral_code?: string | null
+          status_tag?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          active_badges?: string[] | null
+          active_frame?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          can_help?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          expertise?: string | null
+          interests?: string[] | null
+          is_public?: boolean | null
+          job_title?: string | null
+          location?: string | null
+          public_email?: string | null
+          referral_code?: string | null
+          status_tag?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_user_xp: {

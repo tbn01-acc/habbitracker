@@ -82,8 +82,8 @@ interface ProfileData {
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  telegram_username: string | null;
-  public_email: string | null;
+  telegram_username?: string | null;
+  public_email?: string | null;
   dob?: string | null;
   location?: string | null;
   job_title?: string | null;
@@ -214,7 +214,7 @@ export function PublicProfileView({ profile: initialProfile, userId, onBack, onV
     try {
       // Fetch profile
       const { data, error } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('*')
         .eq('user_id', userId)
         .single();

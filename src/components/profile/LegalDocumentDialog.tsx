@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Edit2, Save, X } from 'lucide-react';
 import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -60,9 +61,9 @@ export function LegalDocumentDialog({ open, onOpenChange, documentType }: LegalD
     help_support: t('helpAndSupport'),
   };
 
-  // Simple markdown to HTML renderer
+  // Simple markdown to HTML renderer with sanitization
   const renderMarkdown = (text: string) => {
-    return text
+    const rawHtml = text
       .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>')
@@ -70,6 +71,10 @@ export function LegalDocumentDialog({ open, onOpenChange, documentType }: LegalD
       .replace(/\*(.*)\*/gim, '<em>$1</em>')
       .replace(/^\s*-\s+(.*)$/gim, '<li class="ml-4">$1</li>')
       .replace(/\n/g, '<br/>');
+    return DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'strong', 'em', 'ul', 'li', 'br', 'div'],
+      ALLOWED_ATTR: ['class'],
+    });
   };
 
   if (loading) {

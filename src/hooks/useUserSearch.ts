@@ -42,9 +42,8 @@ export function useUserSearch() {
       
       // Search only public profiles by display_name (case-insensitive)
       const { data: profiles, error } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, bio, status_tag, interests')
-        .eq('is_public', true)
         .ilike('display_name', `%${searchQuery}%`)
         .neq('user_id', user?.id || '')
         .range(offset, offset + PAGE_SIZE - 1)

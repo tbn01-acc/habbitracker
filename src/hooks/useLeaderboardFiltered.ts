@@ -70,8 +70,8 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all', sortTy
       // Get profiles
       const userIds = starsData.map(s => s.user_id);
       const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, avatar_url, is_banned')
+        .from('public_profiles')
+        .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
       const profilesMap = (profilesData || []).reduce((acc, p) => {
@@ -120,7 +120,7 @@ export function useLeaderboardFiltered(period: LeaderboardPeriod = 'all', sortTy
       let leaderboardData: LeaderboardUser[] = starsData
         .filter(s => {
           const profile = profilesMap[s.user_id];
-          return profile && !profile.is_banned;
+          return !!profile;
         })
         .map((s) => {
           const profile = profilesMap[s.user_id] || {};

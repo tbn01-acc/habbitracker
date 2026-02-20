@@ -527,7 +527,7 @@ function ReferralsListModal({
       if (referralsData && referralsData.length > 0) {
         const referredIds = referralsData.map(r => r.referred_id);
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('user_id, display_name')
           .in('user_id', referredIds);
 

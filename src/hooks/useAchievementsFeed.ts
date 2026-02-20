@@ -74,7 +74,7 @@ export function useAchievementsFeed() {
       // Get profiles for posts
       const userIds = [...new Set((data || []).map(p => p.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, active_frame, active_badges')
         .in('user_id', userIds);
 
@@ -304,7 +304,7 @@ export function useAchievementsFeed() {
 
       const userIds = [...new Set((data || []).map(c => c.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, active_frame, active_badges')
         .in('user_id', userIds);
 

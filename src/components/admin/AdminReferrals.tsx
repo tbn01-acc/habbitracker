@@ -97,7 +97,7 @@ export function AdminReferrals() {
       if (referralsError) throw referralsError;
 
       // Fetch profiles for names
-      const { data: profiles } = await supabase.from('profiles').select('user_id, display_name');
+      const { data: profiles } = await supabase.from('public_profiles').select('user_id, display_name');
       const profileMap = new Map(profiles?.map(p => [p.user_id, p.display_name]) || []);
 
       const enrichedReferrals = (referralsData || []).map(r => ({

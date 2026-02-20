@@ -89,7 +89,7 @@ export function ProfileStatsDialog({ open, onOpenChange, userId }: ProfileStatsD
         if (subsData && subsData.length > 0) {
           const followerIds = subsData.map(s => s.follower_id);
           const { data: profiles } = await supabase
-            .from('profiles')
+            .from('public_profiles')
             .select('user_id, display_name, avatar_url')
             .in('user_id', followerIds);
 

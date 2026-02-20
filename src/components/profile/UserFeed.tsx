@@ -75,7 +75,7 @@ export function UserFeed({ userId }: UserFeedProps) {
 
         // Fetch profile
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('display_name, avatar_url')
           .eq('user_id', userId)
           .single();

@@ -6,20 +6,12 @@ verify_jwt = false
 [functions.cleanup-old-notifications]
 verify_jwt = false
 
-[functions.robokassa-create-payment]
-verify_jwt = false
-
-[functions.robokassa-fail]
-verify_jwt = false
-
-[functions.robokassa-success]
-verify_jwt = false
-
-[functions.robokassa-webhook]
-verify_jwt = false
-
 [functions.send-referral-notification]
 verify_jwt = false
 
-[functions.verify-telegram-init]
+
+[functions.yookassa-create-payment]
+verify_jwt = false
+
+[functions.yookassa-webhook]
 verify_jwt = false

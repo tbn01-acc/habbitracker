@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   User, Settings, Trophy, Users, Crown, Lock, 
-  LogIn, Archive, BarChart3, Mail, Send, CheckCircle2 
+  LogIn, Archive, BarChart3, Mail, Send, CheckCircle2,
+  MessageCircle, Link2
 } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/providers/AuthProvider';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,6 +66,7 @@ export default function Profile() {
   const { language } = useTranslation();
   const navigate = useNavigate();
   const { user, profile, loading, refetchProfile } = useAuth();
+  const { linkEmail } = useAuthContext();
   const { isProActive } = useSubscription();
   const { toast } = useToast();
   
@@ -92,24 +95,14 @@ export default function Profile() {
 
     setIsLinking(true);
     try {
-      // 1. Обновляем email в таблице public.profiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ public_email: emailInput })
-        .eq('id', user?.id);
-
-      if (profileError) throw profileError;
-
-      // 2. Обновляем email в метаданных пользователя Auth
-      const { error: authError } = await supabase.auth.updateUser({ email: emailInput });
-      if (authError) throw authError;
+      const { error } = await linkEmail(emailInput);
+      if (error) throw new Error(error);
 
       toast({
         title: isRussian ? "Успешно" : "Success",
-        description: isRussian ? "Email успешно привязан" : "Email linked successfully",
+        description: isRussian ? "Письмо с подтверждением отправлено на email" : "Confirmation email sent",
       });
       
-      await refetchProfile();
       setEmailInput('');
     } catch (error: any) {
       toast({
@@ -168,36 +161,34 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* Universal Access / Email Linking Block (Visible if logged in) */}
+        {/* Identity Linking Block */}
         {user && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            className="mb-6 space-y-3"
           >
-            <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/10">
+            {/* Email Status */}
+            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/10">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3 text-blue-600 dark:text-blue-400">
+                <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm font-semibold uppercase tracking-wider">
-                    {isRussian ? 'Универсальный доступ' : 'Universal Access'}
-                  </span>
+                  <span className="text-sm font-semibold uppercase tracking-wider">Email</span>
                 </div>
-
-                {profile?.public_email && !profile.public_email.includes('@top-focus.ru') ? (
-                  <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100">
-                    <span className="text-sm font-medium">{profile.public_email}</span>
-                    <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded">
+                {user?.email ? (
+                  <div className="flex items-center justify-between bg-card p-3 rounded-lg border">
+                    <span className="text-sm font-medium">{user.email}</span>
+                    <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 dark:bg-green-950/30 px-2 py-1 rounded">
                       <CheckCircle2 className="w-3 h-3" />
                       {isRussian ? 'ПРИВЯЗАН' : 'LINKED'}
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
                       {isRussian 
-                        ? 'Привяжите почту, чтобы входить в аккаунт через браузер и сохранять прогресс вне Telegram.' 
-                        : 'Link your email to access your account via browser and save progress outside of Telegram.'}
+                        ? 'Привяжите почту для входа через браузер и восстановления доступа.' 
+                        : 'Link email for browser login and account recovery.'}
                     </p>
                     <div className="flex gap-2">
                       <Input 
@@ -205,13 +196,13 @@ export default function Profile() {
                         placeholder="example@mail.com"
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
-                        className="h-9 bg-white dark:bg-slate-900"
+                        className="h-9 bg-card"
                       />
                       <Button 
                         size="sm" 
                         onClick={handleLinkEmail} 
                         disabled={isLinking}
-                        className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                        className="shrink-0"
                       >
                         {isLinking ? '...' : <Send className="w-4 h-4" />}
                       </Button>
