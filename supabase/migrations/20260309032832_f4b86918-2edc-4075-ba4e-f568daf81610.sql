@@ -1,0 +1,1 @@
+UPDATE app_settings SET setting_value = '{"guest_access_enabled": false, "registration_enabled": true, "start_page": "dashboard"}'::jsonb, updated_at = now() WHERE setting_key = 'access_control';
