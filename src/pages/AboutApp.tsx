@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Info, FileText, Shield, Lock, ScrollText, HelpCircle, Settings, ChevronRight, Newspaper } from 'lucide-react';
+import { ArrowLeft, Info, FileText, Shield, Lock, ScrollText, HelpCircle, Settings, ChevronRight, Newspaper, Mail, Cookie, MapPin, UserCheck } from 'lucide-react';
 import { LegalDocumentDialog } from '@/components/profile/LegalDocumentDialog';
 import { UserPermissionsDialog } from '@/components/profile/UserPermissionsDialog';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,12 +29,16 @@ export default function AboutApp() {
     { type: 'public_offer' as LegalDocumentType, icon: ScrollText, label: isRussian ? 'Публичная оферта' : 'Public Offer' },
     { type: 'privacy' as LegalDocumentType, icon: Shield, label: t('privacyPolicy') },
     { type: 'data_processing' as LegalDocumentType, icon: Lock, label: t('dataProcessingPolicy') },
+    { type: 'marketing_consent' as LegalDocumentType, icon: Mail, label: isRussian ? 'Согласие на рассылки и рекламу' : 'Marketing Consent' },
+    { type: 'cookies_consent' as LegalDocumentType, icon: Cookie, label: isRussian ? 'Cookies и анонимная статистика' : 'Cookies & Analytics' },
+    { type: 'geolocation_consent' as LegalDocumentType, icon: MapPin, label: isRussian ? 'Согласие на геопозицию' : 'Geolocation Consent' },
+    { type: 'age_confirmation' as LegalDocumentType, icon: UserCheck, label: isRussian ? 'Подтверждение возраста' : 'Age Confirmation' },
     { type: 'help_support' as LegalDocumentType, icon: HelpCircle, label: t('helpAndSupport') },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

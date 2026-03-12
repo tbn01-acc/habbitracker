@@ -1,9 +1,11 @@
-import { Crown, Check, X, Zap } from 'lucide-react';
+import { Crown, Check, X, Zap, FileDown, FileText, Clock, CheckCircle } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { useTeamSubscriptions } from '@/hooks/useTeamSubscriptions';
+import { generateInvoicePDF } from '@/utils/pdfGenerator';
 
 interface SubscriptionSectionProps {
   currentPlan: 'free' | 'pro';
@@ -15,6 +17,9 @@ export function SubscriptionSection({ currentPlan, expiresAt, bonusDays = 0 }: S
   const { t, language } = useTranslation();
   const navigate = useNavigate();
   const isRussian = language === 'ru';
+  const { subscriptions, generateAct } = useTeamSubscriptions();
+
+  const PERIOD_LABELS: Record<string, string> = { month: 'Месяц', quarter: 'Квартал', year: 'Год' };
 
   const freeFeatures = [
     { text: isRussian ? '3 привычки, 3 задачи, 15 фин. операций' : '3 habits, 3 tasks, 15 transactions', included: true },
@@ -170,6 +175,78 @@ export function SubscriptionSection({ currentPlan, expiresAt, bonusDays = 0 }: S
               <Crown className="w-4 h-4 mr-2" />
               {isRussian ? 'КУПИТЬ PRO-версию' : 'GET PRO VERSION'}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Team Subscriptions Documents */}
+      {subscriptions.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="w-4 h-4 text-indigo-400" />
+              {isRussian ? 'Командные подписки — документы' : 'Team subscriptions — documents'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {subscriptions.map(sub => {
+                const isPaid = sub.status === 'paid' || sub.status === 'active';
+                const formatD = (d: string) => new Date(d).toLocaleDateString('ru-RU');
+                return (
+                  <div key={sub.id} className="p-3 rounded-xl bg-muted/30 border border-border/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{sub.team_name} — {sub.seats_count} мест</p>
+                        <p className="text-xs text-muted-foreground">
+                          {sub.invoice_number} · {PERIOD_LABELS[sub.billing_period] || sub.billing_period} · {sub.total_amount.toLocaleString('ru-RU')} ₽
+                        </p>
+                      </div>
+                      <Badge variant={isPaid ? 'default' : 'secondary'} className="text-xs gap-1">
+                        {isPaid
+                          ? <><CheckCircle className="w-3 h-3" /> Оплачен</>
+                          : <><Clock className="w-3 h-3" /> Ожидает оплаты</>
+                        }
+                      </Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs h-8"
+                        onClick={async () => {
+                          await generateInvoicePDF({
+                            number: sub.invoice_number || `TF-TEAM-${sub.id.slice(0, 6)}`,
+                            date: sub.created_at,
+                            clientName: sub.org_name || sub.team_name,
+                            clientInn: sub.inn,
+                            clientKpp: sub.kpp || undefined,
+                            clientAddress: sub.org_address || undefined,
+                            items: [{
+                              name: `Подписка «Команда» (${sub.seats_count} мест, ${PERIOD_LABELS[sub.billing_period] || sub.billing_period})`,
+                              quantity: 1,
+                              price: sub.total_amount,
+                            }],
+                          });
+                        }}
+                      >
+                        <FileDown className="w-3.5 h-3.5" /> Счёт
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs h-8"
+                        disabled={!isPaid}
+                        onClick={() => generateAct(sub)}
+                      >
+                        <FileDown className="w-3.5 h-3.5" /> Акт
+                        {!isPaid && <span className="text-muted-foreground ml-1">(после оплаты)</span>}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

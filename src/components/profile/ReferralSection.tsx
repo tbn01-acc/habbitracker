@@ -1,4 +1,5 @@
 import { Users, Copy, Gift, Check, Trophy, Crown, Medal } from 'lucide-react';
+import { APP_URL } from '@/lib/constants';
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
@@ -35,7 +36,7 @@ export function ReferralSection({ referralCode, currentPlan, referralStats }: Re
   const [userPosition, setUserPosition] = useState<number | null>(null);
   const isRussian = language === 'ru';
 
-  const referralLink = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : '';
+  const referralLink = referralCode ? `${APP_URL}/auth?ref=${referralCode}` : '';
 
   // Fetch leaderboard
   useEffect(() => {

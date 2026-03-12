@@ -23,7 +23,8 @@ interface LegalDocumentDialogProps {
 }
 
 export function LegalDocumentDialog({ open, onOpenChange, documentType }: LegalDocumentDialogProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isRussian = language === 'ru';
   const { getDocument, updateDocument, isAdmin, loading } = useLegalDocuments();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -59,6 +60,10 @@ export function LegalDocumentDialog({ open, onOpenChange, documentType }: LegalD
     data_processing: t('dataProcessingPolicy'),
     public_offer: t('publicOffer'),
     help_support: t('helpAndSupport'),
+    marketing_consent: isRussian ? 'Согласие на рассылки и рекламу' : 'Marketing Consent',
+    cookies_consent: isRussian ? 'Cookies и анонимная статистика' : 'Cookies & Analytics',
+    geolocation_consent: isRussian ? 'Согласие на геопозицию' : 'Geolocation Consent',
+    age_confirmation: isRussian ? 'Подтверждение возраста' : 'Age Confirmation',
   };
 
   // Simple markdown to HTML renderer with sanitization

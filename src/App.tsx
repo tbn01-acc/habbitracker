@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { AuthProvider, useAuthContext } from "@/providers/AuthProvider";
 import { CloudRestoreDialog } from "@/components/profile/CloudRestoreDialog";
+import { OnboardingSlideshow } from "@/components/OnboardingSlideshow";
+import { LegalActivationModal } from "@/components/legal/LegalActivationModal";
+import { AnalyticsHead } from "@/components/AnalyticsHead";
+import { AppHeader } from "@/components/AppHeader";
 
 // Импорт страниц
 import Dashboard from "./pages/Dashboard";
@@ -50,6 +54,9 @@ import SphereDetail from "./pages/SphereDetail";
 import NotFound from "./pages/NotFound";
 import DayPlan from "./pages/DayPlan";
 import DaySummary from "./pages/DaySummary";
+import TeamPlan from "./pages/TeamPlan";
+import Team from "./pages/Team";
+import TeamPricing from "./pages/TeamPricing";
 
 /**
  * Конфигурация QueryClient с поддержкой Offline Mode
@@ -134,15 +141,52 @@ const AccessControlWrapper = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ONBOARDING_STORAGE_KEY = 'topfocus_onboarding_seen';
+
 const AppContent = () => {
   const [habitDialogOpen, setHabitDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 
-  const { loading: authLoading } = useAuthContext();
+  const { user, profile, loading: authLoading, refetchProfile } = useAuthContext();
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Legal firewall state
+  const [showLegal, setShowLegal] = useState(false);
 
   useReferralActivityTracker();
   useReferralNotifications();
+
+  // Check onboarding & legal status after auth loads
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const onboardingSeen = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+    if (!onboardingSeen) {
+      setShowOnboarding(true);
+      return;
+    }
+
+    // If onboarding done, check legal consents
+    if (profile && !profile.legal_consents_accepted) {
+      setShowLegal(true);
+    }
+  }, [authLoading, user, profile]);
+
+  const handleOnboardingClose = useCallback(() => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    setShowOnboarding(false);
+    // After onboarding, show legal if not accepted
+    if (user && profile && !profile.legal_consents_accepted) {
+      setShowLegal(true);
+    }
+  }, [user, profile]);
+
+  const handleLegalAccepted = useCallback(async () => {
+    setShowLegal(false);
+    await refetchProfile();
+  }, [refetchProfile]);
 
   if (authLoading) {
     return (
@@ -152,10 +196,23 @@ const AppContent = () => {
     );
   }
 
+  const location = useLocation();
+  const hideHeader = location.pathname === '/auth';
+
   return (
     <CloudSyncProvider>
+      <AnalyticsHead />
       <AccessControlWrapper>
+        <OnboardingSlideshow open={showOnboarding} onClose={handleOnboardingClose} />
+        {user && showLegal && (
+          <LegalActivationModal
+            open={showLegal}
+            userId={user.id}
+            onAccepted={handleLegalAccepted}
+          />
+        )}
         <CloudRestoreDialog />
+        {!hideHeader && <AppHeader />}
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/habits" element={<Habits openDialog={habitDialogOpen} onDialogClose={() => setHabitDialogOpen(false)} />} />
@@ -188,6 +245,9 @@ const AppContent = () => {
           <Route path="/sphere/:sphereKey" element={<SphereDetail />} />
           <Route path="/day-plan" element={<DayPlan />} />
           <Route path="/day-summary" element={<DaySummary />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/team-plan" element={<TeamPlan />} />
+          <Route path="/pricing/team" element={<TeamPricing />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNavigation

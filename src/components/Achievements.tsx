@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef } from 'react';
+import { APP_URL } from '@/lib/constants';
 import { motion } from 'framer-motion';
 import { Award, Target, Flame, CheckCircle2, Lock, Share2 } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -124,7 +125,7 @@ export function Achievements() {
 
   const shareAchievement = (badge: Badge) => {
     const text = `🏆 ${t('achievementUnlocked')}: ${getTypeLabel(badge.type)} - ${getPeriodLabel(badge.period)}!`;
-    const url = window.location.origin;
+    const url = APP_URL;
     
     if (navigator.share) {
       navigator.share({ title: t('achievements'), text, url }).catch(() => {});
@@ -137,7 +138,7 @@ export function Achievements() {
   const shareAllAchievements = () => {
     const earnedBadges = badges.filter(b => b.earned);
     const text = `🏆 ${t('achievements')}: ${earnedBadges.length}/${badges.length}\n${earnedBadges.map(b => `• ${getTypeLabel(b.type)} - ${getPeriodLabel(b.period)}`).join('\n')}`;
-    const url = window.location.origin;
+    const url = APP_URL;
     
     if (navigator.share) {
       navigator.share({ title: t('achievements'), text, url }).catch(() => {});

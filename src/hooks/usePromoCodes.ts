@@ -215,6 +215,62 @@ export function usePromoCodes() {
     }
   };
 
+  // Atomic redemption via DB function — validates, records usage, increments counter,
+  // applies bonus stars/days, and logs referrer attribution in one transaction.
+  const redeemPromoCode = async (code: string): Promise<{
+    success: boolean;
+    discount_percent?: number;
+    bonus_stars?: number;
+    bonus_days?: number;
+    promo_code_id?: string;
+    error?: string;
+  }> => {
+    if (!user) return { success: false, error: 'not_authenticated' };
+
+    try {
+      const { data, error } = await supabase.rpc('redeem_promo_code', {
+        p_code: code.toUpperCase(),
+        p_user_id: user.id,
+      });
+
+      if (error) {
+        console.error('Error redeeming promo code:', error);
+        toast.error('Ошибка активации промо-кода');
+        return { success: false, error: 'rpc_error' };
+      }
+
+      const result = data as any;
+
+      if (!result?.success) {
+        const errorMessages: Record<string, string> = {
+          not_found: 'Промо-код не найден или недействителен',
+          expired: 'Срок действия промо-кода истёк',
+          exhausted: 'Промо-код исчерпан',
+          already_used: 'Вы уже использовали этот промо-код',
+        };
+        toast.error(errorMessages[result?.error] || 'Промо-код недействителен');
+        return { success: false, error: result?.error };
+      }
+
+      const msgs: string[] = ['Промо-код активирован!'];
+      if (result.bonus_stars > 0) msgs.push(`+${result.bonus_stars} ⭐`);
+      if (result.bonus_days > 0) msgs.push(`+${result.bonus_days} дней подписки`);
+      toast.success(msgs.join(' '));
+
+      return {
+        success: true,
+        discount_percent: result.discount_percent,
+        bonus_stars: result.bonus_stars,
+        bonus_days: result.bonus_days,
+        promo_code_id: result.promo_code_id,
+      };
+    } catch (error) {
+      console.error('Error redeeming promo code:', error);
+      toast.error('Ошибка активации промо-кода');
+      return { success: false, error: 'unknown' };
+    }
+  };
+
   return {
     promoCodes,
     loading,
@@ -224,6 +280,7 @@ export function usePromoCodes() {
     togglePromoCode,
     validatePromoCode,
     usePromoCode,
+    redeemPromoCode,
     refetch: fetchPromoCodes,
   };
 }

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type LegalDocumentType = 'terms' | 'privacy' | 'data_processing' | 'public_offer' | 'help_support';
+export type LegalDocumentType = 'terms' | 'privacy' | 'data_processing' | 'public_offer' | 'help_support' | 'marketing_consent' | 'cookies_consent' | 'geolocation_consent' | 'age_confirmation';
 
 export interface LegalDocument {
   id: string;

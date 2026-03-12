@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          created_at: string
+          id: string
+          request_count: number
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          request_count?: number
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          request_count?: number
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
@@ -131,6 +155,30 @@ export type Database = {
           spread?: number
           stars_awarded?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      banned_fingerprints: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          fingerprint_hash: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          fingerprint_hash: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          fingerprint_hash?: string
+          id?: string
+          reason?: string | null
         }
         Relationships: []
       }
@@ -377,6 +425,60 @@ export type Database = {
           id?: string
           user_id?: string
           verified_count?: number
+        }
+        Relationships: []
+      }
+      device_fingerprints: {
+        Row: {
+          audio_hash: string | null
+          canvas_hash: string | null
+          created_at: string
+          fingerprint_hash: string
+          fonts_hash: string | null
+          id: string
+          ip_address: string | null
+          language: string | null
+          platform: string | null
+          screen_resolution: string | null
+          timezone: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+          webgl_hash: string | null
+        }
+        Insert: {
+          audio_hash?: string | null
+          canvas_hash?: string | null
+          created_at?: string
+          fingerprint_hash: string
+          fonts_hash?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          platform?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+          webgl_hash?: string | null
+        }
+        Update: {
+          audio_hash?: string | null
+          canvas_hash?: string | null
+          created_at?: string
+          fingerprint_hash?: string
+          fonts_hash?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          platform?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+          webgl_hash?: string | null
         }
         Relationships: []
       }
@@ -1070,11 +1172,15 @@ export type Database = {
         Row: {
           active_badges: string[] | null
           active_frame: string | null
+          active_units_count: number | null
+          affiliate_level: string | null
           avatar_url: string | null
           ban_count: number | null
           ban_until: string | null
           bio: string | null
           can_help: string | null
+          cloud_sync_interval_days: number | null
+          consent_revokes_count: number | null
           created_at: string
           display_name: string | null
           dob: string | null
@@ -1082,12 +1188,17 @@ export type Database = {
           expertise: string | null
           first_day_of_week: number | null
           full_name: string | null
+          has_ai_analytics: boolean | null
           id: string
           interests: string[] | null
           is_banned: boolean | null
           is_public: boolean | null
           job_title: string | null
+          legal_consents_accepted: boolean | null
           location: string | null
+          max_fin_ops: number | null
+          max_habits: number | null
+          max_tasks: number | null
           phone: string | null
           public_email: string | null
           read_only_until: string | null
@@ -1102,11 +1213,15 @@ export type Database = {
         Insert: {
           active_badges?: string[] | null
           active_frame?: string | null
+          active_units_count?: number | null
+          affiliate_level?: string | null
           avatar_url?: string | null
           ban_count?: number | null
           ban_until?: string | null
           bio?: string | null
           can_help?: string | null
+          cloud_sync_interval_days?: number | null
+          consent_revokes_count?: number | null
           created_at?: string
           display_name?: string | null
           dob?: string | null
@@ -1114,12 +1229,17 @@ export type Database = {
           expertise?: string | null
           first_day_of_week?: number | null
           full_name?: string | null
+          has_ai_analytics?: boolean | null
           id?: string
           interests?: string[] | null
           is_banned?: boolean | null
           is_public?: boolean | null
           job_title?: string | null
+          legal_consents_accepted?: boolean | null
           location?: string | null
+          max_fin_ops?: number | null
+          max_habits?: number | null
+          max_tasks?: number | null
           phone?: string | null
           public_email?: string | null
           read_only_until?: string | null
@@ -1134,11 +1254,15 @@ export type Database = {
         Update: {
           active_badges?: string[] | null
           active_frame?: string | null
+          active_units_count?: number | null
+          affiliate_level?: string | null
           avatar_url?: string | null
           ban_count?: number | null
           ban_until?: string | null
           bio?: string | null
           can_help?: string | null
+          cloud_sync_interval_days?: number | null
+          consent_revokes_count?: number | null
           created_at?: string
           display_name?: string | null
           dob?: string | null
@@ -1146,12 +1270,17 @@ export type Database = {
           expertise?: string | null
           first_day_of_week?: number | null
           full_name?: string | null
+          has_ai_analytics?: boolean | null
           id?: string
           interests?: string[] | null
           is_banned?: boolean | null
           is_public?: boolean | null
           job_title?: string | null
+          legal_consents_accepted?: boolean | null
           location?: string | null
+          max_fin_ops?: number | null
+          max_habits?: number | null
+          max_tasks?: number | null
           phone?: string | null
           public_email?: string | null
           read_only_until?: string | null
@@ -1164,6 +1293,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      promo_code_logs: {
+        Row: {
+          action: string
+          bonus_days: number | null
+          bonus_stars: number | null
+          code: string
+          created_at: string
+          created_by: string
+          description: string | null
+          discount_percent: number
+          id: string
+          max_uses: number | null
+          promo_code_id: string | null
+          referrer_level: string | null
+          referrer_user_id: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          action?: string
+          bonus_days?: number | null
+          bonus_stars?: number | null
+          code: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          discount_percent?: number
+          id?: string
+          max_uses?: number | null
+          promo_code_id?: string | null
+          referrer_level?: string | null
+          referrer_user_id?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          action?: string
+          bonus_days?: number | null
+          bonus_stars?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          discount_percent?: number
+          id?: string
+          max_uses?: number | null
+          promo_code_id?: string | null
+          referrer_level?: string | null
+          referrer_user_id?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_logs_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promo_code_uses: {
         Row: {
@@ -1207,6 +1395,8 @@ export type Database = {
           id: string
           is_active: boolean
           max_uses: number | null
+          referrer_level: string | null
+          referrer_user_id: string | null
           updated_at: string
           valid_from: string | null
           valid_until: string | null
@@ -1223,6 +1413,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          referrer_level?: string | null
+          referrer_user_id?: string | null
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
@@ -1239,6 +1431,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          referrer_level?: string | null
+          referrer_user_id?: string | null
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
@@ -1464,6 +1658,230 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      sprint_daily_stats: {
+        Row: {
+          completed_sp: number
+          id: string
+          record_date: string
+          remaining_sp: number
+          sprint_id: string
+        }
+        Insert: {
+          completed_sp?: number
+          id?: string
+          record_date?: string
+          remaining_sp?: number
+          sprint_id: string
+        }
+        Update: {
+          completed_sp?: number
+          id?: string
+          record_date?: string
+          remaining_sp?: number
+          sprint_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_daily_stats_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_feedback: {
+        Row: {
+          action_items: string | null
+          created_at: string | null
+          id: string
+          sprint_id: string
+          to_improve: string | null
+          user_id: string
+          went_well: string | null
+        }
+        Insert: {
+          action_items?: string | null
+          created_at?: string | null
+          id?: string
+          sprint_id: string
+          to_improve?: string | null
+          user_id: string
+          went_well?: string | null
+        }
+        Update: {
+          action_items?: string | null
+          created_at?: string | null
+          id?: string
+          sprint_id?: string
+          to_improve?: string | null
+          user_id?: string
+          went_well?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_feedback_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_participants: {
+        Row: {
+          id: string
+          role: string | null
+          sp_contributed: number | null
+          sprint_id: string
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          id?: string
+          role?: string | null
+          sp_contributed?: number | null
+          sprint_id: string
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          id?: string
+          role?: string | null
+          sp_contributed?: number | null
+          sprint_id?: string
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_participants_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_tasks: {
+        Row: {
+          assignee_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          id: string
+          priority: string | null
+          sprint_id: string
+          sprint_order: number | null
+          status: string
+          story_points: number | null
+          team_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          sprint_id: string
+          sprint_order?: number | null
+          status?: string
+          story_points?: number | null
+          team_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          sprint_id?: string
+          sprint_order?: number | null
+          status?: string
+          story_points?: number | null
+          team_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_tasks_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprints: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          end_date: string
+          goal: string | null
+          id: string
+          start_date: string
+          status: string
+          team_id: string
+          title: string
+          total_sp_completed: number | null
+          total_sp_planned: number | null
+          xp_pool: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          end_date: string
+          goal?: string | null
+          id?: string
+          start_date: string
+          status?: string
+          team_id: string
+          title: string
+          total_sp_completed?: number | null
+          total_sp_planned?: number | null
+          xp_pool?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          end_date?: string
+          goal?: string | null
+          id?: string
+          start_date?: string
+          status?: string
+          team_id?: string
+          title?: string
+          total_sp_completed?: number | null
+          total_sp_planned?: number | null
+          xp_pool?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprints_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       star_transactions: {
         Row: {
@@ -1732,6 +2150,170 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          last_active_at: string | null
+          presence_status: string | null
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          last_active_at?: string | null
+          presence_status?: string | null
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          last_active_at?: string | null
+          presence_status?: string | null
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_subscriptions: {
+        Row: {
+          admin_name: string | null
+          billing_period: string
+          created_at: string
+          end_date: string | null
+          id: string
+          inn: string
+          invoice_number: string | null
+          kpp: string | null
+          org_address: string | null
+          org_name: string | null
+          plan_type: string
+          price_per_seat: number
+          seats_count: number
+          start_date: string | null
+          status: string
+          team_name: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_name?: string | null
+          billing_period?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          inn: string
+          invoice_number?: string | null
+          kpp?: string | null
+          org_address?: string | null
+          org_name?: string | null
+          plan_type?: string
+          price_per_seat?: number
+          seats_count?: number
+          start_date?: string | null
+          status?: string
+          team_name: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_name?: string | null
+          billing_period?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          inn?: string
+          invoice_number?: string | null
+          kpp?: string | null
+          org_address?: string | null
+          org_name?: string | null
+          plan_type?: string
+          price_per_seat?: number
+          seats_count?: number
+          start_date?: string | null
+          status?: string
+          team_name?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          invite_code: string | null
+          max_members: number | null
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invite_code?: string | null
+          max_members?: number | null
+          name: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invite_code?: string | null
+          max_members?: number | null
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      telegram_queue: {
+        Row: {
+          chat_id: string
+          created_at: string | null
+          id: string
+          message: string
+          status: string | null
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string | null
+          id?: string
+          message: string
+          status?: string | null
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string | null
+          id?: string
+          message?: string
+          status?: string | null
+        }
+        Relationships: []
       }
       time_entries: {
         Row: {
@@ -2344,6 +2926,10 @@ export type Database = {
           new_total_xp: number
         }[]
       }
+      admin_set_subscription: {
+        Args: { p_expires_at: string; p_plan: string; p_user_id: string }
+        Returns: undefined
+      }
       calculate_level_from_xp: {
         Args: { xp: number }
         Returns: {
@@ -2360,6 +2946,11 @@ export type Database = {
         Args: { referrer_user_id: string }
         Returns: Record<string, unknown>
       }
+      calculate_subscription_end: {
+        Args: { period: string; start_date: string }
+        Returns: string
+      }
+      create_sprint_daily_snapshots: { Args: never; Returns: undefined }
       find_user_by_telegram: {
         Args: { tg_id: number }
         Returns: {
@@ -2368,7 +2959,9 @@ export type Database = {
           user_id: string
         }[]
       }
+      finish_sprint: { Args: { target_sprint_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
+      handle_consent_revoke: { Args: { p_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2380,9 +2973,26 @@ export type Database = {
         Args: { tg_id: number; tg_username?: string }
         Returns: Json
       }
+      process_withdrawal: {
+        Args: { p_action: string; p_withdrawal_id: string }
+        Returns: boolean
+      }
+      redeem_promo_code: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "team"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "team"
+        | "focus"
+        | "profi"
+        | "premium"
+        | "team_member"
+        | "team_owner"
       subscription_period:
         | "monthly"
         | "quarterly"
@@ -2518,7 +3128,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "team"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "team",
+        "focus",
+        "profi",
+        "premium",
+        "team_member",
+        "team_owner",
+      ],
       subscription_period: [
         "monthly",
         "quarterly",

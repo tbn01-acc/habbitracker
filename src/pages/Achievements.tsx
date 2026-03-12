@@ -6,7 +6,7 @@ import { Achievements as AchievementsComponent } from '@/components/Achievements
 import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { RewardsShopTab } from '@/components/rewards/RewardsShopTab';
 import { StarProgram } from '@/components/rewards/StarProgram';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -56,7 +56,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

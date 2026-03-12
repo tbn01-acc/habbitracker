@@ -312,10 +312,17 @@ export function useSupabaseSync() {
     
     // Only sync for PRO users
     if (!isProUser) {
-      toast({
-        title: '⭐ Только для PRO',
-        description: 'Синхронизация в облако доступна только для PRO-пользователей',
-      });
+      const CLOUD_TOAST_KEY = 'topfocus-cloud-pro-toast-ts';
+      const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
+      const lastShown = localStorage.getItem(CLOUD_TOAST_KEY);
+      const now = Date.now();
+      if (!lastShown || now - Number(lastShown) > FIFTEEN_DAYS_MS) {
+        localStorage.setItem(CLOUD_TOAST_KEY, String(now));
+        toast({
+          title: '⭐ Только для PRO',
+          description: 'Синхронизация в облако доступна только для PRO-пользователей',
+        });
+      }
       return;
     }
     

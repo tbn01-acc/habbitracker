@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Ticket, ChevronDown, ChevronUp, Loader2, RefreshCw, Target, CheckSquare, Star, TrendingUp, Lock, Home, UserPlus, Eye } from 'lucide-react';
+import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Star, TrendingUp, Lock, Home, UserPlus, Eye, ChevronDown, ChevronUp, Loader2, Target, CheckSquare, Ban, Trash2, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { supabase } from '@/integrations/supabase/client';
-import { AppHeader } from '@/components/AppHeader';
+
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { AdminReferrals } from '@/components/admin/AdminReferrals';
-import { usePromoCodes } from '@/hooks/usePromoCodes';
+import { AdminPromoCodes } from '@/components/admin/AdminPromoCodes';
 import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAnalyticsSettings } from '@/hooks/useAnalyticsSettings';
 import {
   Select,
   SelectContent,
@@ -49,8 +50,9 @@ interface UserWithRole {
   id: string;
   email: string;
   display_name: string | null;
-  role: 'admin' | 'moderator' | 'user' | 'team' | null;
+  role: string | null;
   created_at: string;
+  read_only_until?: string | null;
 }
 
 interface AppStats {
@@ -68,50 +70,62 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { documents, isAdmin, adminLoading, updateDocument, loading: docsLoading } = useLegalDocuments();
-  
+
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [roleToAssign, setRoleToAssign] = useState<string>('');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  
+  const [banDays, setBanDays] = useState<number>(7);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   // Stats
   const [stats, setStats] = useState<AppStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  
+
   // Document editing
   const [editingDoc, setEditingDoc] = useState<string | null>(null);
   const [docTitle, setDocTitle] = useState('');
   const [docContent, setDocContent] = useState('');
-  
-  // Promo codes
-  const { promoCodes, loading: promoLoading, createPromoCode, deletePromoCode, togglePromoCode } = usePromoCodes();
-  const [newPromoCode, setNewPromoCode] = useState('');
-  const [newPromoDiscount, setNewPromoDiscount] = useState('');
-  const [newPromoValidUntil, setNewPromoValidUntil] = useState('');
-  const [newPromoMaxUses, setNewPromoMaxUses] = useState('');
-  
+
+  // Promo codes - now in AdminPromoCodes component
+
   // Settings sections
   const [bonusSettingsOpen, setBonusSettingsOpen] = useState(false);
   const [limitSettingsOpen, setLimitSettingsOpen] = useState(false);
   const [accessControlOpen, setAccessControlOpen] = useState(false);
   const [accessControlConfirmOpen, setAccessControlConfirmOpen] = useState(false);
-  
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+
   // App Settings
-  const { 
-    localAccessControl, 
-    updateLocalAccessControl, 
+  const {
+    localAccessControl,
+    updateLocalAccessControl,
     saveAccessControl,
     resetLocalAccessControl,
-    loading: accessLoading, 
+    loading: accessLoading,
     saving: accessSaving,
-    hasChanges: accessHasChanges 
+    hasChanges: accessHasChanges,
   } = useAppSettings();
+
+  const {
+    localSettings: analyticsLocal,
+    updateLocal: updateAnalyticsLocal,
+    save: saveAnalytics,
+    reset: resetAnalytics,
+    saving: analyticsSaving,
+    hasChanges: analyticsHasChanges,
+  } = useAnalyticsSettings();
 
   const isRussian = language === 'ru';
   const [adminChecked, setAdminChecked] = useState(false);
   const [authLoaded, setAuthLoaded] = useState(false);
+
+  // Superadmin access (UI-level) - keep consistent with ProfileSettings
+  const isSuperAdmin = user?.email === 'serge101.pro@gmail.com';
+  const hasAdminAccess = Boolean(isSuperAdmin || isAdmin);
 
   // Wait for auth to fully load
   useEffect(() => {
@@ -120,57 +134,49 @@ export default function Admin() {
     }
   }, [user]);
 
-  // Check if user is admin - wait for docs and admin check to fully load
+  // Check if user can access admin panel - wait for docs and role check to fully load
   useEffect(() => {
     // Don't redirect until auth, docs, AND admin check are all fully loaded
     if (!docsLoading && !adminLoading && authLoaded) {
       setAdminChecked(true);
-      // Only redirect if we know user is NOT admin (after everything is loaded)
-      if (!isAdmin && user) {
-        // User is logged in but not admin
-        navigate('/');
-      } else if (!user) {
+
+      if (!user) {
         // User is not logged in
         navigate('/auth');
+        return;
+      }
+
+      if (!hasAdminAccess) {
+        // User is logged in but not allowed
+        navigate('/');
       }
     }
-  }, [isAdmin, docsLoading, adminLoading, authLoaded, user, navigate]);
+  }, [docsLoading, adminLoading, authLoaded, user, hasAdminAccess, navigate]);
 
   // Fetch stats
   useEffect(() => {
     const fetchStats = async () => {
-      if (!isAdmin) return;
+      if (!hasAdminAccess) return;
       setStatsLoading(true);
-      
+
       try {
         // Get user count
-        const { count: userCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
-        
+        const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+
         // Get subscription stats
-        const { data: subs } = await supabase
-          .from('subscriptions')
-          .select('plan')
-          .eq('plan', 'pro');
-        
+        const { data: subs } = await supabase.from('subscriptions').select('plan').eq('plan', 'pro');
+
         // Get star transactions
-        const { data: starData } = await supabase
-          .from('user_stars')
-          .select('total_stars');
-        
+        const { data: starData } = await supabase.from('user_stars').select('total_stars');
+
         const totalStars = starData?.reduce((sum, u) => sum + (u.total_stars || 0), 0) || 0;
-        
+
         // Get habits count
-        const { count: habitsCount } = await supabase
-          .from('habits')
-          .select('*', { count: 'exact', head: true });
-        
-        // Get tasks count  
-        const { count: tasksCount } = await supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true });
-        
+        const { count: habitsCount } = await supabase.from('habits').select('*', { count: 'exact', head: true });
+
+        // Get tasks count
+        const { count: tasksCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true });
+
         setStats({
           totalUsers: userCount || 0,
           activeUsers: Math.floor((userCount || 0) * 0.7), // Estimate
@@ -178,7 +184,7 @@ export default function Admin() {
           totalHabits: habitsCount || 0,
           totalTasks: tasksCount || 0,
           totalStars: totalStars,
-          rewardsSpent: 0 // TODO: calculate from purchased_rewards
+          rewardsSpent: 0, // TODO: calculate from purchased_rewards
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -186,14 +192,14 @@ export default function Admin() {
         setStatsLoading(false);
       }
     };
-    
+
     fetchStats();
-  }, [isAdmin]);
+  }, [hasAdminAccess]);
 
   // Fetch users with their roles
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!isAdmin) return;
+      if (!hasAdminAccess) return;
 
       try {
         // Get profiles
@@ -204,15 +210,13 @@ export default function Admin() {
         if (profilesError) throw profilesError;
 
         // Get roles
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role');
+        const { data: roles, error: rolesError } = await supabase.from('user_roles').select('user_id, role');
 
         if (rolesError) throw rolesError;
 
         // Combine data
-        const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
-          const userRole = roles?.find(r => r.user_id === profile.user_id);
+        const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
+          const userRole = roles?.find((r) => r.user_id === profile.user_id);
           return {
             id: profile.user_id,
             email: '',
@@ -232,35 +236,32 @@ export default function Admin() {
     };
 
     fetchUsers();
-  }, [isAdmin, isRussian]);
+  }, [hasAdminAccess, isRussian]);
 
   const handleRoleChange = async () => {
     if (!selectedUser || !roleToAssign) return;
 
     try {
       if (roleToAssign === 'remove') {
-        const { error } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', selectedUser.id);
-
+        const { error } = await supabase.from('user_roles').delete().eq('user_id', selectedUser.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: selectedUser.id,
-            role: roleToAssign as 'admin' | 'moderator' | 'user' | 'team',
-          }, { onConflict: 'user_id,role' });
-
+        // First delete existing roles, then insert new one
+        await supabase.from('user_roles').delete().eq('user_id', selectedUser.id);
+        const { error } = await supabase.from('user_roles').insert({
+          user_id: selectedUser.id,
+          role: roleToAssign as any,
+        });
         if (error) throw error;
       }
 
-      setUsers(users.map(u => 
-        u.id === selectedUser.id 
-          ? { ...u, role: roleToAssign === 'remove' ? null : roleToAssign as any }
-          : u
-      ));
+      setUsers(
+        users.map((u) =>
+          u.id === selectedUser.id
+            ? { ...u, role: roleToAssign === 'remove' ? null : roleToAssign }
+            : u,
+        ),
+      );
 
       toast.success(isRussian ? 'Роль обновлена' : 'Role updated');
     } catch (error) {
@@ -273,6 +274,61 @@ export default function Admin() {
     setRoleToAssign('');
   };
 
+  const handleBanUser = async () => {
+    if (!selectedUser) return;
+    try {
+      const readOnlyUntil = new Date(Date.now() + banDays * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ read_only_until: readOnlyUntil })
+        .eq('user_id', selectedUser.id);
+      if (error) throw error;
+
+      setUsers(users.map((u) =>
+        u.id === selectedUser.id ? { ...u, read_only_until: readOnlyUntil } : u,
+      ));
+      toast.success(isRussian ? `Пользователь заблокирован на ${banDays} дн.` : `User banned for ${banDays} days`);
+    } catch (error) {
+      console.error('Error banning user:', error);
+      toast.error(isRussian ? 'Ошибка блокировки' : 'Error banning user');
+    }
+    setBanDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    try {
+      // Save fingerprint to banned list before deletion
+      const { data: fingerprints } = await supabase
+        .from('device_fingerprints')
+        .select('fingerprint_hash')
+        .eq('user_id', selectedUser.id);
+
+      if (fingerprints && fingerprints.length > 0) {
+        for (const fp of fingerprints) {
+          await supabase.from('banned_fingerprints').insert({
+            fingerprint_hash: fp.fingerprint_hash,
+            banned_by: user?.id,
+            reason: 'User deleted by admin',
+          });
+        }
+      }
+
+      // Delete user data from all tables
+      await supabase.from('user_roles').delete().eq('user_id', selectedUser.id);
+      await supabase.from('profiles').delete().eq('user_id', selectedUser.id);
+
+      setUsers(users.filter((u) => u.id !== selectedUser.id));
+      toast.success(isRussian ? 'Пользователь удалён' : 'User deleted');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(isRussian ? 'Ошибка удаления' : 'Error deleting user');
+    }
+    setDeleteDialogOpen(false);
+    setSelectedUser(null);
+  };
+
   const handleDocumentSave = async () => {
     if (!editingDoc) return;
 
@@ -283,7 +339,7 @@ export default function Admin() {
   };
 
   const startEditingDocument = (type: string) => {
-    const doc = documents.find(d => d.type === type);
+    const doc = documents.find((d) => d.type === type);
     if (doc) {
       setEditingDoc(type);
       setDocTitle(doc.title);
@@ -291,18 +347,42 @@ export default function Admin() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.id.includes(searchQuery)
+  const filteredUsers = users.filter(
+    (u) => u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.id.includes(searchQuery),
   );
 
   const getRoleBadgeColor = (role: string | null) => {
     switch (role) {
-      case 'admin': return 'bg-red-500/10 text-red-500 border-red-500/30';
-      case 'moderator': return 'bg-blue-500/10 text-blue-500 border-blue-500/30';
-      case 'team': return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
-      case 'user': return 'bg-green-500/10 text-green-500 border-green-500/30';
-      default: return 'bg-muted text-muted-foreground';
+      case 'admin':
+        return 'bg-red-500/10 text-red-500 border-red-500/30';
+      case 'moderator':
+        return 'bg-blue-500/10 text-blue-500 border-blue-500/30';
+      case 'team':
+      case 'team_member':
+      case 'team_owner':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
+      case 'focus':
+        return 'bg-green-500/10 text-green-500 border-green-500/30';
+      case 'profi':
+        return 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30';
+      case 'premium':
+        return 'bg-purple-500/10 text-purple-500 border-purple-500/30';
+      case 'user':
+        return 'bg-green-500/10 text-green-500 border-green-500/30';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getRoleLabel = (role: string | null) => {
+    switch (role) {
+      case 'focus': return 'Фокус';
+      case 'profi': return 'Профи';
+      case 'premium': return 'Премиум';
+      case 'team_member': return 'Team (member)';
+      case 'team_owner': return 'Team (owner)';
+      case 'team': return 'Team';
+      default: return role || (isRussian ? 'Нет роли' : 'No role');
     }
   };
 
@@ -314,13 +394,13 @@ export default function Admin() {
     );
   }
 
-  if (!isAdmin || !user) {
+  if (!hasAdminAccess || !user) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         <PageHeader
           showTitle
@@ -539,26 +619,51 @@ export default function Admin() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className={getRoleBadgeColor(u.role)}>
-                              {u.role || (isRussian ? 'Нет роли' : 'No role')}
+                              {getRoleLabel(u.role)}
                             </Badge>
+                            {u.read_only_until && new Date(u.read_only_until) > new Date() && (
+                              <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/30 text-[10px]">
+                                <Ban className="w-3 h-3 mr-1" />
+                                {isRussian ? 'Бан' : 'Banned'}
+                              </Badge>
+                            )}
                             <Select
                               value=""
                               onValueChange={(value) => {
                                 setSelectedUser(u);
-                                setRoleToAssign(value);
-                                setConfirmDialogOpen(true);
+                                if (value === 'ban') {
+                                  setBanDialogOpen(true);
+                                } else if (value === 'delete_user') {
+                                  setDeleteDialogOpen(true);
+                                } else {
+                                  setRoleToAssign(value);
+                                  setConfirmDialogOpen(true);
+                                }
                               }}
                             >
-                              <SelectTrigger className="w-[120px] h-8 text-xs">
-                                <SelectValue placeholder={isRussian ? 'Изменить' : 'Change'} />
+                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                                <SelectValue placeholder={isRussian ? 'Действие' : 'Action'} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="focus">{isRussian ? 'Фокус (тариф)' : 'Focus (plan)'}</SelectItem>
+                                <SelectItem value="profi">{isRussian ? 'Профи (тариф)' : 'Profi (plan)'}</SelectItem>
+                                <SelectItem value="premium">{isRussian ? 'Премиум (тариф)' : 'Premium (plan)'}</SelectItem>
+                                <SelectItem value="team_member">Team (member)</SelectItem>
+                                <SelectItem value="team_owner">Team (owner)</SelectItem>
                                 <SelectItem value="moderator">Moderator</SelectItem>
-                                <SelectItem value="team">Team (PRO)</SelectItem>
-                                <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="remove" className="text-destructive">
-                                  {isRussian ? 'Удалить роль' : 'Remove role'}
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="remove">{isRussian ? 'Удалить роль' : 'Remove role'}</SelectItem>
+                                <SelectItem value="ban" className="text-amber-500">
+                                  <span className="flex items-center gap-1">
+                                    <Ban className="w-3 h-3" />
+                                    {isRussian ? 'Бан (read-only)' : 'Ban (read-only)'}
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="delete_user" className="text-destructive">
+                                  <span className="flex items-center gap-1">
+                                    <Trash2 className="w-3 h-3" />
+                                    {isRussian ? 'Удалить пользователя' : 'Delete user'}
+                                  </span>
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -790,117 +895,92 @@ export default function Admin() {
               </Card>
             </Collapsible>
 
-            {/* Promo Codes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Ticket className="w-4 h-4 text-purple-500" />
-                  {isRussian ? 'Промо-коды' : 'Promo Codes'}
-                </CardTitle>
-                <CardDescription>
-                  {isRussian ? 'Создание и управление промо-кодами' : 'Create and manage promo codes'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input 
-                      placeholder={isRussian ? 'Код (например, PROMO2024)' : 'Code (e.g., PROMO2024)'} 
-                      value={newPromoCode}
-                      onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
-                    />
-                    <Input 
-                      type="number" 
-                      placeholder={isRussian ? 'Скидка %' : 'Discount %'} 
-                      value={newPromoDiscount}
-                      onChange={(e) => setNewPromoDiscount(e.target.value)}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input 
-                      type="date" 
-                      value={newPromoValidUntil}
-                      onChange={(e) => setNewPromoValidUntil(e.target.value)}
-                    />
-                    <Input 
-                      type="number" 
-                      placeholder={isRussian ? 'Макс. использований' : 'Max uses'} 
-                      value={newPromoMaxUses}
-                      onChange={(e) => setNewPromoMaxUses(e.target.value)}
-                      min="1"
-                    />
-                  </div>
-                  <Button 
-                    className="w-full"
-                    disabled={!newPromoCode || !newPromoDiscount}
-                    onClick={async () => {
-                      const success = await createPromoCode({
-                        code: newPromoCode,
-                        discount_percent: parseInt(newPromoDiscount) || 0,
-                        valid_until: newPromoValidUntil || null,
-                        max_uses: newPromoMaxUses ? parseInt(newPromoMaxUses) : null,
-                      });
-                      if (success) {
-                        setNewPromoCode('');
-                        setNewPromoDiscount('');
-                        setNewPromoValidUntil('');
-                        setNewPromoMaxUses('');
-                      }
-                    }}
-                  >
-                    {isRussian ? 'Создать промо-код' : 'Create Promo Code'}
-                  </Button>
-                </div>
-                
-                {promoLoading ? (
-                  <div className="mt-4 flex justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : promoCodes.length > 0 ? (
-                  <div className="mt-4 space-y-2">
-                    {promoCodes.map(code => (
-                      <div key={code.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-mono font-bold text-sm">{code.code}</p>
-                            <Badge variant="outline" className="text-xs">
-                              -{code.discount_percent}%
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {isRussian ? 'Использовано' : 'Used'}: {code.current_uses}
-                            {code.max_uses !== null ? `/${code.max_uses}` : ''}
-                            {code.valid_until && (
-                              <> • {isRussian ? 'до' : 'until'} {format(new Date(code.valid_until), 'dd.MM.yyyy')}</>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={code.is_active}
-                            onCheckedChange={(checked) => togglePromoCode(code.id, checked)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => deletePromoCode(code.id)}
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                          </Button>
-                        </div>
+            {/* Analytics Codes */}
+            <Collapsible open={analyticsOpen} onOpenChange={setAnalyticsOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-primary" />
+                        {isRussian ? 'Аналитика и вебмастер' : 'Analytics & Webmaster'}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-4 text-center py-6 text-muted-foreground text-sm">
-                    {isRussian ? 'Нет промо-кодов' : 'No promo codes'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      {analyticsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </CardTitle>
+                    <CardDescription>
+                      {isRussian ? 'Яндекс Метрика и Вебмастер' : 'Yandex Metrika & Webmaster'}
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <div className="grid gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">
+                          {isRussian ? 'ID счётчика Яндекс Метрики' : 'Yandex Metrika Counter ID'}
+                        </Label>
+                        <Input
+                          value={analyticsLocal.yandex_metrika_id}
+                          onChange={e => updateAnalyticsLocal({ yandex_metrika_id: e.target.value })}
+                          placeholder="12345678"
+                          className="font-mono"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {isRussian
+                            ? 'Только числовой ID. Скрипт счётчика будет автоматически встроен в приложение (clickmap, webvisor, trackHash).'
+                            : 'Numeric ID only. The counter script will be auto-injected (clickmap, webvisor, trackHash).'}
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">
+                          {isRussian ? 'Код подтверждения Яндекс Вебмастер' : 'Yandex Webmaster Verification'}
+                        </Label>
+                        <Input
+                          value={analyticsLocal.yandex_webmaster_verification}
+                          onChange={e => updateAnalyticsLocal({ yandex_webmaster_verification: e.target.value })}
+                          placeholder="abc123def456"
+                          className="font-mono"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {isRussian
+                            ? 'Значение из meta-тега yandex-verification. Будет добавлено в <head> приложения.'
+                            : 'Value from the yandex-verification meta tag. Will be injected into the app <head>.'}
+                        </p>
+                      </div>
+                    </div>
+                    {analyticsHasChanges && (
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={resetAnalytics}
+                          disabled={analyticsSaving}
+                        >
+                          {isRussian ? 'Отменить' : 'Cancel'}
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          onClick={saveAnalytics}
+                          disabled={analyticsSaving}
+                        >
+                          {analyticsSaving ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              {isRussian ? 'Сохранение...' : 'Saving...'}
+                            </>
+                          ) : (
+                            isRussian ? 'Сохранить' : 'Save'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Promo Codes */}
+            <AdminPromoCodes />
           </TabsContent>
 
           {/* Documents Tab */}
@@ -1030,6 +1110,78 @@ export default function Admin() {
               }}
             >
               {isRussian ? 'Применить изменения' : 'Apply changes'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ban User Dialog */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Ban className="w-5 h-5 text-amber-500" />
+              {isRussian ? 'Заблокировать пользователя?' : 'Ban user?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                {isRussian 
+                  ? `Пользователь "${selectedUser?.display_name || 'Unknown'}" будет переведён в режим read-only.`
+                  : `User "${selectedUser?.display_name || 'Unknown'}" will be set to read-only mode.`
+                }
+              </p>
+              <div className="flex items-center gap-2">
+                <Label>{isRussian ? 'Срок (дней):' : 'Duration (days):'}</Label>
+                <Select value={String(banDays)} onValueChange={(v) => setBanDays(Number(v))}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="7">7</SelectItem>
+                    <SelectItem value="14">14</SelectItem>
+                    <SelectItem value="30">30</SelectItem>
+                    <SelectItem value="90">90</SelectItem>
+                    <SelectItem value="365">365</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBanUser}>
+              {isRussian ? 'Заблокировать' : 'Ban'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete User Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              {isRussian ? 'Удалить пользователя?' : 'Delete user?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="mb-2">
+                {isRussian 
+                  ? `Вы собираетесь БЕЗВОЗВРАТНО удалить пользователя "${selectedUser?.display_name || 'Unknown'}". Все данные будут утеряны.`
+                  : `You are about to PERMANENTLY delete user "${selectedUser?.display_name || 'Unknown'}". All data will be lost.`
+                }
+              </p>
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+                {isRussian ? '⚠️ Это действие необратимо!' : '⚠️ This action is irreversible!'}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isRussian ? 'Удалить навсегда' : 'Delete forever'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

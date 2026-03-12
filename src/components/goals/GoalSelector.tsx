@@ -27,8 +27,24 @@ export function GoalSelector({ value, onChange, label, isRussian = true }: GoalS
 
   useEffect(() => {
     const fetchGoals = async () => {
+      // Also try to load goals from localStorage for non-authenticated users
       if (!user) {
-        setGoals([]);
+        try {
+          const stored = localStorage.getItem('habitflow_goals');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            const activeGoals = parsed.filter((g: any) => g.status === 'active' || !g.status);
+            setGoals(activeGoals.map((g: any) => ({
+              id: g.id,
+              name: g.name,
+              icon: g.icon || null,
+              color: g.color || null,
+              sphere_id: g.sphereId || g.sphere_id || null,
+            })));
+          }
+        } catch (e) {
+          console.error('Error loading goals from localStorage:', e);
+        }
         setLoading(false);
         return;
       }
@@ -78,7 +94,7 @@ export function GoalSelector({ value, onChange, label, isRussian = true }: GoalS
     );
   }
 
-  if (goals.length === 0) {
+  if (goals.length === 0 && !value) {
     return null;
   }
 

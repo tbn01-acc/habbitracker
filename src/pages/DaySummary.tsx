@@ -9,7 +9,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
-import { AppHeader } from '@/components/AppHeader';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -300,7 +300,6 @@ export default function DaySummaryPage() {
   if (!isPro) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <AppHeader />
         <div className="max-w-4xl mx-auto px-2 py-2">
           <div className="flex items-center gap-2 mb-2">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8">
@@ -432,7 +431,7 @@ export default function DaySummaryPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-2 py-2">
         {/* Header with Actions */}
         <div className="flex items-center gap-2 mb-2">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, LayoutDashboard, Target, CheckSquare, Wallet, Compass, Wrench, Focus } from 'lucide-react';
+import { Plus, LayoutDashboard, Target, CheckSquare, Wallet, Compass, Wrench, Focus, Users } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { GoalDialog } from '@/components/goals/GoalDialog';
@@ -34,8 +34,9 @@ export function BottomNavigation({
     { path: '/', icon: LayoutDashboard, label: t('home'), color: 'hsl(var(--primary))' },
     { path: '/habits', icon: Target, label: t('habits'), color: 'hsl(var(--habit))' },
     { path: '/tasks', icon: CheckSquare, label: t('tasks'), color: 'hsl(var(--task))' },
+    { path: '/goals', icon: Compass, label: isRussian ? 'Цели' : 'Goals', color: 'hsl(262, 80%, 55%)' },
     { path: '/finance', icon: Wallet, label: t('finance'), color: 'hsl(var(--finance))' },
-    { path: '/goals', icon: Compass, label: isRussian ? 'Мои цели' : 'My Goals', color: 'hsl(45, 90%, 50%)' },
+    { path: '/team', icon: Users, label: isRussian ? 'Команда' : 'Team', color: 'hsl(200, 80%, 50%)' },
     { path: '/services', icon: Wrench, label: t('services'), color: 'hsl(var(--service))' },
   ];
 
@@ -49,7 +50,6 @@ export function BottomNavigation({
 
   const handleQuickAdd = (item: typeof quickAddItems[0]) => {
     setIsMenuOpen(false);
-    // For goal and post dialogs, don't navigate first
     if (item.label === (isRussian ? 'Цель' : 'Goal') || item.label === (isRussian ? 'Пост' : 'Post')) {
       item.action();
     } else {
@@ -70,8 +70,9 @@ export function BottomNavigation({
     navigate('/goals');
   };
 
-  const leftItems = navItems.slice(0, 3); // Home, Habits, Tasks
-  const rightItems = navItems.slice(3); // Finance, Services, Goals
+  // Left: Home, Habits, Tasks, Goals | Right: Finance, Team, Services
+  const leftItems = navItems.slice(0, 4);
+  const rightItems = navItems.slice(4);
 
   return (
     <>
@@ -88,18 +89,18 @@ export function BottomNavigation({
         )}
       </AnimatePresence>
 
-      {/* Quick Add Menu - Above bottom navigation, arc centered on + button */}
+      {/* Quick Add Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <div className="fixed bottom-28 inset-x-0 z-50 flex justify-center">
             <div className="relative w-0 h-0">
               {quickAddItems.map((item, index) => {
                 const totalItems = quickAddItems.length;
-                const angleSpread = 120; // Increased spread
+                const angleSpread = 120;
                 const startAngle = -180 + (180 - angleSpread) / 2;
                 const angleStep = angleSpread / (totalItems - 1);
                 const angle = startAngle + (index * angleStep);
-                const radius = 120; // Increased radius
+                const radius = 120;
                 const x = Math.cos((angle * Math.PI) / 180) * radius;
                 const y = Math.sin((angle * Math.PI) / 180) * radius;
 
@@ -133,26 +134,28 @@ export function BottomNavigation({
 
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border safe-area-inset-bottom">
-        <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-1">
-          {/* Left side items: Home, Habits, Tasks */}
-          {leftItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => handleNavClick(item.path)}
-              className={cn(
-                "flex flex-col items-center justify-center py-2 px-1.5 rounded-lg transition-all min-w-[40px]",
-                location.pathname === item.path
-                  ? "scale-110"
-                  : "opacity-70 hover:opacity-100"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
-            </button>
-          ))}
+        <div className="max-w-lg mx-auto flex items-center h-16 px-1">
+          {/* Left side: Home, Habits, Tasks, Goals */}
+          <div className="flex items-center flex-1 justify-around">
+            {leftItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={cn(
+                  "flex flex-col items-center justify-center py-2 px-0.5 rounded-lg transition-all min-w-[34px]",
+                  location.pathname === item.path
+                    ? "scale-110"
+                    : "opacity-70 hover:opacity-100"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
+              </button>
+            ))}
+          </div>
 
-          {/* Center Add Button */}
-          <div className="relative">
+          {/* Center Add Button — shifted right */}
+          <div className="relative px-2">
             <motion.button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center shadow-glow -mt-6"
@@ -163,22 +166,24 @@ export function BottomNavigation({
             </motion.button>
           </div>
 
-          {/* Right side items: Finance, Services, Statistics */}
-          {rightItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => handleNavClick(item.path)}
-              className={cn(
-                "flex flex-col items-center justify-center py-2 px-1.5 rounded-lg transition-all min-w-[40px]",
-                location.pathname === item.path
-                  ? "scale-110"
-                  : "opacity-70 hover:opacity-100"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
-            </button>
-          ))}
+          {/* Right side: Finance, Team, Services */}
+          <div className="flex items-center flex-1 justify-around">
+            {rightItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={cn(
+                  "flex flex-col items-center justify-center py-2 px-0.5 rounded-lg transition-all min-w-[34px]",
+                  location.pathname === item.path
+                    ? "scale-110"
+                    : "opacity-70 hover:opacity-100"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[9px] mt-0.5 hidden sm:block">{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 

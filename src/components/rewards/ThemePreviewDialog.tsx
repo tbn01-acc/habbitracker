@@ -78,7 +78,7 @@ export function ThemePreviewDialog({
                   className="text-lg font-bold"
                   style={{ color: getPreviewColor('--foreground') }}
                 >
-                  TopFocus
+                  ТопФокус
                 </div>
                 <div
                   className="flex items-center gap-1 px-2 py-1 rounded-full text-sm"

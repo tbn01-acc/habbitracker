@@ -3,6 +3,82 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { Goal, GoalContact, GoalWithStats } from '@/types/goal';
 import { toast } from 'sonner';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
+
+// Helper to load from localStorage
+function loadLocalTasks(): any[] {
+  try {
+    const stored = localStorage.getItem('habitflow_tasks');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function loadLocalHabits(): any[] {
+  try {
+    const stored = localStorage.getItem('habitflow_habits');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function loadLocalTransactions(): any[] {
+  try {
+    const stored = localStorage.getItem('habitflow_finance');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function loadLocalTimeEntries(): any[] {
+  try {
+    const stored = localStorage.getItem('habitflow_time_entries');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function calculateLocalStats(goalId: string) {
+  const localTasks = loadLocalTasks().filter(t => t.goalId === goalId);
+  const localHabits = loadLocalHabits().filter(h => h.goalId === goalId && !h.archivedAt);
+  const localTransactions = loadLocalTransactions().filter(t => t.goalId === goalId);
+  const localTimeEntries = loadLocalTimeEntries().filter(t => t.goalId === goalId);
+
+  const tasksCount = localTasks.length;
+  const tasksCompleted = localTasks.filter((t: any) => t.completed).length;
+  const totalSpent = localTransactions
+    .filter((t: any) => t.type === 'expense')
+    .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+  const totalTime = localTimeEntries.reduce((sum: number, t: any) => sum + (t.duration || 0), 0);
+
+  // Calculate habit completion rate (this week)
+  const now = new Date();
+  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  
+  let habitsCompletionRate = 0;
+  if (localHabits.length > 0) {
+    let totalExpected = 0;
+    let actualCompletions = 0;
+    localHabits.forEach((habit: any) => {
+      const targetDays = habit.targetDays || [0, 1, 2, 3, 4, 5, 6];
+      totalExpected += targetDays.length;
+      const completedDates = habit.completedDates || [];
+      const weeklyCompletions = completedDates.filter((date: string) =>
+        date >= weekStart && date <= weekEnd
+      ).length;
+      actualCompletions += Math.min(weeklyCompletions, targetDays.length);
+    });
+    habitsCompletionRate = totalExpected > 0
+      ? Math.round((actualCompletions / totalExpected) * 100)
+      : 0;
+  }
+
+  return {
+    tasks_count: tasksCount,
+    tasks_completed: tasksCompleted,
+    habits_count: localHabits.length,
+    total_spent: totalSpent,
+    total_time_minutes: Math.round(totalTime / 60),
+    habits_completion_rate: habitsCompletionRate,
+  };
+}
 
 export function useGoals() {
   const { user } = useAuth();
@@ -26,59 +102,64 @@ export function useGoals() {
 
       if (error) throw error;
 
-      // Fetch related data for stats
-      const goalsWithStats: GoalWithStats[] = await Promise.all(
-        (goalsData || []).map(async (goal) => {
-          // Get tasks count
-          const { data: tasks } = await supabase
-            .from('tasks')
-            .select('id, completed')
-            .eq('goal_id', goal.id);
+      // Build stats from localStorage (primary source for tasks/habits)
+      const goalsWithStats: GoalWithStats[] = (goalsData || []).map((goal) => {
+        const localStats = calculateLocalStats(goal.id);
 
-          // Get habits count
-          const { data: habits } = await supabase
-            .from('habits')
-            .select('id')
-            .eq('goal_id', goal.id);
+        // Also try Supabase contacts count (async, but we set 0 initially)
+        return {
+          ...goal,
+          tasks_count: localStats.tasks_count,
+          tasks_completed: localStats.tasks_completed,
+          habits_count: localStats.habits_count,
+          total_spent: localStats.total_spent,
+          total_time_minutes: localStats.total_time_minutes,
+          contacts_count: 0,
+        } as GoalWithStats;
+      });
 
-          // Get transactions sum
-          const { data: transactions } = await supabase
-            .from('transactions')
-            .select('amount, type')
-            .eq('goal_id', goal.id);
+      // Fetch contacts counts in parallel
+      const contactsPromises = goalsWithStats.map(async (goal) => {
+        const { data: contacts } = await supabase
+          .from('goal_contacts')
+          .select('id')
+          .eq('goal_id', goal.id);
+        return { goalId: goal.id, count: contacts?.length || 0 };
+      });
 
-          // Get time entries sum
-          const { data: timeEntries } = await supabase
-            .from('time_entries')
-            .select('duration')
-            .eq('goal_id', goal.id);
+      const contactsCounts = await Promise.all(contactsPromises);
+      
+      // Merge contacts counts and auto-calculate progress
+      const finalGoals = goalsWithStats.map(goal => {
+        const contactInfo = contactsCounts.find(c => c.goalId === goal.id);
+        const contactsCount = contactInfo?.count || 0;
+        
+        // Auto-calculate progress_percent based on tasks
+        let autoProgress = goal.progress_percent || 0;
+        if (goal.tasks_count > 0 && goal.status === 'active') {
+          autoProgress = Math.round((goal.tasks_completed / goal.tasks_count) * 100);
+        }
 
-          // Get contacts count
-          const { data: contacts } = await supabase
-            .from('goal_contacts')
-            .select('id')
-            .eq('goal_id', goal.id);
+        return {
+          ...goal,
+          contacts_count: contactsCount,
+          progress_percent: autoProgress,
+        };
+      });
 
-          const tasksCount = tasks?.length || 0;
-          const tasksCompleted = tasks?.filter(t => t.completed).length || 0;
-          const totalSpent = transactions
-            ?.filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0) || 0;
-          const totalTime = timeEntries?.reduce((sum, t) => sum + t.duration, 0) || 0;
+      // Update progress_percent in Supabase for goals that changed
+      for (const goal of finalGoals) {
+        const originalGoal = goalsData?.find(g => g.id === goal.id);
+        if (originalGoal && goal.progress_percent !== (originalGoal.progress_percent || 0) && goal.status === 'active') {
+          supabase
+            .from('goals')
+            .update({ progress_percent: goal.progress_percent })
+            .eq('id', goal.id)
+            .then(() => {});
+        }
+      }
 
-          return {
-            ...goal,
-            tasks_count: tasksCount,
-            tasks_completed: tasksCompleted,
-            habits_count: habits?.length || 0,
-            total_spent: totalSpent,
-            total_time_minutes: Math.round(totalTime / 60),
-            contacts_count: contacts?.length || 0,
-          } as GoalWithStats;
-        })
-      );
-
-      setGoals(goalsWithStats);
+      setGoals(finalGoals);
     } catch (error) {
       console.error('Error fetching goals:', error);
     } finally {
@@ -89,6 +170,15 @@ export function useGoals() {
   useEffect(() => {
     fetchGoals();
   }, [fetchGoals]);
+
+  // Listen for local data changes to refresh stats
+  useEffect(() => {
+    const handleDataChanged = () => {
+      if (user) fetchGoals();
+    };
+    window.addEventListener('habitflow-data-changed', handleDataChanged);
+    return () => window.removeEventListener('habitflow-data-changed', handleDataChanged);
+  }, [user, fetchGoals]);
 
   const addGoal = async (goal: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'progress_percent'>) => {
     if (!user) return null;
@@ -146,6 +236,19 @@ export function useGoals() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Also unlink from localStorage
+      try {
+        const localTasks = loadLocalTasks();
+        const updatedTasks = localTasks.map((t: any) => t.goalId === id ? { ...t, goalId: undefined } : t);
+        localStorage.setItem('habitflow_tasks', JSON.stringify(updatedTasks));
+        
+        const localHabits = loadLocalHabits();
+        const updatedHabits = localHabits.map((h: any) => h.goalId === id ? { ...h, goalId: undefined } : h);
+        localStorage.setItem('habitflow_habits', JSON.stringify(updatedHabits));
+      } catch (e) {
+        console.error('Error unlinking local items:', e);
+      }
 
       await fetchGoals();
     } catch (error) {

@@ -2,13 +2,14 @@ import { UserPlus, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { APP_URL } from '@/lib/constants';
 
 export function ShareButtons() {
   const { t } = useTranslation();
 
   const handleInviteFriend = () => {
     const text = t('shareText');
-    const url = window.location.origin;
+    const url = APP_URL;
     
     if (navigator.share) {
       navigator.share({ title: t('shareTitle'), text, url }).catch(() => {});

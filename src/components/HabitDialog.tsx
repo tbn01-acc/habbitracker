@@ -22,6 +22,8 @@ interface HabitDialogProps {
   habit?: Habit | null;
   categories: HabitCategory[];
   tags: HabitTag[];
+  prefillSphereId?: number | null;
+  prefillGoalId?: string | null;
 }
 
 const WEEKDAY_KEYS: TranslationKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -35,7 +37,7 @@ const PERIOD_OPTIONS: { value: HabitPeriodType; labelRu: string; labelEn: string
   { value: 'custom', labelRu: 'Свой период', labelEn: 'Custom' },
 ];
 
-export function HabitDialog({ open, onClose, onSave, habit, categories, tags }: HabitDialogProps) {
+export function HabitDialog({ open, onClose, onSave, habit, categories, tags, prefillSphereId, prefillGoalId }: HabitDialogProps) {
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState(HABIT_ICONS[0]);
@@ -80,14 +82,14 @@ export function HabitDialog({ open, onClose, onSave, habit, categories, tags }: 
       setCategoryId(undefined);
       setTagIds([]);
       setCommonTagIds([]);
-      setGoalId(null);
-      setSphereId(null);
-      setSphereLockedByGoal(false);
+      setGoalId(prefillGoalId || null);
+      setSphereId(prefillSphereId ?? null);
+      setSphereLockedByGoal(!!prefillGoalId);
       setPeriodType('none');
       setCustomStartDate(format(new Date(), 'yyyy-MM-dd'));
       setCustomEndDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
     }
-  }, [habit, open, tags]);
+  }, [habit, open, tags, prefillSphereId, prefillGoalId]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -321,7 +323,7 @@ export function HabitDialog({ open, onClose, onSave, habit, categories, tags }: 
               )}
 
               {/* Goal Selector */}
-              {user && (
+              {(user || prefillGoalId || prefillSphereId) && (
                 <div className="space-y-2">
                   <GoalSelector
                     value={goalId}
@@ -332,7 +334,7 @@ export function HabitDialog({ open, onClose, onSave, habit, categories, tags }: 
               )}
 
               {/* Sphere Selector - Required for authenticated users */}
-              {user && (
+              {(user || prefillGoalId || prefillSphereId) && (
                 <div className="space-y-2">
                   <SphereSelector
                     value={sphereId}

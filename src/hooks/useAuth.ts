@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { APP_URL } from '@/lib/constants';
 
 interface Profile {
   id: string;
@@ -107,7 +108,7 @@ export function useAuth() {
   };
 
   const signUpWithEmail = async (email: string, password: string, displayName?: string, referralCode?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${APP_URL}/`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -128,7 +129,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${APP_URL}/`,
       },
     });
     return { error };
@@ -138,19 +139,54 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${APP_URL}/`,
       },
     });
     return { error };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    const clearAuthStorage = () => {
+      if (typeof window === 'undefined') return;
+
+      const removeAuthKeys = (store: Storage) => {
+        const keys = Object.keys(store);
+        keys.forEach((key) => {
+          if (
+            key === 'topfocus-auth-token' ||
+            key.includes('auth-token') ||
+            key.includes('supabase.auth.token') ||
+            key.startsWith('sb-')
+          ) {
+            store.removeItem(key);
+          }
+        });
+      };
+
+      removeAuthKeys(localStorage);
+      removeAuthKeys(sessionStorage);
+    };
+
+    try {
+      // Try server/global sign out first
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      console.warn('Global sign out failed, falling back to local sign out:', err);
+    }
+
+    try {
+      // Always force local cleanup
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.warn('Local sign out call failed, forcing storage cleanup:', err);
+    }
+
+    clearAuthStorage();
+    return { error: null };
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth?mode=reset`;
+    const redirectUrl = `${APP_URL}/auth?mode=reset`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
     });

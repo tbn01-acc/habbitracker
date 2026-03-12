@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { APP_URL } from '@/lib/constants';
 
 const GOOGLE_CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
@@ -57,7 +58,7 @@ export function useGoogleCalendar() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/profile/settings`,
+          redirectTo: `${APP_URL}/profile/settings`,
           scopes: GOOGLE_CALENDAR_SCOPES,
           queryParams: {
             access_type: 'offline',

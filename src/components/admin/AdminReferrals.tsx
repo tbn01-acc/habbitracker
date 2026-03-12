@@ -152,42 +152,18 @@ export function AdminReferrals() {
     if (!selectedWithdrawal) return;
 
     try {
-      const newStatus = withdrawalAction === 'approve' ? 'completed' : 'rejected';
-
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .update({
-          status: newStatus,
-          processed_at: new Date().toISOString(),
-        })
-        .eq('id', selectedWithdrawal.id);
+      // Use server-side function for atomic withdrawal processing
+      const { error } = await supabase.rpc('process_withdrawal', {
+        p_withdrawal_id: selectedWithdrawal.id,
+        p_action: withdrawalAction === 'approve' ? 'approve' : 'reject',
+      });
 
       if (error) throw error;
-
-      // If approved, update user wallet balance
-      if (withdrawalAction === 'approve') {
-        // Get current wallet
-        const { data: wallet } = await supabase
-          .from('user_wallet')
-          .select('balance_rub, total_withdrawn_rub')
-          .eq('user_id', selectedWithdrawal.user_id)
-          .single();
-
-        if (wallet) {
-          await supabase
-            .from('user_wallet')
-            .update({
-              balance_rub: Math.max(0, wallet.balance_rub - selectedWithdrawal.amount_rub),
-              total_withdrawn_rub: wallet.total_withdrawn_rub + selectedWithdrawal.amount_rub,
-            })
-            .eq('user_id', selectedWithdrawal.user_id);
-        }
-      }
 
       // Update local state
       setWithdrawals(withdrawals.map(w =>
         w.id === selectedWithdrawal.id
-          ? { ...w, status: newStatus, processed_at: new Date().toISOString() }
+          ? { ...w, status: withdrawalAction === 'approve' ? 'completed' : 'rejected', processed_at: new Date().toISOString() }
           : w
       ));
 

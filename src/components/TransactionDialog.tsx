@@ -18,9 +18,11 @@ interface TransactionDialogProps {
   transaction?: FinanceTransaction | null;
   categories: FinanceCategory[];
   tags: FinanceTag[];
+  prefillSphereId?: number | null;
+  prefillGoalId?: string | null;
 }
 
-export function TransactionDialog({ open, onClose, onSave, transaction, categories, tags }: TransactionDialogProps) {
+export function TransactionDialog({ open, onClose, onSave, transaction, categories, tags, prefillSphereId, prefillGoalId }: TransactionDialogProps) {
   const { user } = useAuth();
   const { language } = useTranslation();
   const isRussian = language === 'ru';
@@ -60,14 +62,14 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
       setCategory(FINANCE_CATEGORIES[4].id);
       setDate(new Date().toISOString().split('T')[0]);
       setCustomCategoryId(undefined);
-      setGoalId(null);
-      setSphereId(null);
-      setSphereLockedByGoal(false);
+      setGoalId(prefillGoalId || null);
+      setSphereId(prefillSphereId ?? null);
+      setSphereLockedByGoal(!!prefillGoalId);
       setTagIds([]);
       setCommonTagIds([]);
       setRecurrence('none');
     }
-  }, [transaction, open, tags]);
+  }, [transaction, open, tags, prefillSphereId, prefillGoalId]);
 
   const handleSave = () => {
     if (!name.trim() || !amount) return;
@@ -332,7 +334,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
             )}
 
             {/* Goal Selector */}
-            {user && (
+            {(user || prefillGoalId || prefillSphereId) && (
               <div className="mb-6">
                 <GoalSelector
                   value={goalId}
@@ -343,7 +345,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
             )}
 
             {/* Sphere Selector - locked if goal selected */}
-            {user && (
+            {(user || prefillGoalId || prefillSphereId) && (
               <div className="mb-6">
                 <SphereSelector
                   value={sphereId}
@@ -355,7 +357,7 @@ export function TransactionDialog({ open, onClose, onSave, transaction, categori
             )}
 
             {/* Common Tags (from profile) */}
-            {user && (
+            {(user || prefillGoalId || prefillSphereId) && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('commonTags')}

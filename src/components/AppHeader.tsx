@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Flame, Bell, Newspaper, Users, Aperture, Trophy } from 'lucide-react';
+import { Gift, Flame, Bell, Newspaper, Users, Aperture, Trophy, Film } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useStars } from '@/hooks/useStars';
@@ -15,6 +15,7 @@ import { ReferralModal } from '@/components/ReferralModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserBadges } from '@/components/rewards/UserBadges';
+import { OnboardingSlideshow, shouldShowOnboarding } from '@/components/OnboardingSlideshow';
 
 export function AppHeader() {
   const navigate = useNavigate();
@@ -22,8 +23,9 @@ export function AppHeader() {
   const { userStars } = useStars();
   const { unreadCount } = useNotifications();
   const { isProActive } = useSubscription();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => shouldShowOnboarding());
 
   // Use TanStack Query for profile data - enables instant updates from cache
   const { data: cachedProfile } = useProfile(user?.id);
@@ -152,7 +154,23 @@ export function AppHeader() {
                   {t('rating') || 'Рейтинг'}
                 </TooltipContent>
               </Tooltip>
-              
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setOnboardingOpen(true)}
+                    className="hover:bg-cyan-500/10"
+                  >
+                    <Film className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {language === 'ru' ? 'Обзор возможностей' : 'Feature Tour'}
+                </TooltipContent>
+              </Tooltip>
+
               <ThemeToggle />
               
               <motion.div
@@ -176,6 +194,11 @@ export function AppHeader() {
       <ReferralModal 
         open={referralModalOpen} 
         onOpenChange={setReferralModalOpen} 
+      />
+
+      <OnboardingSlideshow
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
       />
     </>
   );

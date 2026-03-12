@@ -1,8 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
+import { initCodeProtection } from "./utils/codeProtection";
+
+// Активация защиты кода в production
+initCodeProtection();
 
 // Расширяем интерфейс Window для работы с Telegram SDK
 declare global {
@@ -12,21 +15,6 @@ declare global {
     };
   }
 }
-
-// Конфигурация QueryClient с оптимальными настройками для мобильных сетей
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 2, // 2 минуты
-      gcTime: 1000 * 60 * 10, // 10 минут
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
 
 /**
  * Инициализация Telegram Mini App
@@ -78,8 +66,6 @@ const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <App />
   </React.StrictMode>
 );

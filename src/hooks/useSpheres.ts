@@ -105,10 +105,25 @@ export function useSpheres() {
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), 'yyyy-MM-dd');
 
-    // If user is logged in, fetch from Supabase
+    // Always load localStorage data (primary source for tasks/habits)
+    const localHabits = loadLocalHabits().filter(
+      (h: any) => (h.sphereId === sphereId || h.sphere_id === sphereId) && !h.archivedAt
+    );
+    const localTasks = loadLocalTasks().filter(
+      (t: any) => (t.sphereId === sphereId || t.sphere_id === sphereId) && !t.archivedAt
+    );
+    const localTransactions = loadLocalTransactions().filter(
+      (t: any) => t.sphereId === sphereId || t.sphere_id === sphereId
+    );
+    const localTimeEntries = loadLocalTimeEntries().filter(
+      (t: any) => t.sphereId === sphereId || t.sphere_id === sphereId
+    );
+
+    // Also include tasks/habits linked to goals in this sphere
+    let goalIds: string[] = [];
+    
     if (user) {
       try {
-        // Fetch goals for this sphere
         const { data: goals } = await supabase
           .from('goals')
           .select('id, status, progress_percent')
@@ -116,60 +131,55 @@ export function useSpheres() {
           .eq('sphere_id', sphereId)
           .is('archived_at', null);
 
-        const goalIds = goals?.map(g => g.id) || [];
+        goalIds = goals?.map(g => g.id) || [];
+        
         const totalGoals = goals?.length || 0;
         const activeGoals = goals?.filter(g => g.status === 'active').length || 0;
         const completedGoals = goals?.filter(g => g.status === 'completed').length || 0;
-        
-        // Calculate goals progress (average of all goal progress)
         const goalsProgress = goals && goals.length > 0
           ? Math.round(goals.reduce((sum, g) => sum + (g.progress_percent || 0), 0) / goals.length)
           : 0;
 
-        // Fetch tasks (linked to goals in this sphere OR directly to sphere)
-        let totalTasks = 0;
-        let completedTasks = 0;
+        // Get tasks linked to goals in this sphere (from localStorage)
+        const goalLinkedTasks = loadLocalTasks().filter(
+          (t: any) => t.goalId && goalIds.includes(t.goalId) && !t.archivedAt && t.sphereId !== sphereId
+        );
+        
+        // Get habits linked to goals in this sphere (from localStorage)
+        const goalLinkedHabits = loadLocalHabits().filter(
+          (h: any) => h.goalId && goalIds.includes(h.goalId) && !h.archivedAt && h.sphereId !== sphereId
+        );
 
-        if (goalIds.length > 0) {
-          const { data: goalTasks } = await supabase
-            .from('tasks')
-            .select('id, completed')
-            .eq('user_id', user.id)
-            .in('goal_id', goalIds);
-          totalTasks += goalTasks?.length || 0;
-          completedTasks += goalTasks?.filter(t => t.completed).length || 0;
-        }
+        // Combine direct sphere items + goal-linked items (deduplicated)
+        const allTaskIds = new Set<string>();
+        const allTasks = [...localTasks, ...goalLinkedTasks].filter((t: any) => {
+          if (allTaskIds.has(t.id)) return false;
+          allTaskIds.add(t.id);
+          return true;
+        });
 
-        // Tasks directly assigned to sphere
-        const { data: sphereTasks } = await supabase
-          .from('tasks')
-          .select('id, completed')
-          .eq('user_id', user.id)
-          .eq('sphere_id', sphereId)
-          .is('goal_id', null);
-        totalTasks += sphereTasks?.length || 0;
-        completedTasks += sphereTasks?.filter(t => t.completed).length || 0;
+        const allHabitIds = new Set<string>();
+        const allHabits = [...localHabits, ...goalLinkedHabits].filter((h: any) => {
+          if (allHabitIds.has(h.id)) return false;
+          allHabitIds.add(h.id);
+          return true;
+        });
 
-        // Fetch habits for weekly completion calculation
-        const { data: habits } = await supabase
-          .from('habits')
-          .select('id, completed_dates, target_days')
-          .eq('user_id', user.id)
-          .eq('sphere_id', sphereId)
-          .is('archived_at', null);
+        const totalTasks = allTasks.length;
+        const completedTasks = allTasks.filter((t: any) => t.completed).length;
+        const totalHabits = allHabits.length;
 
-        const totalHabits = habits?.length || 0;
+        // Calculate habit completion rate
         let habitCompletionRate = 0;
-
-        if (habits && habits.length > 0) {
+        if (allHabits.length > 0) {
           let totalExpectedCompletions = 0;
           let actualCompletions = 0;
 
-          habits.forEach(habit => {
-            const targetDays = habit.target_days || [0, 1, 2, 3, 4, 5, 6];
+          allHabits.forEach((habit: any) => {
+            const targetDays = habit.targetDays || habit.target_days || [0, 1, 2, 3, 4, 5, 6];
             totalExpectedCompletions += targetDays.length;
 
-            const completedDates = habit.completed_dates || [];
+            const completedDates = habit.completedDates || habit.completed_dates || [];
             const weeklyCompletions = completedDates.filter((date: string) =>
               date >= weekStart && date <= weekEnd
             ).length;
@@ -181,7 +191,15 @@ export function useSpheres() {
             : 0;
         }
 
-        // Check recent activity (last 48 hours)
+        // Check recent activity
+        const recentActivityCheck = fortyEightHoursAgo.toISOString();
+        const hasLocalActivity = 
+          localTimeEntries.some((t: any) => (t.created_at || t.createdAt) >= recentActivityCheck) ||
+          localTransactions.some((t: any) => (t.created_at || t.createdAt) >= recentActivityCheck);
+
+        let hasRecentActivity = hasLocalActivity;
+
+        // Also check Supabase for time/transaction activity
         const { data: recentTime } = await supabase
           .from('time_entries')
           .select('id')
@@ -198,49 +216,35 @@ export function useSpheres() {
           .gte('created_at', fortyEightHoursAgo.toISOString())
           .limit(1);
 
-        const hasRecentActivity = 
+        hasRecentActivity = hasRecentActivity || 
           (recentTime && recentTime.length > 0) || 
-          (recentTx && recentTx.length > 0);
+          (recentTx && recentTx.length > 0) || false;
 
-        // Fetch time entries
-        const { data: allTimeEntries } = await supabase
-          .from('time_entries')
-          .select('duration, created_at')
-          .eq('user_id', user.id)
-          .eq('sphere_id', sphereId);
-
+        // Time entries
         const totalTimeMinutes = Math.round(
-          (allTimeEntries?.reduce((sum, t) => sum + (t.duration || 0), 0) || 0) / 60
+          localTimeEntries.reduce((sum: number, t: any) => sum + (t.duration || 0), 0) / 60
         );
-
         const weeklyTimeMinutes = Math.round(
-          (allTimeEntries
-            ?.filter(t => t.created_at && t.created_at >= weekStart)
-            .reduce((sum, t) => sum + (t.duration || 0), 0) || 0) / 60
+          localTimeEntries
+            .filter((t: any) => (t.created_at || t.createdAt) >= weekStart)
+            .reduce((sum: number, t: any) => sum + (t.duration || 0), 0) / 60
         );
 
-        // Fetch transactions
-        const { data: allTransactions } = await supabase
-          .from('transactions')
-          .select('amount, type, date')
-          .eq('user_id', user.id)
-          .eq('sphere_id', sphereId);
+        // Transactions
+        const totalIncome = localTransactions
+          .filter((t: any) => t.type === 'income')
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const totalExpense = localTransactions
+          .filter((t: any) => t.type === 'expense')
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const monthlyIncome = localTransactions
+          .filter((t: any) => t.type === 'income' && (t.date || '') >= monthStart)
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const monthlyExpense = localTransactions
+          .filter((t: any) => t.type === 'expense' && (t.date || '') >= monthStart)
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-        const totalIncome = allTransactions
-          ?.filter(t => t.type === 'income')
-          .reduce((sum, t) => sum + t.amount, 0) || 0;
-        const totalExpense = allTransactions
-          ?.filter(t => t.type === 'expense')
-          .reduce((sum, t) => sum + t.amount, 0) || 0;
-
-        const monthlyIncome = allTransactions
-          ?.filter(t => t.type === 'income' && t.date >= monthStart)
-          .reduce((sum, t) => sum + t.amount, 0) || 0;
-        const monthlyExpense = allTransactions
-          ?.filter(t => t.type === 'expense' && t.date >= monthStart)
-          .reduce((sum, t) => sum + t.amount, 0) || 0;
-
-        // Fetch contacts linked to this sphere
+        // Contacts
         const { data: contactSpheres } = await supabase
           .from('contact_spheres')
           .select('id')
@@ -269,31 +273,18 @@ export function useSpheres() {
         };
       } catch (error) {
         console.error('Error fetching sphere stats from Supabase:', error);
-        // Fall back to localStorage
+        // Fall through to localStorage-only path
       }
     }
 
-    // Load from localStorage (for guest users or as fallback)
-    const localHabits = loadLocalHabits().filter(
-      h => (h.sphereId === sphereId || h.sphere_id === sphereId) && !h.archivedAt
-    );
-    const localTasks = loadLocalTasks().filter(
-      t => (t.sphereId === sphereId || t.sphere_id === sphereId) && !t.archivedAt
-    );
-    const localTransactions = loadLocalTransactions().filter(
-      t => t.sphereId === sphereId || t.sphere_id === sphereId
-    );
-    const localTimeEntries = loadLocalTimeEntries().filter(
-      t => t.sphereId === sphereId || t.sphere_id === sphereId
-    );
-
+    // localStorage-only path (guest or fallback)
     // Calculate habit completion rate from local data
     let habitCompletionRate = 0;
     if (localHabits.length > 0) {
       let totalExpected = 0;
       let actualCompletions = 0;
 
-      localHabits.forEach(habit => {
+      localHabits.forEach((habit: any) => {
         const targetDays = habit.targetDays || habit.target_days || [0, 1, 2, 3, 4, 5, 6];
         totalExpected += targetDays.length;
 
@@ -312,24 +303,24 @@ export function useSpheres() {
     // Check recent activity
     const recentActivityCheck = fortyEightHoursAgo.toISOString();
     const hasRecentActivity = 
-      localTimeEntries.some(t => t.created_at >= recentActivityCheck || t.createdAt >= recentActivityCheck) ||
-      localTransactions.some(t => t.created_at >= recentActivityCheck || t.createdAt >= recentActivityCheck);
+      localTimeEntries.some((t: any) => (t.created_at || t.createdAt) >= recentActivityCheck) ||
+      localTransactions.some((t: any) => (t.created_at || t.createdAt) >= recentActivityCheck);
 
     const totalTimeMinutes = Math.round(
-      localTimeEntries.reduce((sum, t) => sum + (t.duration || 0), 0) / 60
+      localTimeEntries.reduce((sum: number, t: any) => sum + (t.duration || 0), 0) / 60
     );
 
     const totalIncome = localTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t: any) => t.type === 'income')
+      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
     const totalExpense = localTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t: any) => t.type === 'expense')
+      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
     return {
       ...emptyStats,
       totalTasks: localTasks.length,
-      completedTasks: localTasks.filter(t => t.completed).length,
+      completedTasks: localTasks.filter((t: any) => t.completed).length,
       totalHabits: localHabits.length,
       habitCompletionRate,
       hasRecentActivity,

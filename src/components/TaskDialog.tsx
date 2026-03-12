@@ -27,9 +27,11 @@ interface TaskDialogProps {
   onAddCategory?: (category: Omit<TaskCategory, 'id'>) => void;
   onAddTag?: (tag: Omit<TaskTag, 'id'>) => void;
   onRequestNotificationPermission?: () => Promise<boolean>;
+  prefillSphereId?: number | null;
+  prefillGoalId?: string | null;
 }
 
-export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag, onRequestNotificationPermission }: TaskDialogProps) {
+export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag, onRequestNotificationPermission, prefillSphereId, prefillGoalId }: TaskDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { freeFeatureRestrictions, hasProAccess } = useUsageLimits();
@@ -122,13 +124,13 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setSubtasks([]);
       setAttachments([]);
       setNotes('');
-      setGoalId(null);
-      setSphereId(null);
-      setSphereLockedByGoal(false);
+      setGoalId(prefillGoalId || null);
+      setSphereId(prefillSphereId ?? null);
+      setSphereLockedByGoal(!!prefillGoalId);
       setShowSubtasks(false);
       setShowAttachments(false);
     }
-  }, [task, open, tags]);
+  }, [task, open, tags, prefillSphereId, prefillGoalId]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -276,7 +278,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
             </div>
 
             {/* Goal Selector */}
-            {user && (
+            {(user || prefillGoalId || prefillSphereId) && (
               <div className="mb-4">
                 <GoalSelector
                   value={goalId}
@@ -287,7 +289,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
             )}
 
             {/* Sphere Selector */}
-            {user && (
+            {(user || prefillGoalId || prefillSphereId) && (
               <div className="mb-4">
                 <SphereSelector
                   value={sphereId}

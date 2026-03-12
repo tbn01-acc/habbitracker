@@ -16,7 +16,7 @@ import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
 
 import { GuestModeBanner } from "@/components/GuestModeBanner";
-import { AppHeader } from "@/components/AppHeader";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
@@ -252,7 +252,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
       
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Guest Mode Banner */}
