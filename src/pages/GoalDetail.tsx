@@ -5,7 +5,7 @@ import {
   ArrowLeft, Target, CheckSquare, Clock, DollarSign, Users, 
   Plus, Edit, Trash2, MoreVertical, Check, TrendingUp, BarChart3
 } from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +20,12 @@ import { GoalProgressChart } from '@/components/goals/GoalProgressChart';
 import { GoalContactsManager } from '@/components/goals/GoalContactsManager';
 import { GoalProgressTab } from '@/components/goals/GoalProgressTab';
 import { GoalAnalyticsTab } from '@/components/goals/GoalAnalyticsTab';
+import { TaskDialog } from '@/components/TaskDialog';
+import { HabitDialog } from '@/components/HabitDialog';
+import { TransactionDialog } from '@/components/TransactionDialog';
+import { useTasks } from '@/hooks/useTasks';
+import { useHabits } from '@/hooks/useHabits';
+import { useFinance } from '@/hooks/useFinance';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
@@ -43,11 +49,18 @@ export default function GoalDetail() {
   const { goals, updateGoal, deleteGoal, completeGoal, addContact, getGoalContacts, deleteContact } = useGoals();
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [habitDialogOpen, setHabitDialogOpen] = useState(false);
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [habits, setHabits] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+
+  const { addTask, categories: taskCategories, tags: taskTags } = useTasks();
+  const { addHabit, categories: habitCategories, tags: habitTags } = useHabits();
+  const { addTransaction, categories: finCategories, tags: finTags } = useFinance();
 
   const goal = goals.find(g => g.id === id);
 
@@ -244,7 +257,7 @@ export default function GoalDetail() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -458,7 +471,7 @@ export default function GoalDetail() {
                   <CardTitle className="text-base">
                     {isRussian ? 'Задачи' : 'Tasks'}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/tasks')}>
+                  <Button size="sm" variant="outline" onClick={() => setTaskDialogOpen(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     {isRussian ? 'Добавить' : 'Add'}
                   </Button>
@@ -503,7 +516,7 @@ export default function GoalDetail() {
                   <CardTitle className="text-base">
                     {isRussian ? 'Привычки' : 'Habits'}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/habits')}>
+                  <Button size="sm" variant="outline" onClick={() => setHabitDialogOpen(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     {isRussian ? 'Добавить' : 'Add'}
                   </Button>
@@ -543,7 +556,7 @@ export default function GoalDetail() {
                   <CardTitle className="text-base">
                     {isRussian ? 'Финансы' : 'Finance'}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/finance')}>
+                  <Button size="sm" variant="outline" onClick={() => setTransactionDialogOpen(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     {isRussian ? 'Добавить' : 'Add'}
                   </Button>
@@ -664,6 +677,48 @@ export default function GoalDetail() {
           onOpenChange={setEditDialogOpen}
           onSave={handleUpdate}
           initialData={goal}
+        />
+
+        <TaskDialog
+          open={taskDialogOpen}
+          onClose={() => setTaskDialogOpen(false)}
+          onSave={async (taskData) => {
+            await addTask({ ...taskData, goalId: goal.id, sphereId: goal.sphere_id });
+            setTaskDialogOpen(false);
+            fetchRelatedData();
+          }}
+          categories={taskCategories}
+          tags={taskTags}
+          prefillSphereId={goal.sphere_id}
+          prefillGoalId={goal.id}
+        />
+
+        <HabitDialog
+          open={habitDialogOpen}
+          onClose={() => setHabitDialogOpen(false)}
+          onSave={async (habitData) => {
+            await addHabit({ ...habitData, goalId: goal.id, sphereId: goal.sphere_id });
+            setHabitDialogOpen(false);
+            fetchRelatedData();
+          }}
+          categories={habitCategories}
+          tags={habitTags}
+          prefillSphereId={goal.sphere_id}
+          prefillGoalId={goal.id}
+        />
+
+        <TransactionDialog
+          open={transactionDialogOpen}
+          onClose={() => setTransactionDialogOpen(false)}
+          onSave={async (txData) => {
+            await addTransaction({ ...txData, goalId: goal.id, sphereId: goal.sphere_id } as any);
+            setTransactionDialogOpen(false);
+            fetchRelatedData();
+          }}
+          categories={finCategories}
+          tags={finTags}
+          prefillSphereId={goal.sphere_id}
+          prefillGoalId={goal.id}
         />
       </div>
     </div>

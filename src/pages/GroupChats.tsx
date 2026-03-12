@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { APP_URL } from '@/lib/constants';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   MessageSquare, Plus, Users, Search, ArrowLeft, Settings,
   Send, MoreVertical, Reply, Trash2, UserPlus, LogOut, Link, Copy, Globe, Shield, Ban, Crown, UserMinus
 } from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useGroupChats, useChatMessages } from '@/hooks/useGroupChats';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -123,7 +124,6 @@ export default function GroupChats() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <AppHeader />
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
           <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold mb-2">Групповые чаты</h2>
@@ -135,7 +135,7 @@ export default function GroupChats() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-6xl mx-auto">
         <div className="flex h-[calc(100vh-8rem)]">
           {/* Chat List Sidebar */}
@@ -462,7 +462,7 @@ function ChatView({ chatId, chat, onBack, onLeave, onSetRole, onBanMember }: Cha
             <DropdownMenuContent align="end">
               {chat.invite_code && (
                 <DropdownMenuItem onClick={() => {
-                  const inviteUrl = `${window.location.origin}/chats/${chat.invite_code}`;
+                  const inviteUrl = `${APP_URL}/chats/${chat.invite_code}`;
                   navigator.clipboard.writeText(inviteUrl);
                   toast.success('Ссылка скопирована!');
                 }}>

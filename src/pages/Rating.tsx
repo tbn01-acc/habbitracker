@@ -6,7 +6,7 @@ import { useLeaderboardFiltered, LeaderboardPeriod, LeaderboardSortType } from '
 import { useStars } from '@/hooks/useStars';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchUserRewardItemsBatch, UserRewardItems } from '@/hooks/useUserRewardItems';
-import { AppHeader } from '@/components/AppHeader';
+
 import { PublicProfileEditDialog } from '@/components/profile/PublicProfileEditDialog';
 import { ContactsGatedDialog } from '@/components/profile/ContactsGatedDialog';
 import { RatingPodium } from '@/components/rating/RatingPodium';
@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Star, Flame, User, Settings, Phone, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserAvatarWithFrame } from '@/components/rewards/UserAvatarWithFrame';
 import { UserBadges } from '@/components/rewards/UserBadges';
 
@@ -66,7 +66,6 @@ export default function Rating() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
       
       <main className="container max-w-2xl mx-auto px-4 py-6">
         {/* Page Title */}
@@ -122,70 +121,80 @@ export default function Rating() {
         </div>
 
         {/* Leaderboard List */}
-        {leaderboardLoading ? (
-          <div className="space-y-3">
-            {[...Array(10)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        ) : (
-          <>
-            <RatingList
-              users={leaderboard}
-              userRewards={userRewards}
-              type={ratingType}
-              isRussian={isRussian}
-              onUserClick={handleUserClick}
-            />
-
-            {/* Current user if not in top 100 */}
-            {currentUserRank && currentUserRank.rank > 100 && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-2">
-                  {isRussian ? 'Ваша позиция' : 'Your position'}
-                </p>
-                <Card className="ring-2 ring-primary">
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <div className="w-8 flex justify-center">
-                      <span className="text-sm font-medium">#{currentUserRank.rank}</span>
-                    </div>
-                    
-                    <Avatar>
-                      <AvatarImage src={currentUserRank.avatar_url || undefined} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1">
-                      <p className="font-medium">{currentUserRank.display_name}</p>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Flame className="h-3 w-3 text-orange-500" />
-                        {currentUserRank.current_streak_days}d
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1 text-lg font-semibold">
-                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                      {currentUserRank.total_stars}
-                    </div>
-                  </CardContent>
-                </Card>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${ratingType}-${ratingPeriod}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25, ease: 'easeOut' as const }}
+          >
+            {leaderboardLoading ? (
+              <div className="space-y-3">
+                {[...Array(10)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
               </div>
-            )}
+            ) : (
+              <>
+                <RatingList
+                  users={leaderboard}
+                  userRewards={userRewards}
+                  type={ratingType}
+                  isRussian={isRussian}
+                  onUserClick={handleUserClick}
+                />
 
-            {leaderboard.length === 0 && (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    {isRussian ? 'Рейтинг пока пуст' : 'Leaderboard is empty'}
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Current user if not in top 100 */}
+                {currentUserRank && currentUserRank.rank > 100 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {isRussian ? 'Ваша позиция' : 'Your position'}
+                    </p>
+                    <Card className="ring-2 ring-primary">
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <div className="w-8 flex justify-center">
+                          <span className="text-sm font-medium">#{currentUserRank.rank}</span>
+                        </div>
+                        
+                        <Avatar>
+                          <AvatarImage src={currentUserRank.avatar_url || undefined} />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1">
+                          <p className="font-medium">{currentUserRank.display_name}</p>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Flame className="h-3 w-3 text-orange-500" />
+                            {currentUserRank.current_streak_days}d
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 text-lg font-semibold">
+                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                          {currentUserRank.total_stars}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {leaderboard.length === 0 && (
+                  <Card>
+                    <CardContent className="text-center py-12">
+                      <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        {isRussian ? 'Рейтинг пока пуст' : 'Leaderboard is empty'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
-          </>
-        )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Profile Dialog */}

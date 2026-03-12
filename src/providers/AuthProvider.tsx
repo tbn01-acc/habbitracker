@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useDeviceFingerprint } from '@/hooks/useDeviceFingerprint';
 
 interface AuthContextType {
   user: User | null;
@@ -85,6 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: err.message };
     }
   }, [user?.id, refetchProfile]);
+
+  // Capture device fingerprint for digital passport
+  useDeviceFingerprint(user?.id);
 
   return (
     <AuthContext.Provider value={{

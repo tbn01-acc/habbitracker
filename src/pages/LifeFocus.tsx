@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { LifeIndexData, SPHERES, getSphereName, Sphere } from '@/types/sphere';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AppHeader } from '@/components/AppHeader';
+
 import { format } from 'date-fns';
 
 // Constants for progress threshold
@@ -288,7 +288,6 @@ export default function LifeFocus() {
   if (loading && !data) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <AppHeader />
         <div className="container max-w-md mx-auto px-4 py-6 space-y-6">
           <h1 className="text-2xl font-bold">{labels.title[language]}</h1>
           <Skeleton className="h-80 w-full rounded-xl" />
@@ -301,7 +300,7 @@ export default function LifeFocus() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
 
       <div className="container max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header with title and refresh */}

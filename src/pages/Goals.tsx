@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Plus, TrendingUp, BarChart3, Target } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ export default function Goals() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <PageHeader 

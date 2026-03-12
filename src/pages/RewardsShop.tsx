@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useRewardsShop } from '@/hooks/useRewardsShop';
 import { useStars } from '@/hooks/useStars';
-import { AppHeader } from '@/components/AppHeader';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,6 @@ export default function RewardsShop() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
       
       <main className="container max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">

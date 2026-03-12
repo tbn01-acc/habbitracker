@@ -121,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Продолжайте приглашать друзей и получайте ещё больше бонусов!</p>
             </div>
             <div class="footer">
-              <p>Это автоматическое уведомление от TopFocus</p>
+              <p>Это автоматическое уведомление от ТопФокус</p>
             </div>
           </div>
         </body>
@@ -160,7 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Средства зачислены на ваш кошелёк в приложении.</p>
             </div>
             <div class="footer">
-              <p>Это автоматическое уведомление от TopFocus</p>
+              <p>Это автоматическое уведомление от ТопФокус</p>
             </div>
           </div>
         </body>
@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending ${type} email to ${referrerEmail}`);
 
     const emailResponse = await resend.emails.send({
-      from: "TopFocus <notifications@resend.dev>",
+      from: "ТопФокус <notifications@resend.dev>",
       to: [referrerEmail],
       subject,
       html,

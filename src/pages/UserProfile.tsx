@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AppHeader } from '@/components/AppHeader';
+
 import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { UserFeed } from '@/components/profile/UserFeed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +15,7 @@ export default function UserProfile() {
   if (!userId) {
     return (
       <div className="min-h-screen bg-background">
-        <AppHeader />
+        
         <main className="container mx-auto px-2 py-2 pb-24">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-2">
             <ArrowLeft className="h-4 w-4" />
@@ -31,7 +31,6 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader />
       <main className="container mx-auto px-2 py-1 pb-24">
         {/* Back button + Tabs in one row */}
         <div className="flex items-center gap-2 mb-2">

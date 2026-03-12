@@ -22,7 +22,7 @@ import { CalendarExportButtons } from '@/components/CalendarExportButtons';
 import { LimitWarning, LimitBadge } from '@/components/LimitWarning';
 import { StatusGroupedList } from '@/components/StatusGroupedList';
 import { SphereGoalFilter } from '@/components/SphereGoalFilter';
-import { AppHeader } from '@/components/AppHeader';
+
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -288,7 +288,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <PageHeader

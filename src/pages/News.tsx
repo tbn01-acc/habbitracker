@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Newspaper, Calendar, Sparkles, Zap, Gift, Crown, Bell, Archive, CalendarRange, Trophy, ThumbsUp, Lightbulb, Settings, ClipboardList, BarChart3 } from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -191,7 +191,7 @@ export default function News() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

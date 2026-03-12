@@ -5,6 +5,7 @@ const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,7 @@ const ALLOWED_PROVIDERS = ["groq", "gemini"];
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_TOKENS_LIMIT = 2048;
+const MAX_DAILY_REQUESTS = 100;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,6 +48,36 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Rate limiting with service role client
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: usage } = await supabaseAdmin
+      .from("ai_usage")
+      .select("request_count")
+      .eq("user_id", user.id)
+      .eq("usage_date", today)
+      .single();
+
+    if ((usage?.request_count ?? 0) >= MAX_DAILY_REQUESTS) {
+      return new Response(JSON.stringify({ error: "Daily request limit exceeded. Try again tomorrow." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Upsert usage counter
+    await supabaseAdmin
+      .from("ai_usage")
+      .upsert(
+        {
+          user_id: user.id,
+          usage_date: today,
+          request_count: (usage?.request_count ?? 0) + 1,
+        },
+        { onConflict: "user_id,usage_date" }
+      );
 
     const body = await req.json();
     const { provider = "groq", messages, model, max_tokens = 1024 } = body;
@@ -135,12 +167,16 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      throw new Error(`AI API error (${aiResponse.status}): ${errText}`);
+      console.error(`AI API error (${aiResponse.status}):`, errText);
+      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await aiResponse.json();
 
-    // Normalize response
+    // Normalize response - only return content, not raw provider data
     let content: string;
     if (provider === "gemini") {
       content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -148,13 +184,13 @@ serve(async (req) => {
       content = aiData.choices?.[0]?.message?.content || "";
     }
 
-    return new Response(JSON.stringify({ content, raw: aiData }), {
+    return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("ai-proxy error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Copy, Eye, ExternalLink, Check } from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+
 import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { APP_URL } from '@/lib/constants';
 
 export default function PublicProfilePreview() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function PublicProfilePreview() {
   const [copied, setCopied] = useState(false);
 
   const profileUrl = user 
-    ? `${window.location.origin}/user/${user.id}`
+    ? `${APP_URL}/user/${user.id}`
     : '';
 
   const handleCopyLink = async () => {
@@ -53,7 +54,7 @@ export default function PublicProfilePreview() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

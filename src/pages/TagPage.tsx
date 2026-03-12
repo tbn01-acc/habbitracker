@@ -11,7 +11,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useFinance } from '@/hooks/useFinance';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { AppHeader } from '@/components/AppHeader';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -201,7 +201,6 @@ export default function TagPage() {
   if (!tag && !tagsLoading) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <AppHeader />
         <div className="max-w-4xl mx-auto px-4 py-6 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
             <Tag className="w-8 h-8 text-muted-foreground" />
@@ -279,7 +278,7 @@ export default function TagPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

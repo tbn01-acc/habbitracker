@@ -1,24 +1,16 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  User, Settings, Trophy, Users, Crown, Lock, 
-  LogIn, Archive, BarChart3, Mail, Send, CheckCircle2,
-  MessageCircle, Link2
-} from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Archive, BarChart3 } from 'lucide-react';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useAuthContext } from '@/providers/AuthProvider';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface TileProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   subtitle: string;
   gradient: string;
@@ -35,10 +27,8 @@ function ProfileTile({ icon, title, subtitle, gradient, onClick, locked, delay =
       transition={{ delay }}
       className="relative"
     >
-      <Card 
-        className={`h-full cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
-          locked ? 'opacity-60' : ''
-        }`}
+      <Card
+        className={`h-full cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${locked ? 'opacity-60' : ''}`}
         onClick={onClick}
       >
         <CardContent className={`p-0 h-full rounded-xl bg-gradient-to-br ${gradient}`}>
@@ -65,14 +55,9 @@ function ProfileTile({ icon, title, subtitle, gradient, onClick, locked, delay =
 export default function Profile() {
   const { language } = useTranslation();
   const navigate = useNavigate();
-  const { user, profile, loading, refetchProfile } = useAuth();
-  const { linkEmail } = useAuthContext();
+  const { user, loading } = useAuth();
   const { isProActive } = useSubscription();
-  const { toast } = useToast();
-  
-  const [emailInput, setEmailInput] = useState('');
-  const [isLinking, setIsLinking] = useState(false);
-  
+
   const isRussian = language === 'ru';
 
   const handleTileClick = (path: string, requiresAuth: boolean) => {
@@ -83,44 +68,10 @@ export default function Profile() {
     }
   };
 
-  const handleLinkEmail = async () => {
-    if (!emailInput.includes('@')) {
-      toast({
-        title: isRussian ? "Ошибка" : "Error",
-        description: isRussian ? "Введите корректный email" : "Enter a valid email",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLinking(true);
-    try {
-      const { error } = await linkEmail(emailInput);
-      if (error) throw new Error(error);
-
-      toast({
-        title: isRussian ? "Успешно" : "Success",
-        description: isRussian ? "Письмо с подтверждением отправлено на email" : "Confirmation email sent",
-      });
-      
-      setEmailInput('');
-    } catch (error: any) {
-      toast({
-        title: isRussian ? "Ошибка" : "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          {isRussian ? 'Загрузка...' : 'Loading...'}
-        </div>
+        <div className="animate-pulse text-muted-foreground">{isRussian ? 'Загрузка...' : 'Loading...'}</div>
       </div>
     );
   }
@@ -129,9 +80,8 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-4">
-        
         {/* Guest Banner */}
         {!user && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -143,9 +93,7 @@ export default function Profile() {
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <div className="font-medium text-foreground text-sm">
-                        {isRussian ? 'Вы не авторизованы' : 'Not signed in'}
-                      </div>
+                      <div className="font-medium text-foreground text-sm">{isRussian ? 'Вы не авторизованы' : 'Not signed in'}</div>
                       <p className="text-xs text-muted-foreground">
                         {isRussian ? 'Войдите для доступа ко всем функциям' : 'Sign in for full access'}
                       </p>
@@ -161,66 +109,13 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* Identity Linking Block */}
-        {user && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 space-y-3"
-          >
-            {/* Email Status */}
-            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/10">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
-                  <Mail className="w-4 h-4" />
-                  <span className="text-sm font-semibold uppercase tracking-wider">Email</span>
-                </div>
-                {user?.email ? (
-                  <div className="flex items-center justify-between bg-card p-3 rounded-lg border">
-                    <span className="text-sm font-medium">{user.email}</span>
-                    <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 dark:bg-green-950/30 px-2 py-1 rounded">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {isRussian ? 'ПРИВЯЗАН' : 'LINKED'}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      {isRussian 
-                        ? 'Привяжите почту для входа через браузер и восстановления доступа.' 
-                        : 'Link email for browser login and account recovery.'}
-                    </p>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="email"
-                        placeholder="example@mail.com"
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        className="h-9 bg-card"
-                      />
-                      <Button 
-                        size="sm" 
-                        onClick={handleLinkEmail} 
-                        disabled={isLinking}
-                        className="shrink-0"
-                      >
-                        {isLinking ? '...' : <Send className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
         {/* 2x3 Tile Grid */}
-        <div 
+        <div
           className="grid grid-cols-2 gap-3"
-          style={{ 
+          style={{
             height: user ? 'calc(100vh - 320px)' : 'calc(100vh - 260px)',
             minHeight: '400px',
-            gridTemplateRows: 'repeat(3, 1fr)'
+            gridTemplateRows: 'repeat(3, 1fr)',
           }}
         >
           <ProfileTile
@@ -275,7 +170,7 @@ export default function Profile() {
             title={isRussian ? 'Архив' : 'Archive'}
             subtitle={isRussian ? 'История привычек и задач' : 'Habits & tasks history'}
             gradient="from-slate-600 to-slate-500"
-            onClick={() => showArchive ? navigate('/archive') : navigate('/upgrade')}
+            onClick={() => (showArchive ? navigate('/archive') : navigate('/upgrade'))}
             locked={!showArchive}
             delay={0.25}
           />

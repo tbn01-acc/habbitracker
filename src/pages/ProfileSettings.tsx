@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, HardDrive, User, ArrowLeft, Shield } from 'lucide-react';
+import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, HardDrive, User, ArrowLeft, Shield, Mail, Send, CheckCircle2 } from 'lucide-react';
+import { useAuthContext } from '@/providers/AuthProvider';
+import { SetPasswordSection } from '@/components/profile/SetPasswordSection';
 import { Button } from '@/components/ui/button';
 import { SyncHistoryPanel } from '@/components/SyncHistory';
 import { TrialStatusCard } from '@/components/profile/TrialStatusCard';
@@ -11,7 +13,7 @@ import { SettingsSection } from '@/components/profile/SettingsSection';
 import { ThemeSwitcher } from '@/components/profile/ThemeSwitcher';
 import { ProfilePreferencesSection } from '@/components/profile/ProfilePreferencesSection';
 import { BackupSection } from '@/components/profile/BackupSection';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
@@ -35,16 +37,60 @@ export default function ProfileSettings() {
   const { subscription, currentPlan, isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
   const { soundEnabled, confettiEnabled, setSoundEnabled, setConfettiEnabled } = useCelebrationSettings();
   const { isAdmin } = useLegalDocuments();
+  const { linkEmail } = useAuthContext();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
   const isRussian = language === 'ru';
+
+  const handleLinkEmail = async () => {
+    if (!emailInput.includes('@')) {
+      toast.error(isRussian ? 'Введите корректный email' : 'Enter a valid email');
+      return;
+    }
+    setIsLinking(true);
+    try {
+      const { error } = await linkEmail(emailInput);
+      if (error) throw new Error(error);
+      toast.success(isRussian ? 'Письмо с подтверждением отправлено на email' : 'Confirmation email sent');
+      setEmailInput('');
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   // Use TanStack Query for instant profile updates
   const { data: cachedProfile } = useProfile(user?.id);
   const profile = cachedProfile || authProfile;
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/profile');
+    try {
+      await signOut();
+    } catch (e) {
+      console.error('Sign out error:', e);
+    }
+
+    // Extra safety for Android WebView/Telegram Mini App
+    if (typeof window !== 'undefined') {
+      const cleanup = (store: Storage) => {
+        Object.keys(store).forEach((key) => {
+          if (
+            key === 'topfocus-auth-token' ||
+            key.includes('auth-token') ||
+            key.includes('supabase.auth.token') ||
+            key.startsWith('sb-')
+          ) {
+            store.removeItem(key);
+          }
+        });
+      };
+      cleanup(localStorage);
+      cleanup(sessionStorage);
+    }
+
+    window.location.replace('/auth');
   };
 
   const handleProfileUpdate = useCallback(async () => {
@@ -65,9 +111,13 @@ export default function ProfileSettings() {
     return null;
   }
 
+  // Check if user is superadmin or has admin role
+  const isSuperAdmin = user.email === 'serge101.pro@gmail.com';
+  const hasAdminAccess = isSuperAdmin || isAdmin;
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -117,12 +167,62 @@ export default function ProfileSettings() {
                   </Button>
                 </div>
               </div>
+              {/* Set Password - only for serge101.pro@gmail.com */}
+              {user.email === 'serge101.pro@gmail.com' && (
+                <SetPasswordSection />
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Admin Panel Link (only for admins) */}
-        {isAdmin && (
+        {/* Email Status */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}>
+          <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
+                <Mail className="w-4 h-4" />
+                <span className="text-sm font-semibold uppercase tracking-wider">Email</span>
+              </div>
+              {user?.email ? (
+                <div className="flex items-center justify-between bg-card p-3 rounded-lg border">
+                  <span className="text-sm font-medium">{user.email}</span>
+                  <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 dark:bg-green-950/30 px-2 py-1 rounded">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {isRussian ? 'ПРИВЯЗАН' : 'LINKED'}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {isRussian 
+                      ? 'Привяжите почту для входа через браузер и восстановления доступа.' 
+                      : 'Link email for browser login and account recovery.'}
+                  </p>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="email"
+                      placeholder="example@mail.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="h-9 bg-card"
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleLinkEmail} 
+                      disabled={isLinking}
+                      className="shrink-0"
+                    >
+                      {isLinking ? '...' : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Admin Panel Link (for superadmin and admins) */}
+        {hasAdminAccess && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

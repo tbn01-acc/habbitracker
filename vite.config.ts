@@ -4,6 +4,7 @@ import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { componentTagger } from 'lovable-tagger';
 
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   // Базовый путь должен быть '/' для корректной работы маршрутизации на Vercel
@@ -61,9 +62,11 @@ export default defineConfig(({ mode }) => ({
   },
 
   build: {
-    chunkSizeWarningLimit: 1500,
+    sourcemap: true,
+    chunkSizeWarningLimit: 2500,
     
     rollupOptions: {
+      plugins: [],
       output: {
         manualChunks(id) {
           // React и связанные пакеты ВМЕСТЕ в одном чанке
@@ -86,8 +89,16 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules/@supabase/')) {
             return 'vendor-supabase';
           }
-          // Тяжёлые графики
-          if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3-')) {
+          // Тяжёлые графики — d3 должен быть в одном чанке с recharts
+          // чтобы избежать circular dependency "Cannot access before initialization"
+          if (
+            id.includes('node_modules/recharts/') ||
+            id.includes('node_modules/d3-') ||
+            id.includes('node_modules/victory-') ||
+            id.includes('node_modules/internmap/') ||
+            id.includes('node_modules/robust-predicates/') ||
+            id.includes('node_modules/delaunator/')
+          ) {
             return 'vendor-charts';
           }
           // Анимации
@@ -112,12 +123,6 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild',
   },
 }));

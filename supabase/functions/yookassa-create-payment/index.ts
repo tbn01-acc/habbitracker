@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { amount, period, description, returnUrl } = await req.json();
+    const { amount, period, description, returnUrl, paymentMethodType } = await req.json();
 
     if (!amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Invalid amount" }), {
@@ -64,7 +64,36 @@ Deno.serve(async (req) => {
     // Generate idempotency key
     const idempotencyKey = crypto.randomUUID();
 
+    // Build payment method data (for SBP or default card)
+    const paymentMethodData: Record<string, string> | undefined =
+      paymentMethodType === "sbp"
+        ? { type: "sbp" }
+        : paymentMethodType === "bank_card"
+        ? { type: "bank_card" }
+        : undefined;
+
     // Create payment via YooKassa API
+    const paymentBody: Record<string, unknown> = {
+      amount: {
+        value: amount.toFixed(2),
+        currency: "RUB",
+      },
+      confirmation: {
+        type: "redirect",
+        return_url: returnUrl || "https://top-focus.ru/profile",
+      },
+      capture: true,
+      description: description || `ТопФокус PRO — ${period || "subscription"}`,
+      metadata: {
+        user_id: user.id,
+        period: period || "monthly",
+      },
+    };
+
+    if (paymentMethodData) {
+      paymentBody.payment_method_data = paymentMethodData;
+    }
+
     const yooResponse = await fetch("https://api.yookassa.ru/v3/payments", {
       method: "POST",
       headers: {
@@ -73,22 +102,7 @@ Deno.serve(async (req) => {
         Authorization:
           "Basic " + btoa(`${shopId}:${secretKey}`),
       },
-      body: JSON.stringify({
-        amount: {
-          value: amount.toFixed(2),
-          currency: "RUB",
-        },
-        confirmation: {
-          type: "redirect",
-          return_url: returnUrl || "https://topfocus-oda.lovable.app/profile",
-        },
-        capture: true,
-        description: description || `TopFocus PRO — ${period || "subscription"}`,
-        metadata: {
-          user_id: user.id,
-          period: period || "monthly",
-        },
-      }),
+      body: JSON.stringify(paymentBody),
     });
 
     if (!yooResponse.ok) {

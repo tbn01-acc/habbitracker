@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { ProductivityStats } from '@/components/ProductivityStats';
 import { TagStatistics } from '@/components/TagStatistics';
 import { CommonTagsTab } from '@/components/statistics/CommonTagsTab';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -18,7 +18,7 @@ export default function Statistics() {
   
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader />
+      
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>

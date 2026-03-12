@@ -4,7 +4,7 @@ import { Plus, ThumbsUp, ThumbsDown, MessageCircle, Vote, ArrowLeft, MoreVertica
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { AppHeader } from '@/components/AppHeader';
+
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredFeed, FeedPost } from '@/hooks/useFilteredFeed';
@@ -85,7 +85,6 @@ export default function Focus() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader />
       
       <main className="container max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
