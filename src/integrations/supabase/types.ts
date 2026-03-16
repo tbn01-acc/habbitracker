@@ -533,6 +533,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_team: boolean | null
           name: string
           progress: number | null
           progress_percent: number | null
@@ -553,6 +554,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_team?: boolean | null
           name: string
           progress?: number | null
           progress_percent?: number | null
@@ -573,6 +575,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_team?: boolean | null
           name?: string
           progress?: number | null
           progress_percent?: number | null

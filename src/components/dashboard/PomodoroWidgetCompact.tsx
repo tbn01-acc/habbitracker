@@ -62,7 +62,7 @@ export function PomodoroWidgetCompact() {
 
   // Stopwatch logic
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: TimerId;
     if (isStopwatchRunning && stopwatchStartTime) {
       interval = setInterval(() => {
         setStopwatchTime(Math.floor((Date.now() - stopwatchStartTime) / 1000));

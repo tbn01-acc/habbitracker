@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Bell, BellOff, Repeat, ListTodo, Paperclip, Lock, Crown } from 'lucide-react';
+import { X, Plus, Bell, BellOff, Repeat, ListTodo, Paperclip, Lock, Crown, Brain, MessageSquare, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, TaskReminder, SubTask, TaskAttachment, TASK_ICONS, TASK_COLORS } from '@/types/task';
+import { Task, TaskCategory, TaskTag, TaskStatus, TaskRecurrence, TaskReminder, SubTask, TaskAttachment, TaskType, TASK_TYPE_CONFIG, TASK_ICONS, TASK_COLORS } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -53,6 +53,9 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const [goalId, setGoalId] = useState<string | null>(null);
   const [sphereId, setSphereId] = useState<number | null>(null);
   const [sphereLockedByGoal, setSphereLockedByGoal] = useState(false);
+  const [taskType, setTaskType] = useState<TaskType | undefined>(undefined);
+  const [isMain, setIsMain] = useState(false);
+  const [duration, setDuration] = useState<number | undefined>(undefined);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newTagName, setNewTagName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -106,6 +109,9 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setGoalId((task as any).goalId || null);
       setSphereId((task as any).sphereId ?? null);
       setSphereLockedByGoal(!!(task as any).goalId);
+      setTaskType(task.taskType);
+      setIsMain(task.isMain || false);
+      setDuration(task.duration);
       setShowSubtasks((task.subtasks?.length || 0) > 0);
       setShowAttachments((task.attachments?.length || 0) > 0 || !!task.notes);
     } else {
@@ -127,6 +133,9 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setGoalId(prefillGoalId || null);
       setSphereId(prefillSphereId ?? null);
       setSphereLockedByGoal(!!prefillGoalId);
+      setTaskType(undefined);
+      setIsMain(false);
+      setDuration(undefined);
       setShowSubtasks(false);
       setShowAttachments(false);
     }
@@ -143,8 +152,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
     onSave({ 
       name: name.trim(), icon, color, dueDate, priority, status, 
       categoryId, tagIds: allTagIds, recurrence, reminder, subtasks, attachments, notes,
-      goalId,
-      sphereId
+      goalId, sphereId, taskType, isMain, duration,
     } as any);
     onClose();
   };
@@ -307,7 +315,64 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
               </div>
             )}
 
-            {/* Priority */}
+            {/* Task Type */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {isRussian ? 'Тип задачи' : 'Task Type'}
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {(Object.keys(TASK_TYPE_CONFIG) as TaskType[]).map(type => {
+                  const cfg = TASK_TYPE_CONFIG[type];
+                  const isSelected = taskType === type;
+                  const TypeIcon = type === 'intellectual' ? Brain : type === 'routine' ? Repeat : type === 'communication' ? MessageSquare : Zap;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setTaskType(isSelected ? undefined : type)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border",
+                        isSelected
+                          ? "border-transparent ring-1 shadow-sm"
+                          : "border-border bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                      style={isSelected ? { backgroundColor: cfg.color + '20', color: cfg.color, borderColor: cfg.color } : undefined}
+                    >
+                      <TypeIcon className="w-3.5 h-3.5" />
+                      {isRussian ? cfg.label : cfg.labelEn}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Main Task + Duration */}
+            <div className="mb-4 flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isMain}
+                  onChange={e => setIsMain(e.target.checked)}
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium text-foreground">
+                  🎯 {isRussian ? 'Главная задача' : 'Main task'}
+                </span>
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">{isRussian ? 'Мин:' : 'Min:'}</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={480}
+                  value={duration || ''}
+                  onChange={e => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="w-20 h-8 bg-background border-border text-sm"
+                  placeholder="30"
+                />
+              </div>
+            </div>
+
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-foreground mb-2">
                 {t('priority')}

@@ -57,6 +57,7 @@ import DaySummary from "./pages/DaySummary";
 import TeamPlan from "./pages/TeamPlan";
 import Team from "./pages/Team";
 import TeamPricing from "./pages/TeamPricing";
+import SuccessDiary from "./pages/SuccessDiary";
 
 /**
  * Конфигурация QueryClient с поддержкой Offline Mode
@@ -248,6 +249,7 @@ const AppContent = () => {
           <Route path="/team" element={<Team />} />
           <Route path="/team-plan" element={<TeamPlan />} />
           <Route path="/pricing/team" element={<TeamPricing />} />
+          <Route path="/success-diary" element={<SuccessDiary />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNavigation

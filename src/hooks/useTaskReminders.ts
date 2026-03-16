@@ -5,7 +5,7 @@ import { getNotificationSettings } from '@/components/NotificationSettings';
 
 export function useTaskReminders(tasks: Task[], updateTask: (id: string, updates: Partial<Task>) => void) {
   const { toast } = useToast();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<TimerId | null>(null);
 
   // Request notification permission
   const requestPermission = useCallback(async () => {

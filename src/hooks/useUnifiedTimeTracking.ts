@@ -186,7 +186,7 @@ export function useUnifiedTimeTracking() {
   useEffect(() => {
     if (!user) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: TimerId;
     
     const handleDataChange = () => {
       clearTimeout(debounceTimer);

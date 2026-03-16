@@ -1,5 +1,6 @@
 export type TaskStatus = 'not_started' | 'in_progress' | 'done';
 export type TaskRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+export type TaskType = 'intellectual' | 'routine' | 'communication' | 'movement';
 
 export interface TaskCategory {
   id: string;
@@ -58,7 +59,46 @@ export interface Task {
   // Goal and sphere linking
   goalId?: string;
   sphereId?: number;
+  // SMART goal decomposition
+  smartGoalPhase?: number;
+  smartGoalTotal?: number;
+  // Task classification
+  taskType?: TaskType;
+  isMain?: boolean;
+  duration?: number; // in minutes
+  parentId?: string; // parent goal ID
 }
+
+export interface Reflection {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  sleepScore: number; // 1-5
+  stressScore: number; // 1-5
+  victoryNote: string;
+  blockers: string[];
+  tomorrowMainTask?: string;
+  createdAt: string;
+}
+
+export const TASK_TYPE_CONFIG: Record<TaskType, { label: string; labelEn: string; icon: string; color: string }> = {
+  intellectual: { label: 'Интеллект', labelEn: 'Intellectual', icon: 'Brain', color: 'hsl(262, 80%, 55%)' },
+  routine: { label: 'Рутина', labelEn: 'Routine', icon: 'Repeat', color: 'hsl(220, 10%, 55%)' },
+  communication: { label: 'Коммуникация', labelEn: 'Communication', icon: 'MessageSquare', color: 'hsl(200, 80%, 50%)' },
+  movement: { label: 'Движение', labelEn: 'Movement', icon: 'Zap', color: 'hsl(35, 95%, 55%)' },
+};
+
+export const FOCUS_DEDUCTIONS = {
+  sleep: 480,
+  food: 90,
+  commute: 90,
+  personal: 90,
+  routine: 60,
+  breaks: 90,
+};
+
+export const TOTAL_MINUTES_IN_DAY = 1440;
+export const TOTAL_DEDUCTIONS = Object.values(FOCUS_DEDUCTIONS).reduce((a, b) => a + b, 0); // 900 min
 
 export const TASK_ICONS = [
   '📝', '✅', '📋', '🎯', '💼', '📞', '✉️', '🛒',

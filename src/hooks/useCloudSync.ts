@@ -83,7 +83,7 @@ export function useCloudSync() {
     autoSyncEnabled: true,
   });
   const [isProActive, setIsProActive] = useState(false);
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<TimerId | null>(null);
   const lastSyncedDataRef = useRef<string>('');
   const proCheckedRef = useRef(false);
 

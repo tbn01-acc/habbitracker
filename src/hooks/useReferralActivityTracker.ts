@@ -7,8 +7,8 @@ export function useReferralActivityTracker() {
   const { user } = useAuth();
   const sessionStartRef = useRef<Date | null>(null);
   const lastActivityRef = useRef<Date | null>(null);
-  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const inactivityTimeoutRef = useRef<TimerId | null>(null);
+  const saveIntervalRef = useRef<TimerId | null>(null);
 
   const INACTIVITY_THRESHOLD = 2 * 60 * 1000; // 2 minutes of inactivity = pause tracking
   const SAVE_INTERVAL = 60 * 1000; // Save every minute

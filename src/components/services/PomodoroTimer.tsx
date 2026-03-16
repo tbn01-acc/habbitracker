@@ -45,7 +45,7 @@ export function PomodoroTimer() {
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [stopwatchRunning, setStopwatchRunning] = useState(false);
   const [stopwatchStartTime, setStopwatchStartTime] = useState<number | null>(null);
-  const stopwatchRef = useRef<NodeJS.Timeout | null>(null);
+  const stopwatchRef = useRef<TimerId | null>(null);
 
   // Sync with context's currentTaskId
   useEffect(() => {

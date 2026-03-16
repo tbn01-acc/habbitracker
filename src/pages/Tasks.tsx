@@ -10,7 +10,7 @@ import { useOverdueNotifications } from '@/hooks/useOverdueNotifications';
 import { useOverdueTasks } from '@/hooks/useOverdueTasks';
 import { useGoals } from '@/hooks/useGoals';
 import { useDeadlineNotifications } from '@/hooks/useDeadlineNotifications';
-import { Task, TaskStatus } from '@/types/task';
+import { Task, TaskStatus, TaskType, TASK_TYPE_CONFIG } from '@/types/task';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDialog } from '@/components/TaskDialog';
 import { TaskSettingsDialog } from '@/components/TaskSettingsDialog';
@@ -71,6 +71,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   const [selectedStatuses, setSelectedStatuses] = useState<TaskStatus[]>([]);
   const [filterSphereId, setFilterSphereId] = useState<number | null>(null);
   const [filterGoalId, setFilterGoalId] = useState<string | null>(null);
+  const [filterIsMain, setFilterIsMain] = useState<boolean | null>(null);
+  const [filterTaskType, setFilterTaskType] = useState<TaskType | null>(null);
   const { t } = useTranslation();
 
   // Show notifications for overdue and high-priority tasks
@@ -177,25 +179,19 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
   // Filter tasks
   const filteredTasks = useMemo(() => {
     return activeTasks.filter(task => {
-      if (selectedCategories.length > 0 && !selectedCategories.includes(task.categoryId || '')) {
-        return false;
-      }
-      if (selectedTags.length > 0 && !task.tagIds.some(id => selectedTags.includes(id))) {
-        return false;
-      }
-      if (selectedStatuses.length > 0 && !selectedStatuses.includes(task.status)) {
-        return false;
-      }
-      // Sphere filter - check if task's goal is in the selected sphere
+      if (selectedCategories.length > 0 && !selectedCategories.includes(task.categoryId || '')) return false;
+      if (selectedTags.length > 0 && !task.tagIds.some(id => selectedTags.includes(id))) return false;
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(task.status)) return false;
       if (filterSphereId) {
         const taskGoal = goals.find(g => g.id === (task as any).goalId);
         if (!taskGoal || taskGoal.sphere_id !== filterSphereId) return false;
       }
-      // Goal filter
       if (filterGoalId && (task as any).goalId !== filterGoalId) return false;
+      if (filterIsMain !== null && (task.isMain || false) !== filterIsMain) return false;
+      if (filterTaskType && task.taskType !== filterTaskType) return false;
       return true;
     });
-  }, [activeTasks, selectedCategories, selectedTags, selectedStatuses, filterSphereId, filterGoalId, goals]);
+  }, [activeTasks, selectedCategories, selectedTags, selectedStatuses, filterSphereId, filterGoalId, filterIsMain, filterTaskType, goals]);
 
   // Group tasks by status
   const groupedTasks = useMemo(() => {
@@ -236,7 +232,7 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     return { completed, inProgress, today: todayList, future };
   }, [filteredTasks, today, todayDate]);
 
-  const hasFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0 || filterSphereId || filterGoalId;
+  const hasFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0 || filterSphereId || filterGoalId || filterIsMain !== null || filterTaskType !== null;
 
   const statuses: { value: TaskStatus; label: string }[] = [
     { value: 'not_started', label: t('statusNotStarted') },
@@ -274,6 +270,8 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
     setSelectedStatuses([]);
     setFilterSphereId(null);
     setFilterGoalId(null);
+    setFilterIsMain(null);
+    setFilterTaskType(null);
   };
 
   if (isLoading) {
@@ -441,6 +439,36 @@ export default function Tasks({ openDialog, onDialogClose }: TasksProps) {
                 {status.label}
               </button>
             ))}
+           </div>
+
+          {/* Task Type & Main filters */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterIsMain(filterIsMain === true ? null : true)}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1",
+                filterIsMain === true ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+              )}
+            >
+              🎯 {isRussian ? 'Главные' : 'Main'}
+            </button>
+            {(Object.keys(TASK_TYPE_CONFIG) as TaskType[]).map(type => {
+              const cfg = TASK_TYPE_CONFIG[type];
+              const isSelected = filterTaskType === type;
+              return (
+                <button
+                  key={type}
+                  onClick={() => setFilterTaskType(isSelected ? null : type)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                    isSelected ? "text-white" : "bg-muted text-muted-foreground"
+                  )}
+                  style={isSelected ? { backgroundColor: cfg.color } : undefined}
+                >
+                  {isRussian ? cfg.label : cfg.labelEn}
+                </button>
+              );
+            })}
           </div>
 
           {hasFilters && (

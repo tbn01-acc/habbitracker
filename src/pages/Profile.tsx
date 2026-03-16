@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Archive, BarChart3 } from 'lucide-react';
+import { User, Settings, Trophy, Users, Crown, Lock, LogIn, Archive, BarChart3, BookOpen } from 'lucide-react';
 
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -113,9 +113,8 @@ export default function Profile() {
         <div
           className="grid grid-cols-2 gap-3"
           style={{
-            height: user ? 'calc(100vh - 320px)' : 'calc(100vh - 260px)',
-            minHeight: '400px',
-            gridTemplateRows: 'repeat(3, 1fr)',
+          minHeight: '480px',
+            gridTemplateRows: 'repeat(4, 1fr)',
           }}
         >
           <ProfileTile
@@ -157,12 +156,21 @@ export default function Profile() {
           />
 
           <ProfileTile
+            icon={<BookOpen className="w-5 h-5 text-white" />}
+            title={isRussian ? 'Дневник успеха' : 'Success Diary'}
+            subtitle={isRussian ? 'Рефлексии и прогресс' : 'Reflections & progress'}
+            gradient="from-rose-500 to-pink-500"
+            onClick={() => navigate('/success-diary')}
+            delay={0.2}
+          />
+
+          <ProfileTile
             icon={<BarChart3 className="w-5 h-5 text-white" />}
             title={isRussian ? 'Статистика' : 'Statistics'}
             subtitle={isRussian ? 'Аналитика и прогресс' : 'Analytics & progress'}
             gradient="from-indigo-500 to-violet-500"
             onClick={() => navigate('/statistics')}
-            delay={0.2}
+            delay={0.25}
           />
 
           <ProfileTile
@@ -172,7 +180,7 @@ export default function Profile() {
             gradient="from-slate-600 to-slate-500"
             onClick={() => (showArchive ? navigate('/archive') : navigate('/upgrade'))}
             locked={!showArchive}
-            delay={0.25}
+            delay={0.3}
           />
         </div>
       </div>

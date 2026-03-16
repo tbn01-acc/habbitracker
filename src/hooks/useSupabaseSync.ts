@@ -388,7 +388,7 @@ export function useSupabaseSync() {
   useEffect(() => {
     if (!user) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: TimerId;
     
     const handleDataChange = () => {
       // Debounce to avoid multiple syncs

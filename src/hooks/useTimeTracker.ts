@@ -20,7 +20,7 @@ export function useTimeTracker() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<TimerId | null>(null);
 
   // Load entries and active timer
   useEffect(() => {

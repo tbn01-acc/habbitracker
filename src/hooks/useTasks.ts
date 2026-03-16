@@ -50,6 +50,10 @@ export function useTasks() {
           recurrence: t.recurrence || 'none',
           subtasks: t.subtasks || [],
           attachments: t.attachments || [],
+          taskType: t.taskType || undefined,
+          isMain: t.isMain || false,
+          duration: t.duration || undefined,
+          parentId: t.parentId || t.goalId || undefined,
         }));
         setTasks(migrated);
       } catch (e) {

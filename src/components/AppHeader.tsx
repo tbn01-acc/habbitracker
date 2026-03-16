@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gift, Flame, Bell, Newspaper, Users, Aperture, Trophy, Film } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -9,6 +9,8 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useProfile } from '@/hooks/useProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CapacityIndicator } from '@/components/dashboard/CapacityIndicator';
+import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReferralModal } from '@/components/ReferralModal';
@@ -35,6 +37,12 @@ export function AppHeader() {
 
   const userName = profile?.display_name || user?.email?.split('@')[0] || t('guest');
   const isPro = isProActive;
+  const { tasks } = useTasks();
+
+  const todayTasks = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return tasks.filter(t => t.dueDate === todayStr && !t.archivedAt);
+  }, [tasks]);
 
   // Get active frame and badges from profile
   const activeFrame = (profile as any)?.active_frame || null;
@@ -58,8 +66,9 @@ export function AppHeader() {
               <UserBadges badgeIds={activeBadges} maxDisplay={2} size="sm" />
             </div>
 
-            {/* Center: Streak only */}
-            <div className="flex items-center gap-3">
+            {/* Center: Streak + Capacity */}
+            <div className="flex items-center gap-2">
+              <CapacityIndicator todayTasks={todayTasks} />
               {userStars && userStars.current_streak_days > 0 && (
                 <Badge variant="outline" className="gap-1 px-2 py-1 border-orange-500/50">
                   <Flame className="h-3.5 w-3.5 text-orange-500" />
@@ -69,7 +78,7 @@ export function AppHeader() {
             </div>
 
             {/* Right: Notifications + News + Users Catalog + Focus + Rating + Theme + Invite */}
-            <div className="flex items-center gap-0 sm:gap-0.5">
+            <div className="flex items-center" style={{ gap: '0px' }}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

@@ -193,13 +193,37 @@ export function WithdrawalForm() {
                   className="grid grid-cols-1 gap-3"
                 >
                   <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <RadioGroupItem value="self_employed" id="self_employed" />
+                    <Label htmlFor="self_employed" className="flex items-center gap-2 cursor-pointer flex-1">
                       <CreditCard className="w-4 h-4 text-green-500" />
                       <div>
-                        <p className="font-medium">{isRussian ? 'На карту' : 'Bank card'}</p>
+                        <p className="font-medium">{isRussian ? 'Самозанятый' : 'Self-employed'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {isRussian ? 'Перевод в течение 3 рабочих дней' : 'Transfer within 3 business days'}
+                          {isRussian ? 'С предоставлением чека (обязательно)' : 'With receipt (required)'}
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                    <RadioGroupItem value="ip" id="ip" />
+                    <Label htmlFor="ip" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Wallet className="w-4 h-4 text-blue-500" />
+                      <div>
+                        <p className="font-medium">{isRussian ? 'ИП' : 'Individual Entrepreneur'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRussian ? 'Перевод по реквизитам ИП' : 'Transfer to IE account'}
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                    <RadioGroupItem value="legal_entity" id="legal_entity" />
+                    <Label htmlFor="legal_entity" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Gift className="w-4 h-4 text-purple-500" />
+                      <div>
+                        <p className="font-medium">{isRussian ? 'Юридическое лицо' : 'Legal Entity'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRussian ? 'ООО, АО и др. (по договору)' : 'LLC, JSC etc. (by contract)'}
                         </p>
                       </div>
                     </Label>
@@ -207,23 +231,11 @@ export function WithdrawalForm() {
                   <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value="subscription" id="subscription" />
                     <Label htmlFor="subscription" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Wallet className="w-4 h-4 text-purple-500" />
+                      <Wallet className="w-4 h-4 text-amber-500" />
                       <div>
                         <p className="font-medium">{isRussian ? 'Оплата подписки' : 'Pay for subscription'}</p>
                         <p className="text-xs text-muted-foreground">
                           {isRussian ? 'Мгновенное начисление' : 'Instant activation'}
-                        </p>
-                      </div>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                    <RadioGroupItem value="gift" id="gift" />
-                    <Label htmlFor="gift" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Gift className="w-4 h-4 text-pink-500" />
-                      <div>
-                        <p className="font-medium">{isRussian ? 'Подарочный сертификат' : 'Gift certificate'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {isRussian ? 'Код для друга или близких' : 'Code for friend or family'}
                         </p>
                       </div>
                     </Label>

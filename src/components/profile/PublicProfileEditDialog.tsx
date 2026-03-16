@@ -17,14 +17,15 @@ import { toast } from 'sonner';
 import { useUpdateProfile } from '@/hooks/useProfile';
 
 const STATUS_OPTIONS = [
-  { value: 'student', label: 'Студент' },
-  { value: 'entrepreneur', label: 'Предприниматель' },
-  { value: 'employee', label: 'Сотрудник' },
+  { value: 'employed', label: 'Работаю в найме' },
+  { value: 'in_team', label: 'Работаю в команде' },
+  { value: 'team_lead', label: 'Управляю командой' },
   { value: 'freelancer', label: 'Фрилансер' },
-  { value: 'manager', label: 'Менеджер' },
-  { value: 'developer', label: 'Разработчик' },
-  { value: 'designer', label: 'Дизайнер' },
-  { value: 'other', label: 'Другое' },
+  { value: 'looking_job', label: 'Ищу работу' },
+  { value: 'looking_team', label: 'Ищу команду' },
+  { value: 'looking_employees', label: 'Ищу сотрудников' },
+  { value: 'looking_partner', label: 'Ищу партнёра' },
+  { value: 'looking_investor', label: 'Ищу инвестора' },
 ];
 
 const INTEREST_OPTIONS = [

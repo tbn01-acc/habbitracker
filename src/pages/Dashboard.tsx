@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Target, CheckSquare, Wallet, Sparkles, Calendar, BarChart3 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Target, CheckSquare, Wallet, Sparkles, Calendar, BarChart3, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useHabits, getTodayString } from "@/hooks/useHabits";
@@ -8,15 +8,14 @@ import { useFinance } from "@/hooks/useFinance";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
 import { TodoSection } from "@/components/dashboard/TodoSection";
-import { ActivityRings } from "@/components/dashboard/ActivityRings";
 import { FinanceWidget } from "@/components/dashboard/FinanceWidget";
-import { DayQualityRing } from "@/components/dashboard/DayQualityRing";
 import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
 import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
+import { GreetingFocusAccordion } from "@/components/dashboard/GreetingFocusAccordion";
+import { FocusDayBanner } from "@/components/dashboard/FocusDayBanner";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
-
+import { ReflectionModal, useReflectionCheck } from "@/components/ReflectionModal";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
-
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
@@ -38,14 +37,12 @@ export default function Dashboard() {
   const { recordDailyLogin } = useStars();
   const { isProActive } = useSubscription();
   const dailyLoginRecordedRef = useRef(false);
+  const needsReflection = useReflectionCheck();
+  const [reflectionOpen, setReflectionOpen] = useState(false);
   
-  // Initialize trial notifications
   useTrialNotifications();
-  
-  // Initialize overdue notifications for tasks, habits, and transactions
   useOverdueNotifications({ tasks, habits, transactions });
   
-  // Record daily login for stars and streak
   useEffect(() => {
     if (user && !dailyLoginRecordedRef.current) {
       dailyLoginRecordedRef.current = true;
@@ -53,27 +50,30 @@ export default function Dashboard() {
     }
   }, [user, recordDailyLogin]);
 
+  useEffect(() => {
+    if (needsReflection && user) {
+      const timer = setTimeout(() => setReflectionOpen(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [needsReflection, user]);
+
   const today = getTodayString();
   const dayOfWeek = new Date().getDay();
-
-  // User name and avatar
   const userName = profile?.display_name || user?.email?.split("@")[0] || t("guest");
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 6) return t("goodNight");
     if (hour < 12) return t("goodMorning");
     if (hour < 18) return t("goodAfternoon");
     return t("goodEvening");
-  };
+  }, [t]);
 
-  // Get today tasks (use filter instead of getTodayTasks for updated reference)
   const todayTasks = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     return tasks.filter(t => t.dueDate === todayStr && !t.archivedAt);
   }, [tasks]);
 
-  // Habits for today - memoized to prevent re-renders
   const todayHabits = useMemo(() => 
     habits.filter((h) => h.targetDays.includes(dayOfWeek) && !h.archivedAt),
     [habits, dayOfWeek]
@@ -89,7 +89,6 @@ export default function Dashboard() {
     [todayTasks]
   );
 
-  // Transactions for today - memoized
   const todayTransactions = useMemo(() => 
     getTodayTransactions(),
     [getTodayTransactions]
@@ -100,17 +99,13 @@ export default function Dashboard() {
     [todayTransactions]
   );
 
-  // Calculate today's income and expense - memoized
   const { todayIncome, todayExpense } = useMemo(() => ({
     todayIncome: todayTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0),
     todayExpense: todayTransactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
   }), [todayTransactions]);
 
-  // Calculate overdue items
   const overdueStats = useMemo(() => {
     const todayStart = startOfDay(new Date());
-    
-    // Overdue habits (not completed yesterday when scheduled)
     const overdueHabits = habits.filter(h => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -118,146 +113,94 @@ export default function Dashboard() {
       const yesterdayDayOfWeek = yesterday.getDay();
       return h.targetDays.includes(yesterdayDayOfWeek) && !h.completedDates.includes(yesterdayStr);
     }).length;
-
-    // Overdue tasks
     const overdueTasks = tasks.filter(t => {
       if (t.completed || t.status === 'done') return false;
       const dueDate = startOfDay(parseISO(t.dueDate));
       return isBefore(dueDate, todayStart);
     }).length;
-
-    // Overdue transactions
     const overdueTransactions = transactions.filter(t => {
       if (t.completed) return false;
       const transDate = startOfDay(parseISO(t.date));
       return isBefore(transDate, todayStart);
     }).length;
-
     return { overdueHabits, overdueTasks, overdueTransactions };
   }, [habits, tasks, transactions]);
 
-  // Calculate Day Quality (0-100)
   const totalItems = todayHabits.length + todayTasks.length + todayTransactions.length;
   const completedItems = completedHabits.length + completedTasks.length + completedTransactions.length;
   const dayQuality = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-  // Calculate progress per category
   const habitsProgress = todayHabits.length > 0 ? Math.round((completedHabits.length / todayHabits.length) * 100) : 0;
   const tasksProgress = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
   const financeProgress = todayTransactions.length > 0 ? Math.round((completedTransactions.length / todayTransactions.length) * 100) : 0;
 
-  // Format date
   const formattedDate = new Date().toLocaleDateString(
     language === "ru" ? "ru-RU" : language === "es" ? "es-ES" : "en-US",
     { day: "numeric", month: "long", weekday: "long" },
   );
 
-  // Colors for modules
   const colors = {
     habits: "hsl(var(--habit))",
     tasks: "hsl(var(--task))",
     finance: "hsl(var(--finance))",
   };
 
-  const isLoading = false;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse-soft">
-          <Sparkles className="w-12 h-12 text-primary" />
-        </div>
-      </div>
-    );
-  }
-
-  // Callback handlers for OverdueWidget
   const handlePostponeTask = (id: string, newDate: string) => {
     updateTask(id, { dueDate: newDate });
   };
-
   const handleArchiveTask = (id: string) => {
     updateTask(id, { archivedAt: new Date().toISOString() });
   };
-
   const handleDeleteTask = (id: string) => {
     deleteTask(id);
   };
-
   const handlePostponeHabit = (id: string, days: number) => {
     const newDate = addDays(new Date(), days).toISOString().split('T')[0];
     updateHabit(id, { postponedUntil: newDate });
   };
-
   const handleArchiveHabit = (id: string) => {
     updateHabit(id, { archivedAt: new Date().toISOString() });
   };
-
   const handleDeleteHabit = (id: string) => {
     deleteHabit(id);
   };
 
-  // Day Plan Icons Component (show for all, but navigate to demo for non-PRO)
-  const renderDayPlanIcons = () => {
-    const handleDayPlanClick = () => {
-      navigate('/day-plan');
-    };
-    
-    const handleDaySummaryClick = () => {
-      navigate('/day-summary');
-    };
-    
-    return (
-      <div className="flex flex-col justify-between h-[84px]">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDayPlanClick}
-              className="hover:bg-primary/10 h-8 w-8"
-            >
-              <Calendar className="w-5 h-5 text-primary" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {language === 'ru' ? 'План на день' : 'Day Plan'}
-            {!isProActive && (
-              <span className="ml-1 text-amber-500">(PRO)</span>
-            )}
-          </TooltipContent>
-        </Tooltip>
-        
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDaySummaryClick}
-              className="hover:bg-primary/10 h-8 w-8"
-            >
-              <BarChart3 className="w-5 h-5 text-primary" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {language === 'ru' ? 'Итоги дня' : 'Day Summary'}
-            {!isProActive && (
-              <span className="ml-1 text-amber-500">(PRO)</span>
-            )}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-    );
-  };
+  const handleOpenTaskFromReflection = useCallback((prefillDate: string) => {
+    navigate('/tasks', { state: { openDialog: true, prefillDate } });
+  }, [navigate]);
+
+  const renderDayPlanIcons = useCallback(() => (
+    <div className="flex flex-col justify-between h-[84px]">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/day-plan')} className="hover:bg-primary/10 h-8 w-8">
+            <Calendar className="w-5 h-5 text-primary" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {language === 'ru' ? 'План на день' : 'Day Plan'}
+          {!isProActive && <span className="ml-1 text-amber-500">(PRO)</span>}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/day-summary')} className="hover:bg-primary/10 h-8 w-8">
+            <BarChart3 className="w-5 h-5 text-primary" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {language === 'ru' ? 'Итоги дня' : 'Day Summary'}
+          {!isProActive && <span className="ml-1 text-amber-500">(PRO)</span>}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  ), [navigate, language, isProActive]);
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Guest Mode Banner */}
         <GuestModeBanner />
 
-        {/* Overdue Widget */}
         <OverdueWidget 
           overdueHabits={overdueStats.overdueHabits}
           overdueTasks={overdueStats.overdueTasks}
@@ -276,29 +219,21 @@ export default function Dashboard() {
           onDeleteHabit={handleDeleteHabit}
         />
 
-        {/* Section: Greeting and Day Quality Ring */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div>
-              <p className="text-lg text-muted-foreground">{getGreeting()},</p>
-              <h1 className="text-2xl font-bold text-foreground">{userName}!</h1>
-            </div>
-            <p className="text-sm text-muted-foreground capitalize">{formattedDate}</p>
-          </div>
-          
-          {/* Activity Rings with Day Plan Icons */}
-          <div className="flex items-center gap-3">
-            <ActivityRings 
-              habitsProgress={habitsProgress}
-              tasksProgress={tasksProgress}
-              financeProgress={financeProgress}
-              dayQuality={dayQuality}
-            />
-            
-            {/* Day Plan & Summary Icons */}
-            {renderDayPlanIcons()}
-          </div>
-        </div>
+        {/* Combined Greeting + Focus Accordion */}
+        <GreetingFocusAccordion
+          userName={userName}
+          formattedDate={formattedDate}
+          todayTasks={todayTasks}
+          habitsProgress={habitsProgress}
+          tasksProgress={tasksProgress}
+          financeProgress={financeProgress}
+          dayQuality={dayQuality}
+          getGreeting={getGreeting}
+          renderDayPlanIcons={renderDayPlanIcons}
+        />
+
+        {/* Focus Day Banner */}
+        <FocusDayBanner todayTasks={todayTasks} />
 
         {/* Section: Сделать/Выполнено (Tabbed) */}
         <Tabs defaultValue="todo" className="mb-6">
@@ -312,16 +247,12 @@ export default function Dashboard() {
               <AnimatePresence mode="wait">
                 {expandedSection === null && (
                   <>
-                    {/* Bento Grid Layout */}
                     <div className="grid grid-cols-4 gap-3">
-                      {/* Habits - spans 2 cols */}
                       <div className="col-span-2">
                         <TodoSection
                           title={t("habits")}
                           items={todayHabits.map((h) => ({
-                            id: h.id,
-                            name: h.name,
-                            icon: h.icon,
+                            id: h.id, name: h.name, icon: h.icon,
                             completed: h.completedDates.includes(today),
                           }))}
                           color={colors.habits}
@@ -332,16 +263,11 @@ export default function Dashboard() {
                           compact
                         />
                       </div>
-
-                      {/* Tasks - spans 2 cols */}
                       <div className="col-span-2">
                         <TodoSection
                           title={t("tasks")}
                           items={todayTasks.map((t) => ({
-                            id: t.id,
-                            name: t.name,
-                            icon: t.icon,
-                            completed: t.completed,
+                            id: t.id, name: t.name, icon: t.icon, completed: t.completed,
                           }))}
                           color={colors.tasks}
                           icon={<CheckSquare className="w-4 h-4" />}
@@ -351,8 +277,6 @@ export default function Dashboard() {
                           compact
                         />
                       </div>
-
-                      {/* Finance Widget - spans all 4 cols */}
                       <div className="col-span-4">
                         <FinanceWidget
                           income={todayIncome}
@@ -369,9 +293,7 @@ export default function Dashboard() {
                     key="habits-expanded"
                     title={t("habits")}
                     items={todayHabits.map((h) => ({
-                      id: h.id,
-                      name: h.name,
-                      icon: h.icon,
+                      id: h.id, name: h.name, icon: h.icon,
                       completed: h.completedDates.includes(today),
                     }))}
                     color={colors.habits}
@@ -390,10 +312,7 @@ export default function Dashboard() {
                     key="tasks-expanded"
                     title={t("tasks")}
                     items={todayTasks.map((t) => ({
-                      id: t.id,
-                      name: t.name,
-                      icon: t.icon,
-                      completed: t.completed,
+                      id: t.id, name: t.name, icon: t.icon, completed: t.completed,
                     }))}
                     color={colors.tasks}
                     icon={<CheckSquare className="w-4 h-4" />}
@@ -432,7 +351,6 @@ export default function Dashboard() {
 
           <TabsContent value="done" className="mt-0">
             <div className="bg-card p-4 shadow-card border border-border space-y-3" style={{ borderRadius: 'var(--radius-card)' }}>
-              {/* Habits Progress - full width row */}
               <ProgressBar
                 icon={<Target className="w-4 h-4" />}
                 completed={completedHabits.length}
@@ -440,8 +358,6 @@ export default function Dashboard() {
                 label={t("habitsLabel")}
                 color={colors.habits}
               />
-              
-              {/* Tasks Progress - full width row */}
               <ProgressBar
                 icon={<CheckSquare className="w-4 h-4" />}
                 completed={completedTasks.length}
@@ -449,8 +365,6 @@ export default function Dashboard() {
                 label={t("tasksLabel")}
                 color={colors.tasks}
               />
-              
-              {/* Finance Progress - full width row */}
               <ProgressBar
                 icon={<Wallet className="w-4 h-4" />}
                 completed={completedTransactions.length}
@@ -462,9 +376,20 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Top Widgets Section */}
         <TopWidgetsSection />
       </div>
+
+      {/* Reflection Modal */}
+      <AnimatePresence>
+        {reflectionOpen && (
+          <ReflectionModal
+            open={reflectionOpen}
+            onClose={() => setReflectionOpen(false)}
+            userId={user?.id}
+            onOpenTaskDialog={handleOpenTaskFromReflection}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -57,7 +57,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [currentSubtaskId, setCurrentSubtaskId] = useState<string | undefined>();
   const [currentHabitId, setCurrentHabitId] = useState<string | undefined>();
   
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<TimerId | null>(null);
   const sessionStartRef = useRef<string | null>(null);
 
   // Load settings, sessions, and state

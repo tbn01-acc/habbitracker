@@ -23,7 +23,7 @@ export function useUserSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<TimerId | null>(null);
   const currentQueryRef = useRef('');
 
   const searchUsers = useCallback(async (searchQuery: string, pageNum: number = 0, append: boolean = false) => {

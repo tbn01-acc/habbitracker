@@ -42,14 +42,15 @@ interface CatalogUser {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  student: 'Студент',
-  entrepreneur: 'Предприниматель',
-  employee: 'Сотрудник',
+  employed: 'Работаю в найме',
+  in_team: 'Работаю в команде',
+  team_lead: 'Управляю командой',
   freelancer: 'Фрилансер',
-  manager: 'Менеджер',
-  developer: 'Разработчик',
-  designer: 'Дизайнер',
-  other: 'Другое',
+  looking_job: 'Ищу работу',
+  looking_team: 'Ищу команду',
+  looking_employees: 'Ищу сотрудников',
+  looking_partner: 'Ищу партнёра',
+  looking_investor: 'Ищу инвестора',
 };
 
 const STATUS_OPTIONS = Object.entries(STATUS_LABELS);
@@ -74,7 +75,7 @@ export default function UserCatalog() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   
   const [allInterests, setAllInterests] = useState<string[]>([]);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<TimerId | null>(null);
 
   // Fetch all unique interests for filter
   useEffect(() => {

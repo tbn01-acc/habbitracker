@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Check, MoreVertical, Pencil, Trash2, Repeat, Bell, ListTodo, Paperclip, StickyNote, 
   Play, Square, Timer, Zap, CalendarClock, ChevronDown, ChevronUp, Archive,
-  Calendar, Pause, RotateCcw
+  Calendar, Pause, RotateCcw, Brain, MessageSquare
 } from 'lucide-react';
-import { Task } from '@/types/task';
+import { Task, TASK_TYPE_CONFIG, TaskType } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useUserTags } from '@/hooks/useUserTags';
 import { useGoals } from '@/hooks/useGoals';
@@ -199,6 +199,15 @@ END:VCALENDAR`;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const TaskTypeIcon = task.taskType ? {
+    intellectual: Brain,
+    routine: Repeat,
+    communication: MessageSquare,
+    movement: Zap,
+  }[task.taskType] : null;
+
+  const taskTypeConfig = task.taskType ? TASK_TYPE_CONFIG[task.taskType] : null;
+
   return (
     <>
       <motion.div
@@ -208,9 +217,14 @@ END:VCALENDAR`;
         transition={{ delay: index * 0.05 }}
         className={cn(
           "bg-card shadow-card border border-border transition-all overflow-hidden",
-          task.completed && "opacity-60"
+          task.completed && "opacity-60",
+          task.isMain && !task.completed && "ring-1 ring-primary/40 shadow-[0_0_12px_-3px_hsl(var(--primary)/0.3)]"
         )}
-        style={{ borderRadius: 'var(--radius-card)', borderLeftColor: task.color, borderLeftWidth: 4 }}
+        style={{ 
+          borderRadius: 'var(--radius-card)', 
+          borderLeftColor: taskTypeConfig?.color || task.color, 
+          borderLeftWidth: 4 
+        }}
       >
         {/* Row 1: Checkbox, Icon, Name, Percent, Chevron */}
         <div 
@@ -381,8 +395,30 @@ END:VCALENDAR`;
                 </div>
               </div>
 
-              {/* Row 3-4: Sphere, Goal, Tags */}
+              {/* Row 3-4: Type, isMain, Sphere, Goal, Tags, SMART Phase */}
               <div className="flex items-center gap-1.5 px-3 pb-2 flex-wrap">
+                {/* Task Type Badge */}
+                {taskTypeConfig && TaskTypeIcon && (
+                  <span 
+                    className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ backgroundColor: taskTypeConfig.color + '20', color: taskTypeConfig.color }}
+                  >
+                    <TaskTypeIcon className="w-3 h-3" />
+                    {isRussian ? taskTypeConfig.label : taskTypeConfig.labelEn}
+                  </span>
+                )}
+                {/* Main Task Badge */}
+                {task.isMain && !task.completed && (
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
+                    🎯 {isRussian ? 'Главная' : 'Main'}
+                  </span>
+                )}
+                {/* Duration Badge */}
+                {task.duration && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {task.duration >= 60 ? `${Math.floor(task.duration / 60)}ч ${task.duration % 60}м` : `${task.duration}м`}
+                  </span>
+                )}
                 {taskSphere && (
                   <span 
                     className="text-xs px-2 py-0.5 rounded-full"
@@ -397,6 +433,28 @@ END:VCALENDAR`;
                     style={{ backgroundColor: taskGoal.color + '20', color: taskGoal.color }}
                   >
                     {taskGoal.icon} {taskGoal.name}
+                  </span>
+                )}
+                {/* SMART goal phase indicator */}
+                {(task as any).smartGoalPhase && (task as any).smartGoalTotal && (
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {Array.from({ length: (task as any).smartGoalTotal }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full transition-colors",
+                          i < (task as any).smartGoalPhase ? "bg-primary" : "bg-muted-foreground/30"
+                        )}
+                      />
+                    ))}
+                    <span className="ml-0.5">
+                      {(task as any).smartGoalPhase === 1
+                        ? (isRussian ? 'Старт' : 'Start')
+                        : (task as any).smartGoalPhase === (task as any).smartGoalTotal
+                        ? (isRussian ? 'Финиш' : 'Finish')
+                        : (isRussian ? 'Веха' : 'Milestone')
+                      }
+                    </span>
                   </span>
                 )}
                 {taskTags.map(tag => (

@@ -1,15 +1,20 @@
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { User, Users } from 'lucide-react';
 
 export type RatingType = 'stars' | 'likes' | 'referrals';
 export type RatingPeriod = 'today' | 'month' | 'year' | 'all';
+export type RatingScope = 'personal' | 'team';
 
 interface RatingTabsProps {
   type: RatingType;
   onTypeChange: (type: RatingType) => void;
   period: RatingPeriod;
   onPeriodChange: (period: RatingPeriod) => void;
+  scope: RatingScope;
+  onScopeChange: (scope: RatingScope) => void;
   isRussian: boolean;
 }
 
@@ -19,9 +24,31 @@ const tabVariants = {
   exit: { opacity: 0, y: -8, transition: { duration: 0.15, ease: 'easeIn' as const } },
 };
 
-export function RatingTabs({ type, onTypeChange, period, onPeriodChange, isRussian }: RatingTabsProps) {
+export function RatingTabs({ type, onTypeChange, period, onPeriodChange, scope, onScopeChange, isRussian }: RatingTabsProps) {
   return (
     <div className="space-y-3">
+      {/* Scope: Personal / Team */}
+      <div className="flex gap-2">
+        <Button
+          variant={scope === 'personal' ? 'default' : 'outline'}
+          size="sm"
+          className="gap-1.5 flex-1"
+          onClick={() => onScopeChange('personal')}
+        >
+          <User className="w-4 h-4" />
+          {isRussian ? 'Персона' : 'Personal'}
+        </Button>
+        <Button
+          variant={scope === 'team' ? 'default' : 'outline'}
+          size="sm"
+          className="gap-1.5 flex-1"
+          onClick={() => onScopeChange('team')}
+        >
+          <Users className="w-4 h-4" />
+          {isRussian ? 'Команда' : 'Team'}
+        </Button>
+      </div>
+
       {/* Type tabs - Stars/Likes/Referrals */}
       <Tabs value={type} onValueChange={(v) => onTypeChange(v as RatingType)}>
         <TabsList className="grid w-full grid-cols-3 h-10 bg-muted/50">
