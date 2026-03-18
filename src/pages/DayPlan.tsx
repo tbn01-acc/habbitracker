@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, RefreshCw, Printer, Share2, Crown,
   Target, CheckSquare, Wallet, Clock, ChevronDown, ChevronUp,
-  Circle, CheckCircle2, Tag, Layers
+  Circle, CheckCircle2, Tag, Layers, Sparkles
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
@@ -614,6 +614,41 @@ export default function DayPlanPage() {
 
         {/* Printable content */}
         <div ref={printRef} className="space-y-4 bg-background">
+          {/* Main Task of the Day - always on top */}
+          {(() => {
+            const mainTask = todayTasks.find(t => t.isMain && !t.archivedAt);
+            if (!mainTask) return null;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/5 ring-1 ring-amber-500/20">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-amber-500 font-semibold">
+                          {isRussian ? 'Главная задача дня' : 'Main Task of the Day'}
+                        </p>
+                        <p className="text-sm font-bold text-foreground truncate">
+                          {mainTask.icon} {mainTask.name}
+                        </p>
+                      </div>
+                      {mainTask.completed ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-amber-500 shrink-0" />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })()}
+
           {/* Summary stats */}
           <div className="grid grid-cols-3 gap-3">
             <Card className="border-habit/30 bg-habit/5">

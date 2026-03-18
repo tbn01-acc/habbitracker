@@ -487,6 +487,43 @@ export default function DaySummaryPage() {
 
         {/* Printable content */}
         <div ref={printRef} className="space-y-2 bg-background">
+          {/* Main Task Status - always on top */}
+          {(() => {
+            const mainTask = todayTasks.find(t => (t as any).isMain && !t.archivedAt);
+            if (!mainTask) return null;
+            const isDone = mainTask.completed;
+            return (
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className={cn(
+                  "ring-1",
+                  isDone 
+                    ? "border-green-500/30 bg-green-500/10 ring-green-500/20" 
+                    : "border-red-500/30 bg-red-500/10 ring-red-500/20"
+                )}>
+                  <CardContent className="p-2">
+                    <div className="flex items-center gap-3">
+                      {isDone ? (
+                        <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />
+                      ) : (
+                        <XCircle className="w-6 h-6 text-red-500 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: isDone ? 'hsl(145 70% 45%)' : 'hsl(0 70% 55%)' }}>
+                          {isRussian 
+                            ? (isDone ? 'Главная задача выполнена ✓' : 'Главная задача не выполнена')
+                            : (isDone ? 'Main task completed ✓' : 'Main task not completed')}
+                        </p>
+                        <p className={cn("text-sm font-bold truncate", isDone && "line-through text-muted-foreground")}>
+                          {mainTask.icon} {mainTask.name}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })()}
+
           {/* Productivity Score - replaced circular indicator with text */}
           <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="p-2">

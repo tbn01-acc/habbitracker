@@ -13,6 +13,7 @@ import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
 import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 import { GreetingFocusAccordion } from "@/components/dashboard/GreetingFocusAccordion";
 import { FocusDayBanner } from "@/components/dashboard/FocusDayBanner";
+import { TeamWorkTab } from "@/components/dashboard/TeamWorkTab";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
 import { ReflectionModal, useReflectionCheck } from "@/components/ReflectionModal";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
@@ -20,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useTeam } from "@/hooks/useTeam";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useOverdueTasks } from "@/hooks/useOverdueTasks";
@@ -35,7 +37,9 @@ export default function Dashboard() {
   const { t, language } = useTranslation();
   const { profile, user } = useAuth();
   const { recordDailyLogin } = useStars();
-  const { isProActive } = useSubscription();
+  const { isProActive, currentPlan } = useSubscription();
+  const { team } = useTeam();
+  const isTeamUser = !!team;
   const dailyLoginRecordedRef = useRef(false);
   const needsReflection = useReflectionCheck();
   const [reflectionOpen, setReflectionOpen] = useState(false);
@@ -237,9 +241,14 @@ export default function Dashboard() {
 
         {/* Section: Сделать/Выполнено (Tabbed) */}
         <Tabs defaultValue="todo" className="mb-6">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className={`grid w-full mb-4 ${isTeamUser ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="todo">{t("todoTab")}</TabsTrigger>
             <TabsTrigger value="done">{t("doneTab")}</TabsTrigger>
+            {isTeamUser && (
+              <TabsTrigger value="team" className="gap-1">
+                <Users className="w-4 h-4" />
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="todo" className="mt-0">
@@ -374,6 +383,12 @@ export default function Dashboard() {
               />
             </div>
           </TabsContent>
+
+          {isTeamUser && (
+            <TabsContent value="team" className="mt-0">
+              <TeamWorkTab />
+            </TabsContent>
+          )}
         </Tabs>
 
         <TopWidgetsSection />

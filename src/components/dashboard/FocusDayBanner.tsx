@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, ChevronRight } from 'lucide-react';
+import { Sparkles, ChevronRight, Gauge } from 'lucide-react';
 import { Task } from '@/types/task';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 
 interface FocusDayBannerProps {
   todayTasks: Task[];
@@ -15,6 +17,25 @@ export function FocusDayBanner({ todayTasks }: FocusDayBannerProps) {
 
   const mainTask = todayTasks.find(t => t.isMain && !t.archivedAt);
 
+  const mainCount = useMemo(() => {
+    return todayTasks.filter(t => t.isMain && !t.completed && !t.archivedAt).length;
+  }, [todayTasks]);
+
+  const { indicatorColor, indicatorBg } = useMemo(() => {
+    if (mainCount <= 1) return {
+      indicatorColor: 'text-emerald-400',
+      indicatorBg: 'bg-emerald-500/20',
+    };
+    if (mainCount === 2) return {
+      indicatorColor: 'text-amber-300',
+      indicatorBg: 'bg-amber-500/20',
+    };
+    return {
+      indicatorColor: 'text-red-400',
+      indicatorBg: 'bg-red-500/20 animate-pulse',
+    };
+  }, [mainCount]);
+
   if (!mainTask) return null;
 
   return (
@@ -26,8 +47,17 @@ export function FocusDayBanner({ todayTasks }: FocusDayBannerProps) {
       className="w-full mb-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-rose-500/10 border border-amber-500/30 p-3 text-left transition-all hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/5 group"
     >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
-          <Sparkles className="w-4.5 h-4.5 text-white" />
+        {/* Capacity Indicator instead of icon */}
+        <div className={cn(
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
+          indicatorBg
+        )}>
+          <div className="flex items-center gap-0.5">
+            <Gauge className={cn("w-4 h-4", indicatorColor)} />
+            {mainCount > 0 && (
+              <span className={cn("text-xs font-bold", indicatorColor)}>{mainCount}</span>
+            )}
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] uppercase tracking-wider text-amber-500 font-semibold mb-0.5">

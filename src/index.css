@@ -107,6 +107,32 @@
     --shadow-lg: 0 16px 48px -12px hsl(0 0% 0% / 0.5);
     --shadow-glow: 0 0 60px hsl(168 75% 45% / 0.25);
   }
+
+  /* Team theme variables - Light */
+  :root {
+    --team-gradient-start: 215 80% 95%;
+    --team-gradient-end: 90 40% 90%;
+    --team-accent: 230 80% 15%;
+    --team-accent-secondary: 270 40% 18%;
+    --team-text: 0 0% 12%;
+    --team-text-secondary: 0 0% 37%;
+    --team-card: 0 0% 100%;
+    --team-border: 0 0% 0% / 0.1;
+    --team-amber: 40 90% 61%;
+  }
+
+  /* Team theme variables - Dark */
+  .dark {
+    --team-gradient-start: 230 80% 15%;
+    --team-gradient-end: 270 40% 18%;
+    --team-accent: 90 40% 78%;
+    --team-accent-secondary: 215 60% 80%;
+    --team-text: 0 0% 100%;
+    --team-text-secondary: 0 0% 69%;
+    --team-card: 0 0% 0% / 0.3;
+    --team-border: 0 0% 100% / 0.1;
+    --team-amber: 40 90% 61%;
+  }
 }
 
 @layer base {
@@ -183,6 +209,25 @@
 
   .animate-shimmer {
     animation: shimmer 2.5s ease-in-out infinite;
+  }
+  /* Team section gradient background */
+  .team-gradient-bg {
+    background: linear-gradient(to bottom, hsl(var(--team-gradient-start)), hsl(var(--team-gradient-end)));
+  }
+  .team-accent-text {
+    color: hsl(var(--team-accent));
+  }
+  .team-accent-bg {
+    background-color: hsl(var(--team-accent));
+  }
+  .team-amber-text {
+    color: hsl(var(--team-amber));
+  }
+  .team-amber-bg {
+    background-color: hsl(var(--team-amber));
+  }
+  .team-card-bg {
+    background-color: hsl(var(--team-card));
   }
 }
 
