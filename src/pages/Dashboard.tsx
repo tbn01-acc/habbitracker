@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Target, CheckSquare, Wallet, Sparkles, Calendar, BarChart3, Users } from "lucide-react";
+import { TeamWorkTab } from "@/components/team/TeamWorkTab";
+import { useTeam } from "@/hooks/useTeam";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useHabits, getTodayString } from "@/hooks/useHabits";
@@ -13,7 +15,6 @@ import { TopWidgetsSection } from "@/components/dashboard/TopWidgetsSection";
 import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 import { GreetingFocusAccordion } from "@/components/dashboard/GreetingFocusAccordion";
 import { FocusDayBanner } from "@/components/dashboard/FocusDayBanner";
-import { TeamWorkTab } from "@/components/dashboard/TeamWorkTab";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
 import { ReflectionModal, useReflectionCheck } from "@/components/ReflectionModal";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
@@ -21,7 +22,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useTeam } from "@/hooks/useTeam";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useOverdueTasks } from "@/hooks/useOverdueTasks";
@@ -37,9 +37,9 @@ export default function Dashboard() {
   const { t, language } = useTranslation();
   const { profile, user } = useAuth();
   const { recordDailyLogin } = useStars();
-  const { isProActive, currentPlan } = useSubscription();
+  const { isProActive } = useSubscription();
   const { team } = useTeam();
-  const isTeamUser = !!team;
+  const hasTeam = !!team;
   const dailyLoginRecordedRef = useRef(false);
   const needsReflection = useReflectionCheck();
   const [reflectionOpen, setReflectionOpen] = useState(false);
@@ -241,14 +241,12 @@ export default function Dashboard() {
 
         {/* Section: Сделать/Выполнено (Tabbed) */}
         <Tabs defaultValue="todo" className="mb-6">
-          <TabsList className={`grid w-full mb-4 ${isTeamUser ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className="grid w-full mb-4 grid-cols-3">
             <TabsTrigger value="todo">{t("todoTab")}</TabsTrigger>
             <TabsTrigger value="done">{t("doneTab")}</TabsTrigger>
-            {isTeamUser && (
-              <TabsTrigger value="team" className="gap-1">
-                <Users className="w-4 h-4" />
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="team" className="gap-1">
+              <Users className="w-4 h-4" />
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="todo" className="mt-0">
@@ -384,11 +382,26 @@ export default function Dashboard() {
             </div>
           </TabsContent>
 
-          {isTeamUser && (
-            <TabsContent value="team" className="mt-0">
+          <TabsContent value="team" className="mt-0">
+            {hasTeam ? (
               <TeamWorkTab />
-            </TabsContent>
-          )}
+            ) : (
+              <div className="bg-card p-6 shadow-card border border-border text-center" style={{ borderRadius: 'var(--radius-card)' }}>
+                <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+                <p className="text-sm font-medium mb-1">
+                  {language === 'ru' ? 'Командная работа' : 'Teamwork'}
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {language === 'ru'
+                    ? 'Создайте или присоединитесь к команде'
+                    : 'Create or join a team'}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => navigate('/team')}>
+                  {language === 'ru' ? 'Перейти' : 'Go to Teams'}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
 
         <TopWidgetsSection />

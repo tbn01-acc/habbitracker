@@ -55,7 +55,53 @@ export const DEMO_DATA = {
     { day: "05.03", ideal: 110, actual: 115 },
     { day: "07.03", ideal: 88, actual: 92 },
     { day: "09.03", ideal: 66, actual: 42 }
-  ]
+  ],
+  workspaces: [
+    {
+      id: "ws1",
+      name: "Продукт",
+      description: "Основное приложение и API",
+      icon: "🚀",
+      projects: [
+        { id: "p1", name: "Mobile App v2.0", status: "active" as const, progress: 68, tasksCount: 14, completedTasks: 9 },
+        { id: "p2", name: "API Gateway", status: "active" as const, progress: 45, tasksCount: 8, completedTasks: 4 },
+        { id: "p3", name: "Landing Redesign", status: "completed" as const, progress: 100, tasksCount: 6, completedTasks: 6 },
+      ]
+    },
+    {
+      id: "ws2",
+      name: "Инфраструктура",
+      description: "DevOps и безопасность",
+      icon: "⚙️",
+      projects: [
+        { id: "p4", name: "CI/CD Pipeline", status: "active" as const, progress: 80, tasksCount: 5, completedTasks: 4 },
+        { id: "p5", name: "Мониторинг", status: "active" as const, progress: 30, tasksCount: 10, completedTasks: 3 },
+      ]
+    },
+    {
+      id: "ws3",
+      name: "Маркетинг",
+      description: "Контент и аналитика",
+      icon: "📊",
+      projects: [
+        { id: "p6", name: "SEO Стратегия Q2", status: "active" as const, progress: 55, tasksCount: 7, completedTasks: 4 },
+        { id: "p7", name: "Email-рассылки", status: "paused" as const, progress: 20, tasksCount: 12, completedTasks: 2 },
+      ]
+    }
+  ],
+  teamProfile: {
+    description: "Мы — команда из 12 специалистов, создающих продукты для продуктивности. Работаем по Scrum, ценим качество и скорость.",
+    team_type: "hybrid" as const,
+    website: "https://digital-breakthrough.team",
+    location: "Москва / Удалённо",
+    vacancies: "Frontend React, QA Automation",
+    stats: {
+      totalSprints: 14,
+      avgVelocity: 142,
+      totalXP: 124750,
+      successRate: 87
+    }
+  }
 };
 
 export type DemoData = typeof DEMO_DATA;

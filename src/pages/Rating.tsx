@@ -111,19 +111,88 @@ export default function Rating() {
         {isTeamView ? (
           /* Team Leaderboard */
           <div className="space-y-4">
-            <Card className="border-primary/20">
-              <CardContent className="p-6 text-center">
-                <Users className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="font-semibold mb-1">
-                  {isRussian ? 'Рейтинг команд' : 'Team Ranking'}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {isRussian 
-                    ? 'Рейтинг формируется на основе суммарных достижений участников команды' 
-                    : 'Ranking based on combined team member achievements'}
-                </p>
-              </CardContent>
-            </Card>
+            {/* Demo team data */}
+            {(() => {
+              const demoTeams = [
+                { id: '1', name: isRussian ? 'Альфа Команда' : 'Alpha Team', logo: '🚀', score: 9850, members: 8, velocity: 94 },
+                { id: '2', name: isRussian ? 'Кибер Волки' : 'Cyber Wolves', logo: '🐺', score: 8720, members: 6, velocity: 88 },
+                { id: '3', name: isRussian ? 'Квантум' : 'Quantum', logo: '⚡', score: 7650, members: 5, velocity: 82 },
+                { id: '4', name: isRussian ? 'Феникс' : 'Phoenix', logo: '🔥', score: 6540, members: 7, velocity: 76 },
+                { id: '5', name: isRussian ? 'Инновация' : 'Innovation', logo: '💡', score: 5430, members: 4, velocity: 71 },
+              ];
+              const medals = ['🥇', '🥈', '🥉'];
+
+              return (
+                <>
+                  {/* Podium */}
+                  <div className="flex items-end justify-center gap-3 py-4">
+                    {[1, 0, 2].map(idx => {
+                      const t = demoTeams[idx];
+                      if (!t) return null;
+                      const isFirst = idx === 0;
+                      return (
+                        <motion.div
+                          key={t.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className={`flex flex-col items-center ${isFirst ? 'order-1' : idx === 1 ? 'order-0' : 'order-2'}`}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-1 ${
+                            isFirst ? 'bg-yellow-500/20 ring-2 ring-yellow-500/40 shadow-lg' : 'bg-muted'
+                          }`}>
+                            {t.logo}
+                          </div>
+                          <p className="text-xs font-bold text-center max-w-[80px] truncate">{t.name}</p>
+                          <span className="text-lg">{medals[idx]}</span>
+                          <span className="text-xs font-bold text-primary">{t.score.toLocaleString()}</span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* List */}
+                  <div className="space-y-2">
+                    {demoTeams.map((t, i) => (
+                      <motion.div
+                        key={t.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50"
+                      >
+                        <span className="w-6 text-center text-sm font-bold text-muted-foreground">
+                          {i < 3 ? medals[i] : `#${i + 1}`}
+                        </span>
+                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-xl">
+                          {t.logo}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{t.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {t.members} {isRussian ? 'участников' : 'members'} • {isRussian ? 'скорость' : 'velocity'} {t.velocity}%
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-primary">{t.score.toLocaleString()}</p>
+                          <p className="text-[10px] text-muted-foreground">{isRussian ? 'очков' : 'pts'}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <Card className="border-dashed border-primary/30">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {isRussian
+                          ? 'Рейтинг формируется на основе интегральной метрики из раздела «Фокус команды»'
+                          : 'Ranking based on integrated metrics from "Team Focus" section'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
           </div>
         ) : (
           <>

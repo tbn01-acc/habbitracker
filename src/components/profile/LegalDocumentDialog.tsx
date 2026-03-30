@@ -64,6 +64,7 @@ export function LegalDocumentDialog({ open, onOpenChange, documentType }: LegalD
     cookies_consent: isRussian ? 'Cookies и анонимная статистика' : 'Cookies & Analytics',
     geolocation_consent: isRussian ? 'Согласие на геопозицию' : 'Geolocation Consent',
     age_confirmation: isRussian ? 'Подтверждение возраста' : 'Age Confirmation',
+    loyalty_rules: isRussian ? 'Правила Программы лояльности' : 'Loyalty Program Rules',
   };
 
   // Simple markdown to HTML renderer with sanitization

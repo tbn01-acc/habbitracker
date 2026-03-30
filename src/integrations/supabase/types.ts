@@ -2964,12 +2964,17 @@ export type Database = {
       }
       finish_sprint: { Args: { target_sprint_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
+      get_user_team_ids: { Args: { _user_id: string }; Returns: string[] }
       handle_consent_revoke: { Args: { p_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_team_member_with_role: {
+        Args: { _roles: string[]; _team_id: string; _user_id: string }
         Returns: boolean
       }
       link_telegram_account: {

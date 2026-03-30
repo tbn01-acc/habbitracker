@@ -32,6 +32,9 @@ import { useDailyBalanceBonus } from '@/hooks/useDailyBalanceBonus';
 interface BalanceFlowerProps {
   sphereIndices: SphereIndex[];
   lifeIndex: number;
+  customSpheres?: Array<{ sphere: Sphere; baseAngle: number }>;
+  scaleLabels?: { left: Record<string, string>; right: Record<string, string> };
+  navigatePrefix?: string;
 }
 
 type ColorScheme = 'default' | 'pastel' | 'neon';
@@ -316,11 +319,13 @@ function BalanceScalesWidget({
   socialValue, 
   language,
   spreadLevel,
+  customScaleLabels,
 }: { 
   personalValue: number; 
   socialValue: number; 
   language: 'ru' | 'en' | 'es';
   spreadLevel: SpreadLevel;
+  customScaleLabels?: { left: Record<string, string>; right: Record<string, string> };
 }) {
   const diff = personalValue - socialValue;
   // Calculate tilt angle (max 18 degrees)
@@ -342,9 +347,9 @@ function BalanceScalesWidget({
   const showGoldenGlow = spreadLevel === 'topFocus';
   
   const labels = {
-    ru: { personal: 'Личное', social: 'Социальное' },
-    en: { personal: 'Personal', social: 'Social' },
-    es: { personal: 'Personal', social: 'Social' },
+    ru: { personal: customScaleLabels?.left?.ru || 'Личное', social: customScaleLabels?.right?.ru || 'Социальное' },
+    en: { personal: customScaleLabels?.left?.en || 'Personal', social: customScaleLabels?.right?.en || 'Social' },
+    es: { personal: customScaleLabels?.left?.es || 'Personal', social: customScaleLabels?.right?.es || 'Social' },
   };
   const t = labels[language] || labels.en;
 
@@ -564,7 +569,8 @@ function SpiderChart({
   allSpheres,
   language,
   onPetalClick,
-  getSphereStats
+  getSphereStats,
+  customOrderedSpheres,
 }: {
   sphereIndices: SphereIndex[];
   lifeIndex: number;
@@ -572,27 +578,21 @@ function SpiderChart({
   language: 'ru' | 'en' | 'es';
   onPetalClick: (sphere: Sphere) => void;
   getSphereStats: (sphereId: number) => { taskCount: number; lastActivity: string | null };
+  customOrderedSpheres?: Sphere[];
 }) {
   const size = 500;
   const center = size / 2;
   const maxRadius = 180;
   const levels = 5;
 
-  // Evenly distribute 8 spheres (45° each), Personal on left, Social on right
-  const personalSpheres = getPersonalSpheres();
-  const socialSpheres = getSocialSpheres();
-  
-  // Order matching flower: Personal in left hemisphere, Social in right hemisphere
-  const orderedSpheres = [
-    personalSpheres[0], // Body - 112.5°
-    personalSpheres[1], // Mind - 157.5°
-    personalSpheres[2], // Spirit - 202.5°
-    personalSpheres[3], // Rest - 247.5°
-    socialSpheres[0],   // Work - 292.5°
-    socialSpheres[1],   // Money - 337.5°
-    socialSpheres[2],   // Family - 22.5°
-    socialSpheres[3],   // Social - 67.5°
-  ].filter(Boolean);
+  const orderedSpheres = customOrderedSpheres || (() => {
+    const personalSpheres = getPersonalSpheres();
+    const socialSpheres = getSocialSpheres();
+    return [
+      personalSpheres[0], personalSpheres[1], personalSpheres[2], personalSpheres[3],
+      socialSpheres[0], socialSpheres[1], socialSpheres[2], socialSpheres[3],
+    ].filter(Boolean);
+  })();
 
   // Calculate points for radar chart - using same angles as flower
   const baseAngles = [112.5, 157.5, 202.5, 247.5, 292.5, 337.5, 22.5, 67.5];
@@ -785,7 +785,7 @@ function SpiderChart({
   );
 }
 
-export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) {
+export function BalanceFlower({ sphereIndices, lifeIndex, customSpheres, scaleLabels, navigatePrefix }: BalanceFlowerProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { tasks } = useTasks();
@@ -818,30 +818,34 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
   const personalSpheres = getPersonalSpheres();
   const socialSpheres = getSocialSpheres();
   
-  // Evenly distribute 8 petals (45° each), with 2 per quadrant
-  // Personal spheres in left hemisphere (90° to 270°), Social in right (270° to 90°)
-  // Each petal is 45°, with equal spacing
-  const orderedSpheres = [
-    { sphere: personalSpheres[0], baseAngle: 112.5 },  // Body - upper left quadrant
-    { sphere: personalSpheres[1], baseAngle: 157.5 },  // Mind - upper left quadrant
-    { sphere: personalSpheres[2], baseAngle: 202.5 },  // Spirit - lower left quadrant
-    { sphere: personalSpheres[3], baseAngle: 247.5 },  // Rest - lower left quadrant
-    { sphere: socialSpheres[0], baseAngle: 292.5 },    // Work - lower right quadrant
-    { sphere: socialSpheres[1], baseAngle: 337.5 },    // Money - lower right quadrant
-    { sphere: socialSpheres[2], baseAngle: 22.5 },     // Family - upper right quadrant
-    { sphere: socialSpheres[3], baseAngle: 67.5 },     // Social - upper right quadrant
+  const orderedSpheres = customSpheres || [
+    { sphere: personalSpheres[0], baseAngle: 112.5 },
+    { sphere: personalSpheres[1], baseAngle: 157.5 },
+    { sphere: personalSpheres[2], baseAngle: 202.5 },
+    { sphere: personalSpheres[3], baseAngle: 247.5 },
+    { sphere: socialSpheres[0], baseAngle: 292.5 },
+    { sphere: socialSpheres[1], baseAngle: 337.5 },
+    { sphere: socialSpheres[2], baseAngle: 22.5 },
+    { sphere: socialSpheres[3], baseAngle: 67.5 },
   ].filter(item => item.sphere);
+
+  const leftSpheres = customSpheres 
+    ? customSpheres.slice(0, 4).map(c => c.sphere)
+    : personalSpheres;
+  const rightSpheres = customSpheres
+    ? customSpheres.slice(4, 8).map(c => c.sphere)
+    : socialSpheres;
 
   // Calculate averages for balance scales
   const personalAvg = useMemo(() => {
-    const personal = personalSpheres.map(s => sphereIndices.find(si => si.sphereId === s.id)?.index || 0);
-    return personal.reduce((a, b) => a + b, 0) / personal.length;
-  }, [sphereIndices, personalSpheres]);
+    const vals = leftSpheres.map(s => sphereIndices.find(si => si.sphereId === s.id)?.index || 0);
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }, [sphereIndices, leftSpheres]);
 
   const socialAvg = useMemo(() => {
-    const social = socialSpheres.map(s => sphereIndices.find(si => si.sphereId === s.id)?.index || 0);
-    return social.reduce((a, b) => a + b, 0) / social.length;
-  }, [sphereIndices, socialSpheres]);
+    const vals = rightSpheres.map(s => sphereIndices.find(si => si.sphereId === s.id)?.index || 0);
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }, [sphereIndices, rightSpheres]);
 
   // SVG dimensions - full width for larger display
   const size = 500;
@@ -852,7 +856,7 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
   const labelRadius = maxRadius + 45; // For external labels
 
   const handlePetalClick = (sphere: Sphere) => {
-    navigate(`/sphere/${sphere.key}`);
+    navigate(`${navigatePrefix || '/sphere'}/${sphere.key}`);
   };
 
   const handleColorSchemeChange = (scheme: ColorScheme) => {
@@ -1187,6 +1191,7 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
           language={language}
           onPetalClick={handlePetalClick}
           getSphereStats={getSphereStats}
+          customOrderedSpheres={customSpheres ? orderedSpheres.map(o => o.sphere) : undefined}
         />
       ) : (
         <TooltipProvider delayDuration={200}>
@@ -1440,6 +1445,7 @@ export function BalanceFlower({ sphereIndices, lifeIndex }: BalanceFlowerProps) 
         socialValue={socialAvg} 
         language={language}
         spreadLevel={spreadState?.level || 'stability'}
+        customScaleLabels={scaleLabels}
       />
 
       {/* Life Index Progress Chart */}

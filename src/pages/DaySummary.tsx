@@ -487,36 +487,41 @@ export default function DaySummaryPage() {
 
         {/* Printable content */}
         <div ref={printRef} className="space-y-2 bg-background">
-          {/* Main Task Status - always on top */}
+          {/* Main Task Status - first block */}
           {(() => {
-            const mainTask = todayTasks.find(t => (t as any).isMain && !t.archivedAt);
+            const mainTask = todayTasks.find(t => (t as any).isMain);
             if (!mainTask) return null;
             const isDone = mainTask.completed;
             return (
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
                 <Card className={cn(
-                  "ring-1",
-                  isDone 
-                    ? "border-green-500/30 bg-green-500/10 ring-green-500/20" 
-                    : "border-red-500/30 bg-red-500/10 ring-red-500/20"
+                  "border-2",
+                  isDone ? "border-green-500/40 bg-gradient-to-r from-green-500/15 to-green-500/5" : "border-red-500/40 bg-gradient-to-r from-red-500/15 to-red-500/5"
                 )}>
-                  <CardContent className="p-2">
-                    <div className="flex items-center gap-3">
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                      isDone ? "bg-green-500/20" : "bg-red-500/20"
+                    )}>
                       {isDone ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
                       ) : (
-                        <XCircle className="w-6 h-6 text-red-500 shrink-0" />
+                        <XCircle className="w-5 h-5 text-red-500" />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: isDone ? 'hsl(145 70% 45%)' : 'hsl(0 70% 55%)' }}>
-                          {isRussian 
-                            ? (isDone ? 'Главная задача выполнена ✓' : 'Главная задача не выполнена')
-                            : (isDone ? 'Main task completed ✓' : 'Main task not completed')}
-                        </p>
-                        <p className={cn("text-sm font-bold truncate", isDone && "line-through text-muted-foreground")}>
-                          {mainTask.icon} {mainTask.name}
-                        </p>
-                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        "text-[10px] uppercase font-bold tracking-wider mb-0.5",
+                        isDone ? "text-green-500" : "text-red-500"
+                      )}>
+                        {isRussian
+                          ? (isDone ? '✅ Главная задача выполнена' : '❌ Главная задача не выполнена')
+                          : (isDone ? '✅ Main task completed' : '❌ Main task not completed')}
+                      </p>
+                      <p className="font-bold text-foreground truncate text-sm">{mainTask.name}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -524,7 +529,7 @@ export default function DaySummaryPage() {
             );
           })()}
 
-          {/* Productivity Score - replaced circular indicator with text */}
+          {/* Productivity Score */}
           <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="p-2">
               <div className="flex items-center justify-between">

@@ -268,10 +268,28 @@ export function useTeam() {
 
   // Create team
   const createTeam = async (name: string, description?: string) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: 'Ошибка',
+        description: 'Требуется авторизация. Войдите в аккаунт и попробуйте снова.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      toast({
+        title: 'Сессия истекла',
+        description: 'Пожалуйста, войдите снова и повторите создание команды.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const { data, error } = await supabase
       .from('teams')
-      .insert({ name, description, owner_id: user.id })
+      .insert({ name, description, owner_id: authData.user.id })
       .select()
       .single();
 
@@ -281,9 +299,16 @@ export function useTeam() {
     }
 
     // Add owner as member
-    await supabase
+    const { error: memberError } = await supabase
       .from('team_members')
-      .insert({ team_id: data.id, user_id: user.id, role: 'owner' });
+      .insert({ team_id: data.id, user_id: authData.user.id, role: 'owner' });
+
+    if (memberError) {
+      // best-effort cleanup to avoid orphan team without membership
+      await supabase.from('teams').delete().eq('id', data.id);
+      toast({ title: 'Ошибка', description: memberError.message, variant: 'destructive' });
+      return;
+    }
 
     await fetchTeam();
     toast({ title: 'Команда создана!' });
