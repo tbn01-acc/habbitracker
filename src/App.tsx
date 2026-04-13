@@ -20,6 +20,8 @@ import { OnboardingSlideshow } from "@/components/OnboardingSlideshow";
 import { LegalActivationModal } from "@/components/legal/LegalActivationModal";
 import { AnalyticsHead } from "@/components/AnalyticsHead";
 import { AppHeader } from "@/components/AppHeader";
+import { PinLockScreen } from "@/components/PinLockScreen";
+import { useLocalAuth } from "@/hooks/useLocalAuth";
 
 // Импорт страниц
 import Dashboard from "./pages/Dashboard";
@@ -158,6 +160,18 @@ const AppContent = () => {
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 
   const { user, profile, loading: authLoading, refetchProfile } = useAuthContext();
+  const { needsLocalAuth, markVerified } = useLocalAuth();
+  const location = useLocation();
+
+  // Local auth (PIN/biometric) gate
+  const [localAuthPassed, setLocalAuthPassed] = useState(false);
+
+  useEffect(() => {
+    // If no local auth configured or already verified, skip
+    if (!needsLocalAuth()) {
+      setLocalAuthPassed(true);
+    }
+  }, [needsLocalAuth]);
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -205,8 +219,17 @@ const AppContent = () => {
     );
   }
 
-  const location = useLocation();
   const hideHeader = location.pathname === '/auth';
+
+  // Show PIN lock screen if local auth is required and not yet passed
+  if (user && !localAuthPassed && location.pathname !== '/auth') {
+    return (
+      <PinLockScreen onVerified={() => {
+        markVerified();
+        setLocalAuthPassed(true);
+      }} />
+    );
+  }
 
   return (
     <CloudSyncProvider>
