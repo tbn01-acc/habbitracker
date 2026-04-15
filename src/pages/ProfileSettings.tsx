@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, HardDrive, User, ArrowLeft, Shield, Mail, Send, CheckCircle2 } from 'lucide-react';
+import { LogOut, Edit2, Tags, Cloud, Settings, Sliders, Volume2, Sparkles, HardDrive, User, ArrowLeft, Shield, ShieldCheck, Mail, Send, CheckCircle2 } from 'lucide-react';
 import { useAuthContext } from '@/providers/AuthProvider';
 import { SetPasswordSection } from '@/components/profile/SetPasswordSection';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { SettingsSection } from '@/components/profile/SettingsSection';
 import { ThemeSwitcher } from '@/components/profile/ThemeSwitcher';
 import { ProfilePreferencesSection } from '@/components/profile/ProfilePreferencesSection';
 import { BackupSection } from '@/components/profile/BackupSection';
+import { PinSettingsSection } from '@/components/profile/PinSettingsSection';
 
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -362,6 +363,24 @@ export default function ProfileSettings() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* PIN & Biometric Security */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.245 }}
+          className="mt-8"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-orange-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {isRussian ? 'Безопасность' : 'Security'}
+            </h2>
+          </div>
+          <PinSettingsSection />
         </motion.div>
 
         {/* Common Tags */}
