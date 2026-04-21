@@ -124,7 +124,7 @@ export function useAchievementsFeed() {
       .select('post_count')
       .eq('user_id', user.id)
       .eq('post_date', today)
-      .single();
+      .maybeSingle();
 
     setDailyPostCount(data?.post_count || 0);
   }, [user]);

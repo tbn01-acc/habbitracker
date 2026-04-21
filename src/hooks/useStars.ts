@@ -51,15 +51,15 @@ export function useStars() {
         .from('user_stars')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code === 'PGRST116') {
+      if (!data && !error) {
         // Create new record
         const { data: newData, error: insertError } = await supabase
           .from('user_stars')
           .insert({ user_id: user.id })
           .select()
-          .single();
+          .maybeSingle();
 
         if (insertError) throw insertError;
         data = newData;
@@ -76,7 +76,7 @@ export function useStars() {
         .select('verified_count')
         .eq('user_id', user.id)
         .eq('activity_date', today)
-        .single();
+        .maybeSingle();
 
       setDailyVerifiedCount(dailyData?.verified_count || 0);
 
@@ -377,7 +377,7 @@ export function useStars() {
       .eq('user_id', user.id)
       .eq('reference_id', postId)
       .eq('transaction_type', 'achievement_post')
-      .single();
+      .maybeSingle();
 
     if (!originalTx) {
       // No stars were awarded for this post

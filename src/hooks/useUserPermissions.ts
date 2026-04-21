@@ -35,22 +35,22 @@ export function useUserPermissions() {
         .from('user_permissions')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        throw error;
+      }
+
+      if (!data) {
           // No permissions record, create one
           const { data: newData, error: insertError } = await supabase
             .from('user_permissions')
             .insert({ user_id: user.id, ...DEFAULT_PERMISSIONS })
             .select()
-            .single();
+            .maybeSingle();
 
           if (insertError) throw insertError;
           setPermissions(newData as UserPermissions);
-        } else {
-          throw error;
-        }
       } else {
         setPermissions(data as UserPermissions);
       }

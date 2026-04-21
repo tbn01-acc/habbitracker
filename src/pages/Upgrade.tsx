@@ -221,6 +221,37 @@ export default function Upgrade() {
     }
   }, [useBonusPayment, bonusBalance]);
 
+  // Handle YooKassa return status (?payment=success|fail|cancel)
+  useEffect(() => {
+    const status = searchParams.get('payment');
+    if (!status) return;
+    if (status === 'success') {
+      toast.success('Оплата прошла успешно! Тариф будет активирован в течение минуты.', {
+        description: 'Спасибо за покупку. Если статус не обновился — обновите страницу.',
+        duration: 6000,
+      });
+    } else if (status === 'fail' || status === 'failed') {
+      toast.error('Оплата не прошла', {
+        description: 'Возможные причины: недостаточно средств, отказ банка или истёк срок действия карты. Попробуйте другой способ оплаты.',
+        duration: 8000,
+      });
+    } else if (status === 'cancel' || status === 'canceled') {
+      toast.info('Оплата отменена', {
+        description: 'Вы отменили платёж. Можно попробовать снова в любой момент.',
+        duration: 5000,
+      });
+    } else if (status === 'pending') {
+      toast.info('Платёж в обработке', {
+        description: 'Банк проверяет операцию. Статус обновится автоматически.',
+        duration: 6000,
+      });
+    }
+    // Clean URL after showing toast
+    const url = new URL(window.location.href);
+    url.searchParams.delete('payment');
+    window.history.replaceState({}, '', url.toString());
+  }, [searchParams]);
+
   const activePeriod = periods.find(p => p.key === period)!;
 
   const getPrice = (plan: PlanTier) => {

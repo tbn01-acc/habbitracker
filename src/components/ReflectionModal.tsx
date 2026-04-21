@@ -69,11 +69,11 @@ export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: Ref
       case 0: return sleepScore !== null;
       case 1: return stressScore !== null;
       case 2: return victoryNote.trim().length > 0;
-      case 3: return true; // main task is optional
+      case 3: return selectedMainTaskId !== null; // main task is REQUIRED
       case 4: return true; // additional notes is optional
       default: return true;
     }
-  }, [sleepScore, stressScore, victoryNote]);
+  }, [sleepScore, stressScore, victoryNote, selectedMainTaskId]);
 
   const handleSetMainTask = useCallback((taskId: string) => {
     setSelectedMainTaskId(taskId);
