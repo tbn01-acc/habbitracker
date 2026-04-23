@@ -72,6 +72,20 @@ export default function SuccessDiary() {
     return colors[score - 1] || colors[2];
   };
 
+  // Integral score 1..5: combines sleep, inverse stress, and victory presence
+  const integralScore = (r: ReflectionEntry): number => {
+    const sleep = r.sleepScore || 3;
+    const stressInv = 6 - (r.stressScore || 3);
+    const victoryBonus = r.victoryNote?.trim() ? 1 : 0;
+    const raw = (sleep + stressInv) / 2 + victoryBonus * 0.3;
+    return Math.max(1, Math.min(5, Math.round(raw)));
+  };
+
+  const scoreColor = (score: number): string => {
+    const colors = ['hsl(0, 70%, 55%)', 'hsl(25, 90%, 50%)', 'hsl(45, 90%, 50%)', 'hsl(80, 70%, 45%)', 'hsl(145, 70%, 45%)'];
+    return colors[score - 1] || colors[2];
+  };
+
   const calendarData = useMemo(() => {
     const map = new Map<string, ReflectionEntry>();
     reflections.forEach(r => map.set(r.date, r));
@@ -132,35 +146,63 @@ export default function SuccessDiary() {
         <span className="text-sm font-medium text-foreground">
           {format(parseISO(r.date), 'd MMMM yyyy', { locale: loc })}
         </span>
-        <span className="text-lg">{SLEEP_EMOJIS[r.sleepScore - 1]}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{SLEEP_EMOJIS[r.sleepScore - 1]}</span>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
+            style={{ backgroundColor: scoreColor(integralScore(r)) }}
+            title={isRu ? `Интегральная оценка дня: ${integralScore(r)}/5` : `Day score: ${integralScore(r)}/5`}
+          >
+            {integralScore(r)}
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex items-center gap-1">
-          <Moon className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-xs text-muted-foreground">{r.sleepScore}/5</span>
+      {/* All reflection stages */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex items-center gap-1">
+            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-xs text-muted-foreground">{isRu ? 'Сон' : 'Sleep'}: <strong className="text-foreground">{r.sleepScore}/5</strong></span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Zap className="w-3.5 h-3.5" style={{ color: stressColor(r.stressScore) }} />
+            <span className="text-xs text-muted-foreground">{isRu ? 'Стресс' : 'Stress'}: <strong className="text-foreground">{r.stressScore}/5</strong></span>
+          </div>
+          {r.blockers && r.blockers.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              {r.blockers.slice(0, 3).map(b => (
+                <span key={b} className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive">
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <Zap className="w-3.5 h-3.5" style={{ color: stressColor(r.stressScore) }} />
-          <span className="text-xs text-muted-foreground">{r.stressScore}/5</span>
+
+        <div className="flex items-start gap-2">
+          <Trophy className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <p className={cn("text-xs line-clamp-2", r.victoryNote ? "text-foreground" : "text-muted-foreground italic")}>
+            {r.victoryNote || (isRu ? 'Победа дня не указана' : 'No victory recorded')}
+          </p>
         </div>
-        {r.blockers.length > 0 && (
-          <div className="flex gap-1">
-            {r.blockers.slice(0, 2).map(b => (
-              <span key={b} className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400">
-                {b}
-              </span>
-            ))}
+
+        <div className="flex items-start gap-2">
+          <Star className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+          <p className={cn("text-xs line-clamp-1", r.mainTaskId ? "text-foreground" : "text-muted-foreground italic")}>
+            {r.mainTaskId
+              ? (isRu ? 'Главная задача дня выбрана' : 'Main task assigned')
+              : (isRu ? 'Главная задача не выбрана' : 'No main task')}
+          </p>
+        </div>
+
+        {r.additionalNotes && (
+          <div className="flex items-start gap-2">
+            <MessageSquare className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground line-clamp-2">{r.additionalNotes}</p>
           </div>
         )}
       </div>
-
-      {r.victoryNote && (
-        <div className="flex items-start gap-2">
-          <Trophy className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-foreground line-clamp-1">{r.victoryNote}</p>
-        </div>
-      )}
     </motion.div>
   );
 
@@ -172,30 +214,53 @@ export default function SuccessDiary() {
     const dayHeaders = isRu ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     return (
-      <div className="grid grid-cols-7 gap-1">
-        {dayHeaders.map(d => (
-          <div key={d} className="text-center text-xs text-muted-foreground py-1">{d}</div>
-        ))}
-        {days.map(day => {
-          const dateStr = format(day, 'yyyy-MM-dd');
-          const entry = calendarData.get(dateStr);
-          const isToday = dateStr === format(now, 'yyyy-MM-dd');
-          return (
-            <button
-              key={dateStr}
-              onClick={() => handleDateClick(dateStr)}
-              className={cn(
-                "aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-all",
-                entry ? "bg-primary/20 text-primary cursor-pointer hover:bg-primary/30" : "bg-muted/30 text-muted-foreground",
-                isToday && "ring-1 ring-primary"
-              )}
-            >
-              <span className="font-medium">{format(day, 'd')}</span>
-              {entry && <span className="text-[10px]">{SLEEP_EMOJIS[entry.sleepScore - 1]}</span>}
-            </button>
-          );
-        })}
-      </div>
+      <>
+        <div className="grid grid-cols-7 gap-1">
+          {dayHeaders.map(d => (
+            <div key={d} className="text-center text-xs text-muted-foreground py-1">{d}</div>
+          ))}
+          {days.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            const entry = calendarData.get(dateStr);
+            const isToday = dateStr === format(now, 'yyyy-MM-dd');
+            const score = entry ? integralScore(entry) : 0;
+            return (
+              <motion.button
+                key={dateStr}
+                whileHover={entry ? { scale: 1.05 } : {}}
+                whileTap={entry ? { scale: 0.95 } : {}}
+                onClick={() => handleDateClick(dateStr)}
+                disabled={!entry}
+                title={entry ? `${isRu ? 'Оценка' : 'Score'}: ${score}/5` : (isRu ? 'Нет записи' : 'No entry')}
+                className={cn(
+                  "aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-all relative overflow-hidden",
+                  !entry && "bg-muted/20 text-muted-foreground/60 cursor-default",
+                  entry && "cursor-pointer text-white shadow-sm hover:shadow-md",
+                  isToday && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                )}
+                style={entry ? { backgroundColor: scoreColor(score) } : undefined}
+              >
+                <span className="font-semibold leading-none">{format(day, 'd')}</span>
+                {entry ? (
+                  <span className="text-[10px] font-bold leading-tight mt-0.5">{score}/5</span>
+                ) : (
+                  <span className="text-[10px] opacity-40 mt-0.5">—</span>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+        {/* Legend */}
+        <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+          <span className="text-[10px] text-muted-foreground mr-1">{isRu ? 'Оценка дня:' : 'Day score:'}</span>
+          {[1,2,3,4,5].map(n => (
+            <div key={n} className="flex items-center gap-0.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: scoreColor(n) }} />
+              <span className="text-[10px] text-muted-foreground">{n}</span>
+            </div>
+          ))}
+        </div>
+      </>
     );
   };
 
@@ -361,6 +426,28 @@ export default function SuccessDiary() {
                   <p className="text-sm">{selectedEntry.victoryNote}</p>
                 </div>
               )}
+
+              <div className="bg-primary/10 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">{isRu ? 'Главная задача дня' : 'Main task of the day'}</span>
+                </div>
+                <p className={cn("text-sm", selectedEntry.mainTaskId ? "text-foreground" : "text-muted-foreground italic")}>
+                  {selectedEntry.mainTaskId
+                    ? (isRu ? '✓ Выбрана и зафиксирована' : '✓ Assigned and locked')
+                    : (isRu ? 'Не была выбрана' : 'Was not assigned')}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
+                <span className="text-sm text-muted-foreground">{isRu ? 'Интегральная оценка дня' : 'Integral day score'}</span>
+                <div
+                  className="px-3 py-1 rounded-full text-sm font-bold text-white"
+                  style={{ backgroundColor: scoreColor(integralScore(selectedEntry)) }}
+                >
+                  {integralScore(selectedEntry)} / 5
+                </div>
+              </div>
 
               {selectedEntry.blockers.length > 0 && (
                 <div>

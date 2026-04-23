@@ -47,7 +47,7 @@ export function SprintKanban({ tasks, members, onUpdateStatus, onAddTask }: Spri
     description: '',
     story_points: 1,
     priority: 'medium',
-    assignee_id: '',
+    assignee_id: 'unassigned',
   });
   const [filterAssignee, setFilterAssignee] = useState<string>('all');
 
@@ -59,11 +59,12 @@ export function SprintKanban({ tasks, members, onUpdateStatus, onAddTask }: Spri
 
   const handleAddTask = () => {
     if (!newTask.title.trim()) return;
+    const assignee = newTask.assignee_id && newTask.assignee_id !== 'unassigned' ? newTask.assignee_id : undefined;
     onAddTask({
       ...newTask,
-      assignee_id: newTask.assignee_id || undefined,
+      assignee_id: assignee,
     });
-    setNewTask({ title: '', description: '', story_points: 1, priority: 'medium', assignee_id: '' });
+    setNewTask({ title: '', description: '', story_points: 1, priority: 'medium', assignee_id: 'unassigned' });
     setAddDialogOpen(false);
   };
 
@@ -243,7 +244,7 @@ export function SprintKanban({ tasks, members, onUpdateStatus, onAddTask }: Spri
               >
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder={isRu ? 'Не назначен' : 'Unassigned'} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{isRu ? 'Не назначен' : 'Unassigned'}</SelectItem>
+                  <SelectItem value="unassigned">{isRu ? 'Не назначен' : 'Unassigned'}</SelectItem>
                   {members.map(m => (
                     <SelectItem key={m.user_id} value={m.user_id}>
                       {m.profile?.display_name || 'User'}

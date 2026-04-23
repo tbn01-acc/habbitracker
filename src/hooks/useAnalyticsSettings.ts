@@ -26,12 +26,10 @@ export function useAnalyticsSettings() {
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', SETTING_KEY)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code !== 'PGRST116') {
-          console.error('Error fetching analytics settings:', error);
-        }
+        console.error('Error fetching analytics settings:', error);
         return;
       }
 
@@ -73,7 +71,7 @@ export function useAnalyticsSettings() {
         .from('app_settings')
         .select('id')
         .eq('setting_key', SETTING_KEY)
-        .single();
+        .maybeSingle();
 
       let error;
       if (existing) {

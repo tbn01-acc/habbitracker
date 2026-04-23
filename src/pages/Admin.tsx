@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Star, TrendingUp, Lock, Home, UserPlus, Eye, ChevronDown, ChevronUp, Loader2, Target, CheckSquare, Ban, Trash2, Activity } from 'lucide-react';
+import { Shield, Users, FileText, Crown, Search, AlertTriangle, Wallet, Settings, BarChart3, Tag, Gift, Star, TrendingUp, Lock, Home, UserPlus, Eye, ChevronDown, ChevronUp, Loader2, Target, CheckSquare, Ban, Trash2, Activity, CreditCard, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +20,7 @@ import { AdminReferrals } from '@/components/admin/AdminReferrals';
 import { AdminPromoCodes } from '@/components/admin/AdminPromoCodes';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAnalyticsSettings } from '@/hooks/useAnalyticsSettings';
+import { useYookassaSettings } from '@/hooks/useYookassaSettings';
 import {
   Select,
   SelectContent,
@@ -98,6 +99,7 @@ export default function Admin() {
   const [accessControlOpen, setAccessControlOpen] = useState(false);
   const [accessControlConfirmOpen, setAccessControlConfirmOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [yookassaOpen, setYookassaOpen] = useState(false);
 
   // App Settings
   const {
@@ -118,6 +120,16 @@ export default function Admin() {
     saving: analyticsSaving,
     hasChanges: analyticsHasChanges,
   } = useAnalyticsSettings();
+
+  const {
+    localSettings: yooLocal,
+    updateLocal: updateYooLocal,
+    save: saveYoo,
+    reset: resetYoo,
+    saving: yooSaving,
+    hasChanges: yooHasChanges,
+    loading: yooLoading,
+  } = useYookassaSettings();
 
   const isRussian = language === 'ru';
   const [adminChecked, setAdminChecked] = useState(false);
@@ -981,6 +993,92 @@ export default function Admin() {
 
             {/* Promo Codes */}
             <AdminPromoCodes />
+
+            {/* YooKassa Settings */}
+            <Collapsible open={yookassaOpen} onOpenChange={setYookassaOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                        {isRussian ? 'ЮKassa (платежи)' : 'YooKassa (Payments)'}
+                      </div>
+                      {yookassaOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </CardTitle>
+                    <CardDescription>
+                      {isRussian ? 'Настройка тестового и боевого режима оплаты' : 'Configure test and live payment mode'}
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    {yooLoading ? (
+                      <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+                    ) : (
+                      <div className="grid gap-4">
+                        <div className="flex items-center justify-between">
+                          <Label>{isRussian ? 'Режим' : 'Mode'}</Label>
+                          <Select value={yooLocal.mode} onValueChange={(v) => updateYooLocal({ mode: v as 'test' | 'live' })}>
+                            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="test">{isRussian ? 'Тестовый' : 'Test'}</SelectItem>
+                              <SelectItem value="live">{isRussian ? 'Боевой' : 'Live'}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">{isRussian ? 'Test Shop ID' : 'Test Shop ID'}</Label>
+                          <Input value={yooLocal.test_shop_id} onChange={e => updateYooLocal({ test_shop_id: e.target.value })} placeholder="123456" className="font-mono" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">{isRussian ? 'Live Shop ID' : 'Live Shop ID'}</Label>
+                          <Input value={yooLocal.live_shop_id} onChange={e => updateYooLocal({ live_shop_id: e.target.value })} placeholder="987654" className="font-mono" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">{isRussian ? 'Return URL' : 'Return URL'}</Label>
+                          <Input value={yooLocal.return_url} onChange={e => updateYooLocal({ return_url: e.target.value })} placeholder="https://top-focus.ru/profile" className="font-mono" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">{isRussian ? 'Webhook URL' : 'Webhook URL'}</Label>
+                          <Input value={yooLocal.webhook_url} onChange={e => updateYooLocal({ webhook_url: e.target.value })} placeholder="https://.../yookassa-webhook" className="font-mono" />
+                        </div>
+
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground space-y-1">
+                          <div className="flex items-center gap-2 text-amber-500 font-medium">
+                            <KeyRound className="w-3.5 h-3.5" />
+                            {isRussian ? 'Секретные ключи (YOOKASSA_SHOP_ID / YOOKASSA_SECRET_KEY)' : 'Secret keys (YOOKASSA_SHOP_ID / YOOKASSA_SECRET_KEY)'}
+                          </div>
+                          <p>{isRussian
+                            ? 'Секретные ключи хранятся в Edge Function Secrets и недоступны клиенту. Добавьте их через панель Supabase → Functions → Secrets.'
+                            : 'Secret keys are stored in Edge Function Secrets and are not exposed to the client. Add them via Supabase → Functions → Secrets.'}
+                          </p>
+                          <a
+                            href="https://supabase.com/dashboard/project/jexrtsyokhegjxnvqjur/settings/functions"
+                            target="_blank" rel="noreferrer"
+                            className="text-primary underline"
+                          >
+                            {isRussian ? 'Открыть настройки Edge Functions →' : 'Open Edge Function settings →'}
+                          </a>
+                        </div>
+
+                        {yooHasChanges && (
+                          <div className="flex gap-2 mt-2">
+                            <Button variant="outline" className="flex-1" onClick={resetYoo} disabled={yooSaving}>
+                              {isRussian ? 'Отменить' : 'Cancel'}
+                            </Button>
+                            <Button className="flex-1" onClick={saveYoo} disabled={yooSaving}>
+                              {yooSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isRussian ? 'Сохранение...' : 'Saving...'}</> : (isRussian ? 'Сохранить' : 'Save')}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </TabsContent>
 
           {/* Documents Tab */}

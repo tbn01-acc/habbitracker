@@ -291,7 +291,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
               .select('verified_count')
               .eq('user_id', user.id)
               .eq('activity_date', today)
-              .single();
+              .maybeSingle();
             
             const currentCount = dailyData?.verified_count || 0;
             if (currentCount < 10) {
@@ -316,7 +316,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                   .from('user_stars')
                   .select('total_stars')
                   .eq('user_id', user.id)
-                  .single();
+                  .maybeSingle();
                 
                 if (userStars) {
                   await supabase

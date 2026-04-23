@@ -74,7 +74,7 @@ export function useReferralActivityTracker() {
         .from('referrals')
         .select('id, is_active')
         .eq('referred_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (referral && !referral.is_active && isActive) {
         await supabase
@@ -111,7 +111,7 @@ export function useReferralActivityTracker() {
         .from('referrals')
         .select('referrer_id, referred_id')
         .eq('id', referralId)
-        .single();
+        .maybeSingle();
 
       if (!referral) return;
 

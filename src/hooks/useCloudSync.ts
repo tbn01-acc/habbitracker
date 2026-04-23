@@ -49,7 +49,7 @@ async function checkProStatus(userId: string): Promise<boolean> {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
     if (roleData?.role === 'admin' || roleData?.role === 'moderator' || roleData?.role === 'team') {
       return true;
@@ -60,7 +60,7 @@ async function checkProStatus(userId: string): Promise<boolean> {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
     if (!subData || subData.plan !== 'pro') return false;
     if (!subData.expires_at) return true; // Lifetime
