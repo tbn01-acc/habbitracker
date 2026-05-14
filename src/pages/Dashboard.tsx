@@ -16,7 +16,9 @@ import { OverdueWidget } from "@/components/dashboard/OverdueWidget";
 import { GreetingFocusAccordion } from "@/components/dashboard/GreetingFocusAccordion";
 import { FocusDayBanner } from "@/components/dashboard/FocusDayBanner";
 import { useOverdueNotifications } from "@/hooks/useOverdueNotifications";
-import { ReflectionModal, useReflectionCheck } from "@/components/ReflectionModal";
+import { ReflectionModal } from "@/components/ReflectionModal";
+import { useReflectionGate } from "@/hooks/useReflectionGate";
+import { TaskDialog } from "@/components/TaskDialog";
 import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
@@ -32,7 +34,7 @@ export default function Dashboard() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const navigate = useNavigate();
   const { habits, toggleHabitCompletion, updateHabit, deleteHabit } = useHabits();
-  const { tasks, toggleTaskCompletion, updateTask, deleteTask } = useTasks();
+  const { tasks, categories: taskCategories, tags: taskTags, addTask, addCategory: addTaskCategory, addTag: addTaskTag, toggleTaskCompletion, updateTask, deleteTask } = useTasks();
   const { transactions, toggleTransactionCompletion, getTodayTransactions } = useFinance();
   const { t, language } = useTranslation();
   const { profile, user } = useAuth();
@@ -41,8 +43,8 @@ export default function Dashboard() {
   const { team } = useTeam();
   const hasTeam = !!team;
   const dailyLoginRecordedRef = useRef(false);
-  const needsReflection = useReflectionCheck();
-  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const { open: reflectionOpen, setOpen: setReflectionOpen, isAuthenticated } = useReflectionGate();
+  const [reflectionTaskDialog, setReflectionTaskDialog] = useState<{ open: boolean; date: string }>({ open: false, date: '' });
   
   useTrialNotifications();
   useOverdueNotifications({ tasks, habits, transactions });
@@ -54,12 +56,7 @@ export default function Dashboard() {
     }
   }, [user, recordDailyLogin]);
 
-  useEffect(() => {
-    if (needsReflection && user) {
-      const timer = setTimeout(() => setReflectionOpen(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [needsReflection, user]);
+  // Reflection visibility is owned by `useReflectionGate` (auth + once/day + draft resume).
 
   const today = getTodayString();
   const dayOfWeek = new Date().getDay();
@@ -170,8 +167,17 @@ export default function Dashboard() {
   };
 
   const handleOpenTaskFromReflection = useCallback((prefillDate: string) => {
-    navigate('/tasks', { state: { openDialog: true, prefillDate } });
-  }, [navigate]);
+    // Temporarily hide the reflection (its draft is already persisted by the modal)
+    setReflectionOpen(false);
+    setReflectionTaskDialog({ open: true, date: prefillDate });
+  }, [setReflectionOpen]);
+
+  const closeReflectionTaskDialog = useCallback(() => {
+    setReflectionTaskDialog({ open: false, date: '' });
+    // Reopen the reflection modal — useReflectionGate's draft will resume the user
+    // exactly where they left off (Main task step) with the new task auto-selected.
+    setTimeout(() => setReflectionOpen(true), 150);
+  }, [setReflectionOpen]);
 
   const renderDayPlanIcons = useCallback(() => (
     <div className="flex flex-col justify-between h-[84px]">
@@ -409,7 +415,7 @@ export default function Dashboard() {
 
       {/* Reflection Modal */}
       <AnimatePresence>
-        {reflectionOpen && (
+        {reflectionOpen && isAuthenticated && user && (
           <ReflectionModal
             open={reflectionOpen}
             onClose={() => setReflectionOpen(false)}
@@ -418,6 +424,21 @@ export default function Dashboard() {
           />
         )}
       </AnimatePresence>
+
+      {/* Inline Task creation triggered from Reflection's "Create new task" */}
+      <TaskDialog
+        open={reflectionTaskDialog.open}
+        onClose={closeReflectionTaskDialog}
+        onSave={(taskData) => {
+          addTask({ ...taskData, isMain: true } as any);
+        }}
+        categories={taskCategories}
+        tags={taskTags}
+        onAddCategory={addTaskCategory}
+        onAddTag={addTaskTag}
+        prefillDueDate={reflectionTaskDialog.date || undefined}
+        prefillIsMain
+      />
     </div>
   );
 }

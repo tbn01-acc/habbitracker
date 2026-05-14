@@ -12,6 +12,7 @@ const NOTES_KEY = 'habitflow_notes';
 const CHECKLISTS_KEY = 'habitflow_checklists';
 const COUNTERS_KEY = 'habitflow_counters';
 const POMODORO_KEY = 'habitflow_pomodoro_sessions';
+const REFLECTIONS_KEY = 'topfocus_reflections';
 
 // Settings keys
 const WIDGET_SETTINGS_KEY = 'habitflow_widget_settings';
@@ -114,6 +115,7 @@ export function useCloudSync() {
       checklists: JSON.parse(localStorage.getItem(CHECKLISTS_KEY) || '[]'),
       counters: JSON.parse(localStorage.getItem(COUNTERS_KEY) || '[]'),
       pomodoro_sessions: JSON.parse(localStorage.getItem(POMODORO_KEY) || '[]'),
+      reflections: JSON.parse(localStorage.getItem(REFLECTIONS_KEY) || '[]'),
     };
   }, []);
 
@@ -202,6 +204,7 @@ export function useCloudSync() {
           checklists: data.checklists,
           counters: data.counters,
           pomodoro_sessions: data.pomodoro_sessions,
+          reflections: data.reflections,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
 
@@ -301,6 +304,24 @@ export function useCloudSync() {
         }
         if (data.pomodoro_sessions && Array.isArray(data.pomodoro_sessions) && data.pomodoro_sessions.length > 0) {
           localStorage.setItem(POMODORO_KEY, JSON.stringify(data.pomodoro_sessions));
+        }
+        if ((data as any).reflections && Array.isArray((data as any).reflections) && (data as any).reflections.length > 0) {
+          // Merge cloud reflections with local — keep most recent per (date,userId)
+          try {
+            const localRaw = localStorage.getItem(REFLECTIONS_KEY);
+            const local = localRaw ? JSON.parse(localRaw) : [];
+            const map = new Map<string, any>();
+            [...((data as any).reflections as any[]), ...local].forEach((r) => {
+              const key = `${r.userId || 'guest'}::${r.date}`;
+              const existing = map.get(key);
+              if (!existing || new Date(r.createdAt || 0).getTime() > new Date(existing.createdAt || 0).getTime()) {
+                map.set(key, r);
+              }
+            });
+            localStorage.setItem(REFLECTIONS_KEY, JSON.stringify(Array.from(map.values())));
+          } catch {
+            localStorage.setItem(REFLECTIONS_KEY, JSON.stringify((data as any).reflections));
+          }
         }
         
         lastSyncedDataRef.current = JSON.stringify(getLocalData());
@@ -446,6 +467,7 @@ export function useCloudSync() {
       const watchedKeys = [
         HABITS_KEY, TASKS_KEY, FINANCE_KEY, TIME_ENTRIES_KEY,
         NOTES_KEY, CHECKLISTS_KEY, COUNTERS_KEY, POMODORO_KEY,
+        REFLECTIONS_KEY,
         WIDGET_SETTINGS_KEY, THEME_SETTINGS_KEY, CELEBRATION_SETTINGS_KEY,
         NOTIFICATION_SETTINGS_KEY, GENERAL_SETTINGS_KEY, DASHBOARD_LAYOUT_KEY,
         ...ADDITIONAL_SETTINGS_KEYS,
@@ -457,7 +479,12 @@ export function useCloudSync() {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const handleSameTabChange = () => debouncedSync();
+    window.addEventListener('habitflow-data-changed', handleSameTabChange as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('habitflow-data-changed', handleSameTabChange as EventListener);
+    };
   }, [user, isProActive, debouncedSync]);
 
   // Initial sync on login - only once

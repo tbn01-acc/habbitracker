@@ -1,0 +1,1 @@
+ALTER TABLE public.cloud_user_data ADD COLUMN IF NOT EXISTS reflections jsonb;

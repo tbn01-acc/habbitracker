@@ -16,6 +16,17 @@ import { cn } from '@/lib/utils';
 import { getNotificationPermissionStatus } from '@/hooks/useTaskReminders';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { getOtherMainTasksForDate, type MaybeRecurringTask } from '@/lib/utils/activeTasksForDate';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface TaskDialogProps {
   open: boolean;
@@ -29,9 +40,11 @@ interface TaskDialogProps {
   onRequestNotificationPermission?: () => Promise<boolean>;
   prefillSphereId?: number | null;
   prefillGoalId?: string | null;
+  prefillDueDate?: string | null;
+  prefillIsMain?: boolean;
 }
 
-export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag, onRequestNotificationPermission, prefillSphereId, prefillGoalId }: TaskDialogProps) {
+export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAddCategory, onAddTag, onRequestNotificationPermission, prefillSphereId, prefillGoalId, prefillDueDate, prefillIsMain }: TaskDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { freeFeatureRestrictions, hasProAccess } = useUsageLimits();
@@ -62,6 +75,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const [showNewTag, setShowNewTag] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [mainConflict, setMainConflict] = useState<MaybeRecurringTask[] | null>(null);
   const { t, language } = useTranslation();
   const isRussian = language === 'ru';
 
@@ -118,7 +132,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setName('');
       setIcon(TASK_ICONS[0]);
       setColor(TASK_COLORS[0]);
-      setDueDate(new Date().toISOString().split('T')[0]);
+      setDueDate(prefillDueDate || new Date().toISOString().split('T')[0]);
       setPriority('medium');
       setStatus('not_started');
       setCategoryId(undefined);
@@ -134,12 +148,12 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
       setSphereId(prefillSphereId ?? null);
       setSphereLockedByGoal(!!prefillGoalId);
       setTaskType(undefined);
-      setIsMain(false);
+      setIsMain(!!prefillIsMain);
       setDuration(undefined);
       setShowSubtasks(false);
       setShowAttachments(false);
     }
-  }, [task, open, tags, prefillSphereId, prefillGoalId]);
+  }, [task, open, tags, prefillSphereId, prefillGoalId, prefillDueDate, prefillIsMain]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -208,6 +222,40 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
   const handleAttachmentsChange = (newAttachments: TaskAttachment[], newNotes?: string) => {
     setAttachments(newAttachments);
     if (newNotes !== undefined) setNotes(newNotes);
+  };
+
+  // Main-task conflict handling — only ONE main task per day
+  const tryToggleMain = (next: boolean) => {
+    if (!next) {
+      setIsMain(false);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('habitflow_tasks');
+      const tasks: MaybeRecurringTask[] = stored ? JSON.parse(stored) : [];
+      const conflicts = getOtherMainTasksForDate(tasks, dueDate, task?.id);
+      if (conflicts.length > 0) {
+        setMainConflict(conflicts);
+        return;
+      }
+    } catch {/* noop */}
+    setIsMain(true);
+  };
+
+  const confirmReplaceMain = () => {
+    try {
+      const stored = localStorage.getItem('habitflow_tasks');
+      if (stored) {
+        const tasks = JSON.parse(stored);
+        const updated = tasks.map((t: any) =>
+          mainConflict?.some((c) => c.id === t.id) ? { ...t, isMain: false } : t,
+        );
+        localStorage.setItem('habitflow_tasks', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
+      }
+    } catch {/* noop */}
+    setIsMain(true);
+    setMainConflict(null);
   };
 
   const priorities: Array<{ value: 'low' | 'medium' | 'high'; label: string }> = [
@@ -351,7 +399,7 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
                 <input
                   type="checkbox"
                   checked={isMain}
-                  onChange={e => setIsMain(e.target.checked)}
+                  onChange={e => tryToggleMain(e.target.checked)}
                   className="rounded border-border"
                 />
                 <span className="text-sm font-medium text-foreground">
@@ -705,6 +753,37 @@ export function TaskDialog({ open, onClose, onSave, task, categories, tags, onAd
           </motion.div>
         </>
       )}
+      <AlertDialog open={!!mainConflict} onOpenChange={(o) => !o && setMainConflict(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isRussian ? '🎯 Только одна Главная задача в день' : '🎯 Only one Main Task per day'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRussian
+                ? 'На эту дату уже назначена Главная задача. Активные задачи дня:'
+                : 'A Main Task is already set for this date. Active tasks today:'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-[200px] overflow-y-auto space-y-1 my-2">
+            {mainConflict?.map((t) => (
+              <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-sm">
+                <span>{t.icon || '📝'}</span>
+                <span className="flex-1 truncate">{t.name}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">
+                  🎯 {isRussian ? 'Главная' : 'Main'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRussian ? 'Отмена' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReplaceMain}>
+              {isRussian ? 'Сделать эту главной' : 'Make this the Main'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AnimatePresence>
   );
 }

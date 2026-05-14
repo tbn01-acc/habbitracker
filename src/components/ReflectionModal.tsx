@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Moon, Heart, Zap, Trophy, ChevronRight, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,10 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
+import { getActiveTasksForDate } from '@/lib/utils/activeTasksForDate';
 
 const REFLECTION_KEY = 'topfocus_reflections';
+const DRAFT_KEY = 'topfocus_reflection_draft';
 const SLEEP_EMOJIS = ['😫', '😴', '😐', '😊', '🤩'];
 const STRESS_COLORS = ['hsl(145, 70%, 45%)', 'hsl(80, 70%, 45%)', 'hsl(45, 90%, 50%)', 'hsl(25, 90%, 50%)', 'hsl(0, 70%, 55%)'];
 const BLOCKER_OPTIONS = [
@@ -28,13 +30,28 @@ interface ReflectionModalProps {
 export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: ReflectionModalProps) {
   const { language } = useTranslation();
   const isRu = language === 'ru';
-  const [step, setStep] = useState(0);
-  const [sleepScore, setSleepScore] = useState<number | null>(null);
-  const [stressScore, setStressScore] = useState<number | null>(null);
-  const [victoryNote, setVictoryNote] = useState('');
-  const [blockers, setBlockers] = useState<string[]>([]);
-  const [selectedMainTaskId, setSelectedMainTaskId] = useState<string | null>(null);
-  const [additionalNotes, setAdditionalNotes] = useState('');
+  // Restore draft synchronously so already-answered questions are not repeated
+  const initialDraft = useMemo(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(DRAFT_KEY) : null;
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      const today = new Date().toISOString().split('T')[0];
+      if (d?.date !== today) return null;
+      return d;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [step, setStep] = useState<number>(initialDraft?.step ?? 0);
+  const [sleepScore, setSleepScore] = useState<number | null>(initialDraft?.sleepScore ?? null);
+  const [stressScore, setStressScore] = useState<number | null>(initialDraft?.stressScore ?? null);
+  const [victoryNote, setVictoryNote] = useState<string>(initialDraft?.victoryNote ?? '');
+  const [blockers, setBlockers] = useState<string[]>(initialDraft?.blockers ?? []);
+  const [selectedMainTaskId, setSelectedMainTaskId] = useState<string | null>(initialDraft?.selectedMainTaskId ?? null);
+  const [additionalNotes, setAdditionalNotes] = useState<string>(initialDraft?.additionalNotes ?? '');
+  const pendingTaskCreatedAtRef = useRef<number | null>(initialDraft?.pendingTaskCreatedAt ?? null);
 
   const totalSteps = 5; // sleep, stress, victory+blockers, main task, additional notes
 
@@ -52,16 +69,66 @@ export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: Ref
   }, []);
 
   // Get tasks for the target date from localStorage
+  const [tasksTick, setTasksTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setTasksTick((x) => x + 1);
+    window.addEventListener('habitflow-data-changed', handler);
+    return () => window.removeEventListener('habitflow-data-changed', handler);
+  }, []);
   const availableTasks = useMemo(() => {
     try {
       const stored = localStorage.getItem('habitflow_tasks');
       if (!stored) return [];
       const tasks = JSON.parse(stored);
-      return tasks.filter((t: any) => t.dueDate === targetDate && !t.completed && !t.archivedAt);
+      return getActiveTasksForDate(tasks, targetDate);
     } catch {
       return [];
     }
-  }, [targetDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate, tasksTick]);
+
+  // Auto-select main task that was created while the user was on the Task form
+  useEffect(() => {
+    if (!open) return;
+    const pendingAt = pendingTaskCreatedAtRef.current;
+    if (!pendingAt || selectedMainTaskId) return;
+    try {
+      const stored = localStorage.getItem('habitflow_tasks');
+      if (!stored) return;
+      const tasks = JSON.parse(stored);
+      const candidate = tasks
+        .filter((t: any) => t.dueDate === targetDate && !t.archivedAt)
+        .map((t: any) => ({ ...t, _ts: new Date(t.createdAt || 0).getTime() }))
+        .filter((t: any) => t._ts >= pendingAt)
+        .sort((a: any, b: any) => b._ts - a._ts)[0];
+      if (candidate) {
+        setSelectedMainTaskId(candidate.id);
+        pendingTaskCreatedAtRef.current = null;
+        // Make sure user lands back on the main-task step
+        setStep(3);
+      }
+    } catch {/* noop */}
+  }, [open, availableTasks, selectedMainTaskId, targetDate]);
+
+  // Persist draft on every meaningful change
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const draft = {
+        date: new Date().toISOString().split('T')[0],
+        userId: userId || 'guest',
+        step,
+        sleepScore,
+        stressScore,
+        victoryNote,
+        blockers,
+        selectedMainTaskId,
+        additionalNotes,
+        pendingTaskCreatedAt: pendingTaskCreatedAtRef.current,
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {/* noop */}
+  }, [open, step, sleepScore, stressScore, victoryNote, blockers, selectedMainTaskId, additionalNotes, userId]);
 
   // Step validation
   const isStepValid = useCallback((s: number): boolean => {
@@ -114,6 +181,10 @@ export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: Ref
 
     reflections.push(newReflection);
     localStorage.setItem(REFLECTION_KEY, JSON.stringify(reflections));
+    // Clear the in-progress draft – reflection is finished for today
+    localStorage.removeItem(DRAFT_KEY);
+    // Notify cloud-sync & other tabs
+    window.dispatchEvent(new CustomEvent('habitflow-data-changed'));
 
     confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
     toast.success(isRu ? '✨ Рефлексия записана!' : '✨ Reflection saved!');
@@ -327,6 +398,19 @@ export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: Ref
                       variant="outline"
                       className="w-full rounded-xl border-white/10 bg-white/5 gap-2"
                       onClick={() => {
+                        // Remember when we left so we can auto-pick the task on return
+                        pendingTaskCreatedAtRef.current = Date.now();
+                        try {
+                          const draft = {
+                            date: new Date().toISOString().split('T')[0],
+                            userId: userId || 'guest',
+                            step: 3,
+                            sleepScore, stressScore, victoryNote, blockers,
+                            selectedMainTaskId, additionalNotes,
+                            pendingTaskCreatedAt: pendingTaskCreatedAtRef.current,
+                          };
+                          localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                        } catch {/* noop */}
                         onClose();
                         setTimeout(() => onOpenTaskDialog(targetDate), 300);
                       }}
@@ -396,9 +480,10 @@ export function ReflectionModal({ open, onClose, userId, onOpenTaskDialog }: Ref
   );
 }
 
+/** @deprecated Use useReflectionGate from '@/hooks/useReflectionGate' instead. */
 export function useReflectionCheck() {
   const today = new Date().toISOString().split('T')[0];
-  const stored = localStorage.getItem('topfocus_reflections');
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('topfocus_reflections') : null;
   if (!stored) return true;
   try {
     const reflections = JSON.parse(stored);

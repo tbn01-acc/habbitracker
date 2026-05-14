@@ -191,6 +191,7 @@ export type Database = {
           id: string
           notes: Json | null
           pomodoro_sessions: Json | null
+          reflections: Json | null
           tasks: Json | null
           time_entries: Json | null
           transactions: Json | null
@@ -205,6 +206,7 @@ export type Database = {
           id?: string
           notes?: Json | null
           pomodoro_sessions?: Json | null
+          reflections?: Json | null
           tasks?: Json | null
           time_entries?: Json | null
           transactions?: Json | null
@@ -219,6 +221,7 @@ export type Database = {
           id?: string
           notes?: Json | null
           pomodoro_sessions?: Json | null
+          reflections?: Json | null
           tasks?: Json | null
           time_entries?: Json | null
           transactions?: Json | null
