@@ -61,9 +61,7 @@ export function useUserSearch() {
         const userIds = profiles.map(p => p.user_id);
         
         const { data: stars } = await supabase
-          .from('user_stars')
-          .select('user_id, total_stars')
-          .in('user_id', userIds);
+          .rpc('get_public_user_stars', { _user_ids: userIds });
 
         const starsMap = (stars || []).reduce((acc, s) => {
           acc[s.user_id] = s.total_stars;
