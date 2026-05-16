@@ -30,6 +30,11 @@ export interface Profile {
   expertise: string | null;
   can_help: string | null;
   phone: string | null;
+  show_email: boolean | null;
+  show_phone: boolean | null;
+  show_dob: boolean | null;
+  show_telegram: boolean | null;
+  show_location: boolean | null;
 }
 
 // Query keys factory for better organization
@@ -59,7 +64,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 // Update profile
 async function updateProfile(
   userId: string,
-  updates: Partial<Pick<Profile, 'display_name' | 'avatar_url' | 'bio' | 'telegram_username' | 'public_email' | 'is_public' | 'first_day_of_week' | 'dob' | 'location' | 'job_title' | 'status_tag' | 'interests' | 'expertise' | 'can_help' | 'phone'>>
+  updates: Partial<Pick<Profile, 'display_name' | 'avatar_url' | 'bio' | 'telegram_username' | 'public_email' | 'is_public' | 'first_day_of_week' | 'dob' | 'location' | 'job_title' | 'status_tag' | 'interests' | 'expertise' | 'can_help' | 'phone' | 'show_email' | 'show_phone' | 'show_dob' | 'show_telegram' | 'show_location'>>
 ): Promise<Profile> {
   const { data, error } = await supabase
     .from('profiles')
