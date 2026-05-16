@@ -233,6 +233,11 @@ export function PublicProfileEditDialog({
         expertise: expertise.trim() || null,
         can_help: canHelp.trim() || null,
         phone: phone.trim() || null,
+        show_email: showEmail,
+        show_phone: showPhone,
+        show_dob: showDob,
+        show_telegram: showTelegram,
+        show_location: showLocation,
         is_public: true,
       },
       {
