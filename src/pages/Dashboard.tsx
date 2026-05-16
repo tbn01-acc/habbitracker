@@ -71,7 +71,9 @@ export default function Dashboard() {
   }, [t]);
 
   const todayTasks = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Use local date to avoid timezone-induced mismatches that hid the daily main task.
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return tasks.filter(t => t.dueDate === todayStr && !t.archivedAt);
   }, [tasks]);
 
