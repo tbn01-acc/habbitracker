@@ -24,6 +24,26 @@ Deno.serve(async (req) => {
   const MIN_DISCOUNT_FACTOR = 0.5;
 
   try {
+    // Whitelist of allowed return-URL origins. Prevents open redirect
+    // through the user-supplied returnUrl parameter.
+    const ALLOWED_RETURN_ORIGINS = new Set([
+      "https://top-focus.ru",
+      "https://www.top-focus.ru",
+      "https://habbitt01.lovable.app",
+      "https://preview--habbitt01.lovable.app",
+    ]);
+    const DEFAULT_RETURN_URL = "https://top-focus.ru/profile";
+    const sanitizeReturnUrl = (input: unknown): string => {
+      if (typeof input !== "string" || !input) return DEFAULT_RETURN_URL;
+      try {
+        const u = new URL(input);
+        if (u.protocol !== "https:") return DEFAULT_RETURN_URL;
+        return ALLOWED_RETURN_ORIGINS.has(u.origin) ? u.toString() : DEFAULT_RETURN_URL;
+      } catch {
+        return DEFAULT_RETURN_URL;
+      }
+    };
+
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -54,6 +74,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { period, description, returnUrl, paymentMethodType, planId } = body;
     const clientAmount = Number(body.amount);
+    const safeReturnUrl = sanitizeReturnUrl(returnUrl);
 
     const normalizedPeriod = typeof period === "string" ? period : "monthly";
     const normalizedPlan = typeof planId === "string" && PRICE_TABLE[planId] ? planId : "pro";
@@ -105,7 +126,7 @@ Deno.serve(async (req) => {
       },
       confirmation: {
         type: "redirect",
-        return_url: returnUrl || "https://top-focus.ru/profile",
+        return_url: safeReturnUrl,
       },
       capture: true,
       description: description || `ТопФокус PRO — ${normalizedPeriod}`,
