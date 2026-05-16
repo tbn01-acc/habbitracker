@@ -138,7 +138,7 @@ export default function UserCatalog() {
       
       if (userIds.length > 0) {
         const [starsRes, likesRes] = await Promise.all([
-          supabase.from('user_stars').select('user_id, total_stars').in('user_id', userIds),
+          supabase.rpc('get_public_user_stars', { _user_ids: userIds }),
           supabase.from('achievement_posts').select('user_id, likes_count').in('user_id', userIds),
         ]);
 

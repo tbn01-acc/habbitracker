@@ -36,16 +36,9 @@ export function useLeaderboard() {
     try {
       setLoading(true);
 
-      // Fetch more than 100 to account for banned users that will be filtered out
+      // Use SECURITY DEFINER RPC that exposes only safe public fields.
       const { data: starsData, error: starsError } = await supabase
-        .from('user_stars')
-        .select(`
-          user_id,
-          total_stars,
-          current_streak_days
-        `)
-        .order('total_stars', { ascending: false })
-        .limit(200); // Fetch extra to ensure we have 100 after filtering
+        .rpc('get_leaderboard_top', { _limit: 200 });
 
       if (starsError) throw starsError;
 
@@ -95,7 +88,7 @@ export function useLeaderboard() {
         if (currentUserInTop) {
           setCurrentUserRank(currentUserInTop);
         } else {
-          // Fetch current user's rank
+          // Fetch current user's rank via RPC (avoids cross-user reads)
           const { data: userStars } = await supabase
             .from('user_stars')
             .select('total_stars, current_streak_days')
@@ -103,11 +96,8 @@ export function useLeaderboard() {
             .single();
 
           if (userStars) {
-            // Count how many users have more stars
-            const { count } = await supabase
-              .from('user_stars')
-              .select('*', { count: 'exact', head: true })
-              .gt('total_stars', userStars.total_stars);
+            const { data: rank } = await supabase
+              .rpc('get_user_stars_rank', { _user_id: user.id });
 
             const { data: userProfile } = await supabase
               .from('profiles')
@@ -116,7 +106,7 @@ export function useLeaderboard() {
               .single();
 
             setCurrentUserRank({
-              rank: (count || 0) + 1,
+              rank: (rank as number) || 1,
               user_id: user.id,
               display_name: userProfile?.display_name || 'Вы',
               avatar_url: userProfile?.avatar_url,
@@ -151,10 +141,7 @@ export function useLeaderboard() {
           .eq('user_id', userId)
           .single(),
         supabase
-          .from('user_stars')
-          .select('total_stars, current_streak_days')
-          .eq('user_id', userId)
-          .single(),
+          .rpc('get_public_user_stars', { _user_ids: [userId] }),
         supabase
           .from('referrals')
           .select('id', { count: 'exact' })
@@ -163,6 +150,7 @@ export function useLeaderboard() {
 
       if (!profile) return null;
 
+      const starsRow = Array.isArray(stars) ? stars[0] : null;
       return {
         user_id: userId,
         display_name: profile.display_name,
@@ -170,8 +158,8 @@ export function useLeaderboard() {
         bio: profile.bio,
         telegram_username: null,
         public_email: profile.public_email || null,
-        total_stars: stars?.total_stars || 0,
-        current_streak_days: stars?.current_streak_days || 0,
+        total_stars: starsRow?.total_stars || 0,
+        current_streak_days: starsRow?.current_streak_days || 0,
         total_referrals: referrals?.length || 0,
         is_public: profile.is_public,
         is_banned: false

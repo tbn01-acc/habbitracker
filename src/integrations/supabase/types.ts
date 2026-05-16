@@ -2990,6 +2990,14 @@ export type Database = {
         Args: { _chat_id: string }
         Returns: string
       }
+      get_leaderboard_top: {
+        Args: { _limit?: number }
+        Returns: {
+          current_streak_days: number
+          total_stars: number
+          user_id: string
+        }[]
+      }
       get_public_profiles: {
         Args: never
         Returns: {
@@ -3017,7 +3025,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_user_stars: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          current_streak_days: number
+          total_stars: number
+          user_id: string
+        }[]
+      }
       get_team_invite_code: { Args: { _team_id: string }; Returns: string }
+      get_user_stars_rank: { Args: { _user_id: string }; Returns: number }
       get_user_team_ids: { Args: { _user_id: string }; Returns: string[] }
       handle_consent_revoke: { Args: { p_id: string }; Returns: string }
       has_role: {
