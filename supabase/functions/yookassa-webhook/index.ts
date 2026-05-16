@@ -74,6 +74,28 @@ Deno.serve(async (req) => {
     }
 
     // ---- SERVER-SIDE VERIFICATION ----
+    // Short-circuit: if we've already processed this payment, skip the outbound
+    // YooKassa API call entirely. This prevents an attacker from triggering
+    // unbounded outbound API hammering by replaying old payment IDs.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: alreadyPaid } = await supabase
+      .from("payments")
+      .select("status")
+      .eq("invoice_id", paymentId)
+      .eq("status", "paid")
+      .maybeSingle();
+
+    if (alreadyPaid) {
+      return new Response(JSON.stringify({ ok: true, already_processed: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Verify the payment actually exists and succeeded in YooKassa
     const shopId = Deno.env.get("YOOKASSA_SHOP_ID");
     const secretKey = Deno.env.get("YOOKASSA_SECRET_KEY");
@@ -159,12 +181,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Idempotency: check if this payment was already processed
+    // Idempotency: re-check inside the transaction window
     const { data: existingPayment } = await supabase
       .from("payments")
       .select("id, status")
