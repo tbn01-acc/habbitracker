@@ -608,9 +608,10 @@ export default function Admin() {
                       filteredUsers.map((u) => (
                         <div
                           key={u.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => navigate(`/admin/users/${u.id}`)}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-1">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                               {u.role === 'admin' ? (
                                 <Crown className="w-5 h-5 text-amber-500" />
@@ -653,7 +654,10 @@ export default function Admin() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                              <SelectTrigger
+                                className="w-[130px] h-8 text-xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <SelectValue placeholder={isRussian ? 'Действие' : 'Action'} />
                               </SelectTrigger>
                               <SelectContent>

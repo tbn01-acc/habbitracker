@@ -41,6 +41,7 @@ import Infocenter from "./pages/Infocenter";
 import Auth from "./pages/Auth";
 import Upgrade from "./pages/Upgrade";
 import Admin from "./pages/Admin";
+import AdminUserDetail from "./pages/AdminUserDetail";
 import TagPage from "./pages/TagPage";
 import Rating from "./pages/Rating";
 import RewardsShop from "./pages/RewardsShop";
@@ -264,6 +265,7 @@ const AppContent = () => {
           <Route path="/auth" element={<Auth />} />
           <Route path="/upgrade" element={<Upgrade />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/users/:userId" element={<AdminUserDetail />} />
           <Route path="/tag/:tagId" element={<TagPage />} />
           <Route path="/rating" element={<Rating />} />
           <Route path="/rewards" element={<RewardsShop />} />

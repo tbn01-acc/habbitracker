@@ -474,6 +474,11 @@ export default function ProfileSettings() {
               expertise: profile?.expertise || null,
               can_help: profile?.can_help || null,
               phone: profile?.phone || null,
+              show_email: (profile as any)?.show_email ?? false,
+              show_phone: (profile as any)?.show_phone ?? false,
+              show_dob: (profile as any)?.show_dob ?? false,
+              show_telegram: (profile as any)?.show_telegram ?? false,
+              show_location: (profile as any)?.show_location ?? false,
             }}
           onUpdate={handleProfileUpdate}
         />

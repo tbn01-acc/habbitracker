@@ -40,7 +40,8 @@ export function AppHeader() {
   const { tasks } = useTasks();
 
   const todayTasks = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return tasks.filter(t => t.dueDate === todayStr && !t.archivedAt);
   }, [tasks]);
 
@@ -78,12 +79,14 @@ export function AppHeader() {
             </div>
 
             {/* Right: Notifications + News + Users Catalog + Focus + Rating + Theme + Invite */}
-            <div className="flex items-center" style={{ gap: '0px' }}>
+            {/* Icon buttons shrunk 1.5x (h-10→h-7) to tighten spacing between icons */}
+            <div className="flex items-center gap-0 [&_button[data-icon-btn]]:h-7 [&_button[data-icon-btn]]:w-7">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => navigate('/notifications')}
                     className="relative hover:bg-primary/10"
                   >
@@ -105,6 +108,7 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => navigate('/infocenter')}
                     className="hover:bg-blue-500/10"
                   >
@@ -121,6 +125,7 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => navigate('/users')}
                     className="hover:bg-green-500/10"
                   >
@@ -137,6 +142,7 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => navigate('/focus')}
                     className="hover:bg-purple-500/10"
                   >
@@ -153,6 +159,7 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => navigate('/rating')}
                     className="hover:bg-yellow-500/10"
                   >
@@ -169,6 +176,7 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-icon-btn
                     onClick={() => setOnboardingOpen(true)}
                     className="hover:bg-cyan-500/10"
                   >
