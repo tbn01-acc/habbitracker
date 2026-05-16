@@ -31,7 +31,7 @@ export interface PurchasedReward {
 
 export function useRewardsShop() {
   const { user } = useAuth();
-  const { userStars, addStars, refetch: refetchStars } = useStars();
+  const { userStars, refetch: refetchStars } = useStars();
   const [rewards, setRewards] = useState<ShopReward[]>([]);
   const [purchasedRewards, setPurchasedRewards] = useState<PurchasedReward[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,26 +114,18 @@ export function useRewardsShop() {
     }
 
     try {
-      // Deduct stars
-      const success = await addStars(
-        -reward.price_stars,
-        'reward_purchase',
-        `Покупка: ${reward.name}`,
-        rewardId
-      );
-
-      if (!success) return false;
-
-      // Record purchase
-      const { error } = await supabase
-        .from('purchased_rewards')
-        .insert({
-          user_id: user.id,
-          reward_id: rewardId,
-          stars_spent: reward.price_stars
-        });
-
-      if (error) throw error;
+      const { error } = await supabase.rpc('purchase_shop_reward', { p_reward_id: rewardId });
+      if (error) {
+        const msg = String(error.message || '');
+        if (msg.includes('insufficient_stars')) {
+          toast.error('Недостаточно звезд');
+        } else if (msg.includes('reward_not_found')) {
+          toast.error('Награда не найдена');
+        } else {
+          toast.error('Ошибка покупки');
+        }
+        return false;
+      }
 
       toast.success('Награда куплена!', {
         description: reward.name
@@ -155,7 +147,7 @@ export function useRewardsShop() {
       toast.error('Ошибка покупки');
       return false;
     }
-  }, [user, userStars, rewards, addStars, refetchStars, fetchPurchasedRewards]);
+  }, [user, userStars, rewards, refetchStars, fetchPurchasedRewards]);
 
   const useReward = useCallback(async (purchasedRewardId: string): Promise<boolean> => {
     if (!user) return false;

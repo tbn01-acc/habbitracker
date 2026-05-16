@@ -3,6 +3,16 @@ import { Task } from '@/types/task';
 import { FinanceTransaction, getCategoryById } from '@/types/finance';
 import { format } from 'date-fns';
 
+// Escape HTML for safe injection into PDF/print HTML
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // CSV Export utilities
 export function exportToCSV(data: string[][], filename: string) {
   const csvContent = data.map(row => 
@@ -120,7 +130,7 @@ export function generatePDFContent(title: string, data: string[][], summary?: Re
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>${title}</title>
+      <title>${escapeHtml(title)}</title>
       <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #333; }
         h1 { color: #168080; border-bottom: 2px solid #168080; padding-bottom: 10px; }
@@ -136,7 +146,7 @@ export function generatePDFContent(title: string, data: string[][], summary?: Re
       </style>
     </head>
     <body>
-      <h1>${title}</h1>
+      <h1>${escapeHtml(title)}</h1>
   `;
   
   if (summary) {
@@ -144,8 +154,8 @@ export function generatePDFContent(title: string, data: string[][], summary?: Re
     Object.entries(summary).forEach(([label, value]) => {
       html += `
         <div class="summary-item">
-          <div class="summary-label">${label}</div>
-          <div class="summary-value">${value}</div>
+          <div class="summary-label">${escapeHtml(label)}</div>
+          <div class="summary-value">${escapeHtml(value)}</div>
         </div>
       `;
     });
@@ -155,14 +165,14 @@ export function generatePDFContent(title: string, data: string[][], summary?: Re
   if (data.length > 0) {
     html += '<table><thead><tr>';
     data[0].forEach(header => {
-      html += `<th>${header}</th>`;
+      html += `<th>${escapeHtml(header)}</th>`;
     });
     html += '</tr></thead><tbody>';
     
     data.slice(1).forEach(row => {
       html += '<tr>';
       row.forEach(cell => {
-        html += `<td>${cell}</td>`;
+        html += `<td>${escapeHtml(cell)}</td>`;
       });
       html += '</tr>';
     });

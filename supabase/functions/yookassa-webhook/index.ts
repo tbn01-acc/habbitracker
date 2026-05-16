@@ -16,6 +16,16 @@ const periodDaysMap: Record<string, number | null> = {
   lifetime: null, // no expiration
 };
 
+// Server-side price table per plan + billing period.
+// The webhook enforces that the paid amount is at least 50% of the base price
+// for the selected plan/period combination.
+const PLAN_PRICE_TABLE: Record<string, Record<string, number>> = {
+  pro:     { monthly: 349, quarterly: 995,  semiannual: 1780, annual: 3350, biennial: 5863, lifetime: 7490 },
+  premium: { monthly: 449, quarterly: 1280, semiannual: 2290, annual: 4310, biennial: 7543, lifetime: 9990 },
+  profi:   { monthly: 399, quarterly: 1138, semiannual: 2035, annual: 3832, biennial: 6697, lifetime: 8790 },
+};
+const MIN_DISCOUNT_FACTOR = 0.5;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -122,6 +132,28 @@ Deno.serve(async (req) => {
     if (!Object.keys(periodDaysMap).includes(verifiedPeriod)) {
       console.error("Invalid verified period:", verifiedPeriod);
       return new Response(JSON.stringify({ error: "Invalid period" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify the paid amount is at least the minimum acceptable price for
+    // the chosen plan + period (allows promo discounts, blocks 1-kopek hacks).
+    const verifiedPlan = (verifiedPayment.metadata?.plan_id as string) || "pro";
+    const planRow = PLAN_PRICE_TABLE[verifiedPlan];
+    if (!planRow || planRow[verifiedPeriod] == null) {
+      console.error(`Unknown plan/period: ${verifiedPlan}/${verifiedPeriod}`);
+      return new Response(JSON.stringify({ error: "Unknown plan/period" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const basePrice = planRow[verifiedPeriod];
+    const minAcceptable = Math.round(basePrice * MIN_DISCOUNT_FACTOR);
+    const paidAmount = parseFloat(verifiedPayment.amount?.value ?? "0");
+    if (!paidAmount || paidAmount + 0.01 < minAcceptable) {
+      console.error(`Underpayment for ${verifiedPlan}/${verifiedPeriod}: paid=${paidAmount}, min=${minAcceptable}`);
+      return new Response(JSON.stringify({ error: "Amount below minimum price" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

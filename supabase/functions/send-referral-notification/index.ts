@@ -9,6 +9,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Escape user-controlled values before interpolating them into HTML emails.
+const esc = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface NotificationRequest {
   type: "activation" | "payment";
   referrer_id: string;
@@ -60,6 +69,36 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { type, referrer_id, referred_id, referred_name, payment_amount, commission_amount, bonus_weeks } = body;
 
+    // Authorization: only allow notifications when the caller is an admin OR
+    // when the caller is the referred user AND a real referral record exists
+    // between referrer_id and referred_id. Source financial amounts from the
+    // database, never from the request body.
+    const { data: isAdmin } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin',
+    });
+
+    if (!isAdmin) {
+      if (user.id !== referred_id) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: referral } = await supabase
+        .from('referrals')
+        .select('id')
+        .eq('referrer_id', referrer_id)
+        .eq('referred_id', referred_id)
+        .maybeSingle();
+      if (!referral) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
     // Get referrer email and profile
     const { data: referrerAuth } = await supabase.auth.admin.getUserById(referrer_id);
     if (!referrerAuth?.user?.email) {
@@ -79,8 +118,32 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", referrer_id)
       .single();
 
-    const referrerName = referrerProfile?.display_name || "Партнёр";
-    const refName = referred_name || "пользователь";
+    const referrerName = esc(referrerProfile?.display_name || "Партнёр");
+    const refName = esc(referred_name || "пользователь");
+    const safeBonusWeeks = Number.isFinite(Number(bonus_weeks)) ? Number(bonus_weeks) : 0;
+    // For non-admin callers, NEVER trust client-supplied financial figures.
+    // Always source amount/commission from referral_earnings.
+    let safePaymentAmount = 0;
+    let safeCommission = 0;
+    if (isAdmin) {
+      safePaymentAmount = Number.isFinite(Number(payment_amount)) ? Number(payment_amount) : 0;
+      safeCommission = Number.isFinite(Number(commission_amount)) ? Number(commission_amount) : 0;
+    } else {
+      const { data: earning } = await supabase
+        .from('referral_earnings')
+        .select('amount_rub, commission_percent, milestone_bonus_rub')
+        .eq('referrer_id', referrer_id)
+        .eq('referred_id', referred_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (earning) {
+        safePaymentAmount = Number(earning.amount_rub) || 0;
+        const pct = Number(earning.commission_percent) || 0;
+        safeCommission = Math.round(safePaymentAmount * pct) / 100
+          + (Number(earning.milestone_bonus_rub) || 0);
+      }
+    }
 
     let subject = "";
     let html = "";
@@ -116,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
               </ul>
               <div class="highlight">
                 <p>Вам начислен бонус:</p>
-                <p class="bonus">+${bonus_weeks || 1} недель PRO</p>
+                <p class="bonus">+${safeBonusWeeks || 1} недель PRO</p>
               </div>
               <p>Продолжайте приглашать друзей и получайте ещё больше бонусов!</p>
             </div>
@@ -152,10 +215,10 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <p>Привет, ${referrerName}!</p>
               <p>Ваш реферал <strong>${refName}</strong> оплатил PRO подписку!</p>
-              ${payment_amount ? `<p>Сумма платежа: <strong>${payment_amount.toLocaleString()} ₽</strong></p>` : ''}
+              ${safePaymentAmount ? `<p>Сумма платежа: <strong>${safePaymentAmount.toLocaleString()} ₽</strong></p>` : ''}
               <div class="highlight">
-                ${commission_amount ? `<p>Ваша комиссия: <span class="bonus">+${commission_amount.toLocaleString()} ₽</span></p>` : ''}
-                ${bonus_weeks ? `<p>Бонусные недели: <span class="bonus">+${bonus_weeks} недель PRO</span></p>` : ''}
+                ${safeCommission ? `<p>Ваша комиссия: <span class="bonus">+${safeCommission.toLocaleString()} ₽</span></p>` : ''}
+                ${safeBonusWeeks ? `<p>Бонусные недели: <span class="bonus">+${safeBonusWeeks} недель PRO</span></p>` : ''}
               </div>
               <p>Средства зачислены на ваш кошелёк в приложении.</p>
             </div>
@@ -194,7 +257,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error sending notification:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

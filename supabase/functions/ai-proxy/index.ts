@@ -49,35 +49,28 @@ serve(async (req) => {
       });
     }
 
-    // Rate limiting with service role client
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const today = new Date().toISOString().split("T")[0];
-
-    const { data: usage } = await supabaseAdmin
-      .from("ai_usage")
-      .select("request_count")
-      .eq("user_id", user.id)
-      .eq("usage_date", today)
-      .single();
-
-    if ((usage?.request_count ?? 0) >= MAX_DAILY_REQUESTS) {
+    // Atomic rate-limit via SECURITY DEFINER RPC (uses caller's auth.uid())
+    const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: quota, error: quotaErr } = await supabaseAuthed.rpc(
+      "consume_ai_quota",
+      { p_max_per_day: MAX_DAILY_REQUESTS },
+    );
+    if (quotaErr) {
+      console.error("consume_ai_quota error:", quotaErr.message);
+      return new Response(JSON.stringify({ error: "Rate limit check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const allowed = Array.isArray(quota) ? quota[0]?.allowed : (quota as any)?.allowed;
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Daily request limit exceeded. Try again tomorrow." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Upsert usage counter
-    await supabaseAdmin
-      .from("ai_usage")
-      .upsert(
-        {
-          user_id: user.id,
-          usage_date: today,
-          request_count: (usage?.request_count ?? 0) + 1,
-        },
-        { onConflict: "user_id,usage_date" }
-      );
 
     const body = await req.json();
     const { provider = "groq", messages, model, max_tokens = 1024 } = body;

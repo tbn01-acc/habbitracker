@@ -135,9 +135,9 @@ export default function Admin() {
   const [adminChecked, setAdminChecked] = useState(false);
   const [authLoaded, setAuthLoaded] = useState(false);
 
-  // Superadmin access (UI-level) - keep consistent with ProfileSettings
-  const isSuperAdmin = user?.email === 'serge101.pro@gmail.com';
-  const hasAdminAccess = Boolean(isSuperAdmin || isAdmin);
+  // Admin access is determined exclusively by the `admin` role in user_roles
+  // (checked server-side via has_role()). Email-based bypasses removed.
+  const hasAdminAccess = Boolean(isAdmin);
 
   // Wait for auth to fully load
   useEffect(() => {

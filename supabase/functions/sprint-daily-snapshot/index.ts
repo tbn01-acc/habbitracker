@@ -10,6 +10,42 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Require a shared CRON_SECRET or an admin JWT to invoke this snapshot job.
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  const provided = req.headers.get('x-cron-secret')
+  let authorized = !!cronSecret && provided === cronSecret
+
+  if (!authorized) {
+    const authHeader = req.headers.get('authorization') ?? ''
+    if (authHeader.startsWith('Bearer ')) {
+      try {
+        const verifier = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } }
+        )
+        const { data: userData } = await verifier.auth.getUser()
+        if (userData?.user) {
+          const admin = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+          )
+          const { data: isAdmin } = await admin.rpc('has_role', {
+            _user_id: userData.user.id, _role: 'admin',
+          })
+          if (isAdmin) authorized = true
+        }
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -20,7 +56,7 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('Snapshot error:', error)
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -32,7 +68,7 @@ Deno.serve(async (req) => {
     })
   } catch (err) {
     console.error('Error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

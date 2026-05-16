@@ -137,39 +137,12 @@ export function usePromoCodes() {
     return updatePromoCode(id, { is_active: isActive });
   };
 
-  const validatePromoCode = async (code: string): Promise<PromoCode | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('promo_codes')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('is_active', true)
-        .single();
-
-      if (error) {
-        toast.error('Промо-код не найден или недействителен');
-        return null;
-      }
-
-      const promoCode = data as PromoCode;
-
-      // Check if expired
-      if (promoCode.valid_until && new Date(promoCode.valid_until) < new Date()) {
-        toast.error('Срок действия промо-кода истёк');
-        return null;
-      }
-
-      // Check max uses
-      if (promoCode.max_uses !== null && promoCode.current_uses >= promoCode.max_uses) {
-        toast.error('Промо-код исчерпан');
-        return null;
-      }
-
-      return promoCode;
-    } catch (error) {
-      console.error('Error validating promo code:', error);
-      return null;
-    }
+  // Promo code validation is performed server-side inside the redeem_promo_code
+  // RPC. Client-side enumeration of promo_codes is no longer permitted by RLS.
+  const validatePromoCode = async (_code: string): Promise<PromoCode | null> => {
+    // Kept for API compatibility — callers should use redeemPromoCode instead.
+    console.warn('validatePromoCode is deprecated; use redeemPromoCode');
+    return null;
   };
 
   const usePromoCode = async (promoCodeId: string): Promise<boolean> => {

@@ -129,41 +129,28 @@ export function useDeviceFingerprint(userId: string | undefined) {
     try {
       const fp = await generateFingerprint();
 
-      // Check if this fingerprint is banned
-      const { data: banned } = await supabase
-        .from('banned_fingerprints')
-        .select('id')
-        .eq('fingerprint_hash', fp.fingerprint_hash)
-        .limit(1);
+      // Check if this fingerprint is banned (server-side check via SECURITY DEFINER RPC)
+      const { data: isBanned } = await supabase
+        .rpc('is_fingerprint_banned', { _fingerprint_hash: fp.fingerprint_hash });
 
-      if (banned && banned.length > 0) {
+      if (isBanned === true) {
         console.warn('⚠️ This device is associated with a banned account');
         // Could sign out the user here if needed
       }
 
-      // Upsert fingerprint
-      const { data: existing } = await supabase
-        .from('device_fingerprints')
-        .select('id')
-        .eq('user_id', userId)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        await supabase
-          .from('device_fingerprints')
-          .update({
-            ...fp,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
-      } else {
-        await supabase
-          .from('device_fingerprints')
-          .insert({
-            user_id: userId,
-            ...fp,
-          });
-      }
+      // Upsert fingerprint via SECURITY DEFINER RPC. The RPC ignores any
+      // client-supplied IP address — only trusted server-side code may set it.
+      await supabase.rpc('upsert_device_fingerprint', {
+        _fingerprint_hash: fp.fingerprint_hash,
+        _user_agent: fp.user_agent,
+        _screen_resolution: fp.screen_resolution,
+        _timezone: fp.timezone,
+        _language: fp.language,
+        _platform: fp.platform,
+        _canvas_hash: fp.canvas_hash,
+        _webgl_hash: fp.webgl_hash,
+        _fonts_hash: fp.fonts_hash,
+      });
     } catch (err) {
       console.error('Fingerprint capture error:', err);
     }

@@ -197,7 +197,7 @@ export default function Upgrade() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isInTrial, trialDaysLeft, trialBonusMonths } = useSubscription();
-  const { validatePromoCode, usePromoCode, redeemPromoCode } = usePromoCodes();
+  const { usePromoCode, redeemPromoCode } = usePromoCodes();
   const { wallet } = useReferralProgram();
 
   const [period, setPeriod] = useState<BillingPeriod>('annual');
@@ -273,12 +273,16 @@ export default function Upgrade() {
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
     setPromoLoading(true);
-    const promo = await validatePromoCode(promoCode.trim().toUpperCase());
+    // Atomic redemption: validates server-side without exposing the promo
+    // codes table to client enumeration.
+    const result = await redeemPromoCode(promoCode.trim().toUpperCase());
     setPromoLoading(false);
-    if (promo) {
-      setPromoDiscount(promo.discount_percent);
-      setAppliedPromoId(promo.id);
-      toast.success(`Промокод применён: -${promo.discount_percent}%`);
+    if (result.success) {
+      setPromoDiscount(result.discount_percent || 0);
+      setAppliedPromoId(result.promo_code_id || null);
+      if (result.discount_percent) {
+        toast.success(`Промокод применён: -${result.discount_percent}%`);
+      }
     }
   };
 
@@ -335,6 +339,7 @@ export default function Upgrade() {
       const { data, error } = await supabase.functions.invoke('yookassa-create-payment', {
         body: {
           amount: finalPrice,
+          planId,
           period,
           description: `ТопФокус «${plan.name}» — ${activePeriod.label}`,
           returnUrl: `${APP_URL}/profile/settings?payment=success`,

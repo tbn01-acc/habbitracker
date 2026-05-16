@@ -1210,6 +1210,11 @@ export type Database = {
           read_only_until: string | null
           referral_code: string | null
           referred_by: string | null
+          show_dob: boolean
+          show_email: boolean
+          show_location: boolean
+          show_phone: boolean
+          show_telegram: boolean
           status_tag: string | null
           telegram_id: number | null
           telegram_username: string | null
@@ -1251,6 +1256,11 @@ export type Database = {
           read_only_until?: string | null
           referral_code?: string | null
           referred_by?: string | null
+          show_dob?: boolean
+          show_email?: boolean
+          show_location?: boolean
+          show_phone?: boolean
+          show_telegram?: boolean
           status_tag?: string | null
           telegram_id?: number | null
           telegram_username?: string | null
@@ -1292,6 +1302,11 @@ export type Database = {
           read_only_until?: string | null
           referral_code?: string | null
           referred_by?: string | null
+          show_dob?: boolean
+          show_email?: boolean
+          show_location?: boolean
+          show_phone?: boolean
+          show_telegram?: boolean
           status_tag?: string | null
           telegram_id?: number | null
           telegram_username?: string | null
@@ -2871,59 +2886,38 @@ export type Database = {
           can_help: string | null
           created_at: string | null
           display_name: string | null
+          dob: string | null
+          email: string | null
           expertise: string | null
+          full_name: string | null
+          id: string | null
           interests: string[] | null
           is_public: boolean | null
           job_title: string | null
           location: string | null
+          phone: string | null
           public_email: string | null
-          referral_code: string | null
           status_tag: string | null
-          updated_at: string | null
+          telegram_id: number | null
+          telegram_username: string | null
           user_id: string | null
-        }
-        Insert: {
-          active_badges?: string[] | null
-          active_frame?: string | null
-          avatar_url?: string | null
-          bio?: string | null
-          can_help?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          expertise?: string | null
-          interests?: string[] | null
-          is_public?: boolean | null
-          job_title?: string | null
-          location?: string | null
-          public_email?: string | null
-          referral_code?: string | null
-          status_tag?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          active_badges?: string[] | null
-          active_frame?: string | null
-          avatar_url?: string | null
-          bio?: string | null
-          can_help?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          expertise?: string | null
-          interests?: string[] | null
-          is_public?: boolean | null
-          job_title?: string | null
-          location?: string | null
-          public_email?: string | null
-          referral_code?: string | null
-          status_tag?: string | null
-          updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
     }
     Functions: {
+      _is_user_pro: { Args: { _uid: string }; Returns: boolean }
+      _mint_stars: {
+        Args: {
+          _amount: number
+          _description: string
+          _reference: string
+          _timer_minutes: number
+          _type: string
+          _uid: string
+        }
+        Returns: number
+      }
       add_user_xp: {
         Args: { p_user_id: string; p_xp_amount: number; p_xp_source: string }
         Returns: {
@@ -2935,6 +2929,14 @@ export type Database = {
       admin_set_subscription: {
         Args: { p_expires_at: string; p_plan: string; p_user_id: string }
         Returns: undefined
+      }
+      award_achievement_post_star: {
+        Args: { p_post_id: string }
+        Returns: Json
+      }
+      award_completion_star: {
+        Args: { p_kind: string; p_reference: string; p_timer_minutes: number }
+        Returns: Json
       }
       calculate_level_from_xp: {
         Args: { xp: number }
@@ -2956,6 +2958,23 @@ export type Database = {
         Args: { period: string; start_date: string }
         Returns: string
       }
+      consume_ai_quota: {
+        Args: { p_max_per_day: number }
+        Returns: {
+          allowed: boolean
+          current_count: number
+        }[]
+      }
+      create_self_notification: {
+        Args: {
+          p_message: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_title: string
+          p_type: string
+        }
+        Returns: string
+      }
       create_sprint_daily_snapshots: { Args: never; Returns: undefined }
       find_user_by_telegram: {
         Args: { tg_id: number }
@@ -2967,6 +2986,38 @@ export type Database = {
       }
       finish_sprint: { Args: { target_sprint_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
+      get_group_chat_invite_code: {
+        Args: { _chat_id: string }
+        Returns: string
+      }
+      get_public_profiles: {
+        Args: never
+        Returns: {
+          active_badges: string[]
+          active_frame: string
+          avatar_url: string
+          bio: string
+          can_help: string
+          created_at: string
+          display_name: string
+          dob: string
+          email: string
+          expertise: string
+          full_name: string
+          id: string
+          interests: string[]
+          is_public: boolean
+          job_title: string
+          location: string
+          phone: string
+          public_email: string
+          status_tag: string
+          telegram_id: number
+          telegram_username: string
+          user_id: string
+        }[]
+      }
+      get_team_invite_code: { Args: { _team_id: string }; Returns: string }
       get_user_team_ids: { Args: { _user_id: string }; Returns: string[] }
       handle_consent_revoke: { Args: { p_id: string }; Returns: string }
       has_role: {
@@ -2976,9 +3027,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_fingerprint_banned: {
+        Args: { _fingerprint_hash: string }
+        Returns: boolean
+      }
       is_team_member_with_role: {
         Args: { _roles: string[]; _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      join_group_chat_by_invite_code: {
+        Args: { _invite_code: string }
+        Returns: string
+      }
+      join_team_by_invite_code: {
+        Args: { _invite_code: string }
+        Returns: string
       }
       link_telegram_account: {
         Args: { tg_id: number; tg_username?: string }
@@ -2988,9 +3051,30 @@ export type Database = {
         Args: { p_action: string; p_withdrawal_id: string }
         Returns: boolean
       }
+      purchase_shop_reward: { Args: { p_reward_id: string }; Returns: Json }
+      purchase_streak_freeze: { Args: never; Returns: Json }
+      record_daily_login_star: { Args: never; Returns: Json }
       redeem_promo_code: {
         Args: { p_code: string; p_user_id: string }
         Returns: Json
+      }
+      revoke_achievement_post_star: {
+        Args: { p_post_id: string }
+        Returns: Json
+      }
+      upsert_device_fingerprint: {
+        Args: {
+          _canvas_hash?: string
+          _fingerprint_hash: string
+          _fonts_hash?: string
+          _language?: string
+          _platform?: string
+          _screen_resolution?: string
+          _timezone?: string
+          _user_agent?: string
+          _webgl_hash?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

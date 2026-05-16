@@ -108,34 +108,14 @@ export function useStars() {
     timerMinutes?: number
   ) => {
     if (!user || !userStars) return false;
-
-    try {
-      // Add transaction
-      await supabase
-        .from('star_transactions')
-        .insert({
-          user_id: user.id,
-          amount,
-          transaction_type: transactionType,
-          description,
-          reference_id: referenceId,
-          timer_minutes: timerMinutes
-        });
-
-      // Update total stars
-      const newTotal = userStars.total_stars + amount;
-      await supabase
-        .from('user_stars')
-        .update({ total_stars: newTotal })
-        .eq('user_id', user.id);
-
-      setUserStars(prev => prev ? { ...prev, total_stars: newTotal } : null);
-      
-      return true;
-    } catch (err) {
-      console.error('Error adding stars:', err);
-      return false;
-    }
+    // Direct mutation of stars from the client is no longer permitted.
+    // All star awards/deductions now flow through SECURITY DEFINER RPCs that
+    // validate limits and balances server-side. This wrapper is kept as a
+    // no-op for legacy callers; new code should use the dedicated RPCs.
+    console.warn('addStars() is deprecated — use server RPCs', {
+      transactionType, amount,
+    });
+    return false;
   }, [user, userStars]);
 
   const awardTaskCompletion = useCallback(async (
@@ -143,261 +123,105 @@ export function useStars() {
     timerMinutes: number
   ) => {
     if (!user || !userStars) return false;
-
-    // Check minimum focus time
     if (timerMinutes < MIN_FOCUS_MINUTES) {
       toast.error('Минимум 15 минут фокусировки для получения звезды');
       return false;
     }
-
-    // Check daily limit
-    if (dailyVerifiedCount >= DAILY_TASK_LIMIT) {
-      toast.info('Достигнут дневной лимит (7 задач)');
+    const { data, error } = await supabase.rpc('award_completion_star', {
+      p_kind: 'task', p_reference: taskId, p_timer_minutes: timerMinutes,
+    });
+    if (error) { console.error(error); return false; }
+    const result = data as { success: boolean; error?: string; amount?: number; total?: number; daily_count?: number };
+    if (!result?.success) {
+      if (result?.error === 'daily_limit') toast.info('Достигнут дневной лимит (7 задач)');
+      else if (result?.error === 'already_awarded') return false;
+      else toast.error('Не удалось начислить звезду');
       return false;
     }
-
-    const stars = 1 * multiplier;
-    const success = await addStars(
-      stars,
-      'task',
-      'Выполнение задачи',
-      taskId,
-      timerMinutes
-    );
-
-    if (success) {
-      // Update daily count
-      const today = new Date().toISOString().split('T')[0];
-      await supabase
-        .from('daily_verified_tasks')
-        .upsert({
-          user_id: user.id,
-          activity_date: today,
-          verified_count: dailyVerifiedCount + 1
-        }, { onConflict: 'user_id,activity_date' });
-
-      setDailyVerifiedCount(prev => prev + 1);
-      
-      toast.success(`+${stars} ⭐`, { description: 'За выполненную задачу' });
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
-    }
-
-    return success;
-  }, [user, userStars, dailyVerifiedCount, multiplier, addStars]);
+    if (result.daily_count != null) setDailyVerifiedCount(result.daily_count);
+    if (result.total != null) setUserStars(prev => prev ? { ...prev, total_stars: result.total! } : null);
+    toast.success(`+${result.amount} ⭐`, { description: 'За выполненную задачу' });
+    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+    return true;
+  }, [user, userStars]);
 
   const awardHabitCompletion = useCallback(async (
     habitId: string,
     timerMinutes: number
   ) => {
     if (!user || !userStars) return false;
-
     if (timerMinutes < MIN_FOCUS_MINUTES) {
       toast.error('Минимум 15 минут фокусировки для получения звезды');
       return false;
     }
-
-    if (dailyVerifiedCount >= DAILY_TASK_LIMIT) {
-      toast.info('Достигнут дневной лимит (7 задач)');
+    const { data, error } = await supabase.rpc('award_completion_star', {
+      p_kind: 'habit', p_reference: habitId, p_timer_minutes: timerMinutes,
+    });
+    if (error) { console.error(error); return false; }
+    const result = data as { success: boolean; error?: string; amount?: number; total?: number; daily_count?: number };
+    if (!result?.success) {
+      if (result?.error === 'daily_limit') toast.info('Достигнут дневной лимит (7 задач)');
       return false;
     }
-
-    const stars = 1 * multiplier;
-    const success = await addStars(
-      stars,
-      'habit',
-      'Выполнение привычки',
-      habitId,
-      timerMinutes
-    );
-
-    if (success) {
-      const today = new Date().toISOString().split('T')[0];
-      await supabase
-        .from('daily_verified_tasks')
-        .upsert({
-          user_id: user.id,
-          activity_date: today,
-          verified_count: dailyVerifiedCount + 1
-        }, { onConflict: 'user_id,activity_date' });
-
-      setDailyVerifiedCount(prev => prev + 1);
-      toast.success(`+${stars} ⭐`, { description: 'За привычку' });
-    }
-
-    return success;
-  }, [user, userStars, dailyVerifiedCount, multiplier, addStars]);
+    if (result.daily_count != null) setDailyVerifiedCount(result.daily_count);
+    if (result.total != null) setUserStars(prev => prev ? { ...prev, total_stars: result.total! } : null);
+    toast.success(`+${result.amount} ⭐`, { description: 'За привычку' });
+    return true;
+  }, [user, userStars]);
 
   const recordDailyLogin = useCallback(async () => {
     if (!user || !userStars) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const lastActivity = userStars.last_activity_date;
-
-    // Already logged in today
-    if (lastActivity === today) return;
-
-    let newStreak = 1;
-    let streakBroken = false;
-
-    if (lastActivity) {
-      const lastDate = new Date(lastActivity);
-      const todayDate = new Date(today);
-      const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Consecutive day
-        newStreak = userStars.current_streak_days + 1;
-      } else if (diffDays === 2 && userStars.freeze_available === false) {
-        // Used freeze yesterday
-        newStreak = userStars.current_streak_days + 1;
-      } else {
-        // Streak broken
-        streakBroken = true;
-      }
-    }
-
-    // Award daily login stars
-    const dailyStars = 1 * multiplier;
-    await addStars(dailyStars, 'daily_login', 'Ежедневный вход');
-
-    // Check for streak bonuses
-    let bonusStars = 0;
-    if (STREAK_BONUS_DAYS.includes(newStreak)) {
-      bonusStars = (newStreak === 10 ? 5 : newStreak === 20 ? 5 : 5) * multiplier;
-      await addStars(bonusStars, 'streak_bonus', `Бонус за ${newStreak} дней подряд`);
-      
-      toast.success(`🔥 ${newStreak} дней подряд!`, {
-        description: `+${bonusStars} бонусных звезд`,
-        duration: 5000
-      });
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#fbbf24', '#f59e0b', '#d97706']
-      });
-    }
-
-    // Update streak
-    const longestStreak = Math.max(newStreak, userStars.longest_streak_days);
-    await supabase
-      .from('user_stars')
-      .update({
-        last_activity_date: today,
-        current_streak_days: newStreak,
-        longest_streak_days: longestStreak,
-        freeze_available: true // Reset freeze availability at month start if needed
-      })
-      .eq('user_id', user.id);
-
-    setUserStars(prev => prev ? {
-      ...prev,
-      last_activity_date: today,
-      current_streak_days: newStreak,
-      longest_streak_days: longestStreak
-    } : null);
-
-    if (streakBroken && userStars.current_streak_days > 0) {
-      toast.info('Серия сброшена', { description: 'Начинаем заново!' });
-    } else if (!streakBroken && newStreak > 1) {
-      toast.success(`🔥 ${newStreak} дней подряд!`, { description: `+${dailyStars} ⭐` });
+    const { data, error } = await supabase.rpc('record_daily_login_star');
+    if (error) { console.error(error); return; }
+    const r = data as { success: boolean; error?: string; amount?: number; bonus?: number; streak?: number; total?: number };
+    if (!r?.success) return;
+    if ((r.bonus ?? 0) > 0) {
+      toast.success(`🔥 ${r.streak} дней подряд!`, { description: `+${r.bonus} бонусных звезд`, duration: 5000 });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#f59e0b', '#d97706'] });
+    } else if ((r.streak ?? 0) > 1) {
+      toast.success(`🔥 ${r.streak} дней подряд!`, { description: `+${r.amount} ⭐` });
     } else {
-      toast.success(`+${dailyStars} ⭐`, { description: 'За ежедневный вход' });
+      toast.success(`+${r.amount} ⭐`, { description: 'За ежедневный вход' });
     }
-  }, [user, userStars, multiplier, addStars]);
+    fetchUserStars();
+  }, [user, userStars, fetchUserStars]);
 
   const purchaseFreeze = useCallback(async () => {
     if (!user || !userStars) return false;
-
-    if (userStars.total_stars < FREEZE_COST) {
-      toast.error('Недостаточно звезд', { description: `Нужно ${FREEZE_COST} ⭐` });
+    const { error } = await supabase.rpc('purchase_streak_freeze');
+    if (error) {
+      const msg = String(error.message || '');
+      if (msg.includes('insufficient_stars')) toast.error('Недостаточно звезд', { description: `Нужно ${FREEZE_COST} ⭐` });
+      else if (msg.includes('freeze_already_used')) toast.error('Заморозка уже использована в этом месяце');
+      else toast.error('Не удалось активировать заморозку');
       return false;
     }
-
-    if (!userStars.freeze_available) {
-      toast.error('Заморозка уже использована в этом месяце');
-      return false;
-    }
-
-    try {
-      // Deduct stars
-      await addStars(-FREEZE_COST, 'freeze_purchase', 'Покупка заморозки серии');
-
-      // Mark freeze as used
-      await supabase
-        .from('user_stars')
-        .update({
-          freeze_available: false,
-          freeze_used_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-
-      setUserStars(prev => prev ? {
-        ...prev,
-        freeze_available: false,
-        freeze_used_at: new Date().toISOString()
-      } : null);
-
-      toast.success('Заморозка активирована!', {
-        description: 'Серия сохранится при пропуске 1 дня'
-      });
-
-      return true;
-    } catch (err) {
-      console.error('Error purchasing freeze:', err);
-      return false;
-    }
-  }, [user, userStars, addStars]);
+    toast.success('Заморозка активирована!', { description: 'Серия сохранится при пропуске 1 дня' });
+    fetchUserStars();
+    return true;
+  }, [user, userStars, fetchUserStars]);
 
   const awardAchievementPost = useCallback(async (postId: string) => {
     if (!user) return false;
-
-    const stars = (isProActive ? 10 : 5);
-    const success = await addStars(
-      stars,
-      'achievement_post',
-      'Публикация достижения',
-      postId
-    );
-
-    if (success) {
-      toast.success(`+${stars} ⭐`, { description: 'За публикацию достижения' });
-    }
-
-    return success;
-  }, [user, isProActive, addStars]);
+    const { data, error } = await supabase.rpc('award_achievement_post_star', { p_post_id: postId });
+    if (error) { console.error(error); return false; }
+    const r = data as { success: boolean; amount?: number; total?: number };
+    if (!r?.success) return false;
+    if (r.total != null) setUserStars(prev => prev ? { ...prev, total_stars: r.total! } : null);
+    toast.success(`+${r.amount} ⭐`, { description: 'За публикацию достижения' });
+    return true;
+  }, [user]);
 
   const deductAchievementPost = useCallback(async (postId: string) => {
     if (!user) return false;
-
-    // Find the original transaction for this post to know how much was awarded
-    const { data: originalTx } = await supabase
-      .from('star_transactions')
-      .select('amount')
-      .eq('user_id', user.id)
-      .eq('reference_id', postId)
-      .eq('transaction_type', 'achievement_post')
-      .maybeSingle();
-
-    if (!originalTx) {
-      // No stars were awarded for this post
-      return true;
-    }
-
-    const starsToDeduct = originalTx.amount;
-    const success = await addStars(
-      -starsToDeduct,
-      'achievement_post_removed',
-      'Удаление/скрытие публикации',
-      postId
-    );
-
-    if (success) {
-      toast.info(`-${starsToDeduct} ⭐`, { description: 'Звезды списаны за скрытый пост' });
-    }
-
-    return success;
-  }, [user, addStars]);
+    const { data, error } = await supabase.rpc('revoke_achievement_post_star', { p_post_id: postId });
+    if (error) { console.error(error); return false; }
+    const r = data as { success: boolean; amount?: number; total?: number };
+    if (!r?.success) return false;
+    if (r.total != null) setUserStars(prev => prev ? { ...prev, total_stars: r.total! } : null);
+    if ((r.amount ?? 0) > 0) toast.info(`-${r.amount} ⭐`, { description: 'Звезды списаны за скрытый пост' });
+    return true;
+  }, [user]);
 
   return {
     userStars,

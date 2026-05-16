@@ -11,7 +11,7 @@ interface GroupChat {
   created_by: string;
   is_public: boolean;
   max_members: number;
-  invite_code: string | null;
+  invite_code?: string | null;
   created_at: string;
   updated_at: string;
   member_count?: number;
@@ -74,7 +74,7 @@ export function useGroupChats() {
 
       const { data: chatsData, error: chatsError } = await supabase
         .from('group_chats')
-        .select('*')
+        .select('id,name,description,avatar_url,created_by,is_public,max_members,created_at,updated_at')
         .in('id', chatIds)
         .order('updated_at', { ascending: false });
 
@@ -129,7 +129,7 @@ export function useGroupChats() {
           is_public: isPublic,
           created_by: user.id
         })
-        .select()
+        .select('id,name,description,avatar_url,created_by,is_public,max_members,created_at,updated_at')
         .single();
 
       if (chatError) throw chatError;
@@ -205,41 +205,20 @@ export function useGroupChats() {
     if (!user) return null;
 
     try {
-      // Find chat by invite code
-      const { data: chat, error: chatError } = await supabase
-        .from('group_chats')
-        .select('*')
-        .eq('invite_code', inviteCode.toUpperCase())
-        .single();
+      // Use SECURITY DEFINER RPC so the invite_code column stays hidden in normal selects
+      const { data: joinedId, error: joinErr } = await supabase
+        .rpc('join_group_chat_by_invite_code', { _invite_code: inviteCode });
 
-      if (chatError || !chat) {
+      if (joinErr || !joinedId) {
         toast.error('Чат не найден');
         return null;
       }
 
-      // Check if already a member
-      const { data: existing } = await supabase
-        .from('group_chat_members')
-        .select('id')
-        .eq('chat_id', chat.id)
-        .eq('user_id', user.id)
+      const { data: chat } = await supabase
+        .from('group_chats')
+        .select('id,name,description,avatar_url,created_by,is_public,max_members,created_at,updated_at')
+        .eq('id', joinedId as string)
         .single();
-
-      if (existing) {
-        toast.info('Вы уже участник этого чата');
-        return chat;
-      }
-
-      // Join the chat
-      const { error } = await supabase
-        .from('group_chat_members')
-        .insert({
-          chat_id: chat.id,
-          user_id: user.id,
-          role: 'member'
-        });
-
-      if (error) throw error;
 
       await fetchChats();
       toast.success('Вы присоединились к чату!');
@@ -255,7 +234,7 @@ export function useGroupChats() {
     try {
       const { data, error } = await supabase
         .from('group_chats')
-        .select('*')
+        .select('id,name,description,avatar_url,created_by,is_public,max_members,created_at,updated_at')
         .eq('is_public', true)
         .ilike('name', `%${query}%`)
         .limit(20);

@@ -14,6 +14,37 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
+    const cronSecret = Deno.env.get('CRON_SECRET')
+
+    // Authorization: accept either an admin user JWT or a shared CRON_SECRET
+    // header (for scheduled invocations). Reject everything else.
+    const authHeader = req.headers.get('Authorization') || ''
+    const providedCronSecret = req.headers.get('x-cron-secret') || ''
+
+    let authorized = false
+    if (cronSecret && providedCronSecret && providedCronSecret === cronSecret) {
+      authorized = true
+    } else if (authHeader.startsWith('Bearer ')) {
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const { data: { user } } = await userClient.auth.getUser()
+      if (user) {
+        const { data: isAdmin } = await userClient.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin',
+        })
+        if (isAdmin === true) authorized = true
+      }
+    }
+
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     if (!botToken) {
       return new Response(
@@ -91,7 +122,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('telegram-processor error:', err)
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

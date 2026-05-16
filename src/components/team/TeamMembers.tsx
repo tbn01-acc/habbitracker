@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserPlus, Copy, Shield, Eye, Crown, Trash2, Link2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import { Team, TeamMember } from '@/hooks/useTeam';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TeamMembersProps {
   team: Team;
@@ -30,12 +31,21 @@ export function TeamMembers({ team, members, onInviteMember }: TeamMembersProps)
   const { user } = useAuth();
   const isRu = language === 'ru';
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
 
   const isOwner = user?.id === team.owner_id;
 
+  useEffect(() => {
+    if (!isOwner) return;
+    (async () => {
+      const { data } = await supabase.rpc('get_team_invite_code', { _team_id: team.id });
+      if (data) setInviteCode(data as string);
+    })();
+  }, [isOwner, team.id]);
+
   const copyInviteCode = () => {
-    if (team.invite_code) {
-      navigator.clipboard.writeText(team.invite_code);
+    if (inviteCode) {
+      navigator.clipboard.writeText(inviteCode);
       toast({ title: isRu ? 'Код скопирован!' : 'Code copied!' });
     }
   };
@@ -55,7 +65,7 @@ export function TeamMembers({ team, members, onInviteMember }: TeamMembersProps)
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2 flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-mono">{team.invite_code}</span>
+                <span className="text-xs font-mono">{inviteCode ?? '••••••'}</span>
               </div>
               <Button size="sm" variant="outline" onClick={copyInviteCode}>
                 <Copy className="w-4 h-4" />

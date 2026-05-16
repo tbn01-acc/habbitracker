@@ -9,6 +9,7 @@ import {
 
 import { useGroupChats, useChatMessages } from '@/hooks/useGroupChats';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -404,6 +405,15 @@ function ChatView({ chatId, chat, onBack, onLeave, onSetRole, onBanMember }: Cha
 
   const isAdmin = members.some(m => m.user_id === user?.id && m.role === 'admin');
   const isModerator = members.some(m => m.user_id === user?.id && (m.role === 'admin' || m.role === 'moderator'));
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isModerator && chat.created_by !== user?.id) return;
+    (async () => {
+      const { data } = await supabase.rpc('get_group_chat_invite_code', { _chat_id: chatId });
+      if (data) setInviteCode(data as string);
+    })();
+  }, [isModerator, chat.created_by, user?.id, chatId]);
   
   const handleSetRole = async (userId: string, role: 'admin' | 'moderator' | 'member') => {
     const success = await onSetRole(userId, role);
@@ -460,9 +470,9 @@ function ChatView({ chatId, chat, onBack, onLeave, onSetRole, onBanMember }: Cha
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {chat.invite_code && (
+              {inviteCode && (
                 <DropdownMenuItem onClick={() => {
-                  const inviteUrl = `${APP_URL}/chats/${chat.invite_code}`;
+                  const inviteUrl = `${APP_URL}/chats/${inviteCode}`;
                   navigator.clipboard.writeText(inviteUrl);
                   toast.success('Ссылка скопирована!');
                 }}>
@@ -470,12 +480,12 @@ function ChatView({ chatId, chat, onBack, onLeave, onSetRole, onBanMember }: Cha
                   Копировать ссылку
                 </DropdownMenuItem>
               )}
-              {isAdmin && (
+              {isAdmin && inviteCode && (
                 <DropdownMenuItem onClick={() => {
-                  toast.info(`Код приглашения: ${chat.invite_code}`);
+                  toast.info(`Код приглашения: ${inviteCode}`);
                 }}>
                   <Link className="w-4 h-4 mr-2" />
-                  Код: {chat.invite_code}
+                  Код: {inviteCode}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />

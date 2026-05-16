@@ -1,9 +1,7 @@
 import { useAuth } from './useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-// Email that has dev mode access for testing plan toggle
-const DEV_MODE_EMAIL = 'serge101.pro@gmail.com';
+import { useLegalDocuments } from './useLegalDocuments';
 
 export type DevPlan = 'focus' | 'profi' | 'premium' | 'team';
 export type TeamRole = 'team_owner' | 'team_member';
@@ -18,12 +16,15 @@ const PLAN_TO_SUB: Record<DevPlan, 'free' | 'pro'> = {
 
 export function useDevMode() {
   const { user } = useAuth();
+  const { isAdmin } = useLegalDocuments();
   const [isDevUser, setIsDevUser] = useState(false);
   const [forcedPlan, setForcedPlan] = useState<DevPlan | null>(null);
   const [teamRole, setTeamRole] = useState<TeamRole>('team_owner');
 
   useEffect(() => {
-    if (user?.email === DEV_MODE_EMAIL) {
+    // Dev-mode access is gated by the `admin` role (checked server-side via
+    // has_role()), not by a hardcoded email.
+    if (user && isAdmin) {
       setIsDevUser(true);
       const saved = localStorage.getItem('dev_forced_plan') as DevPlan | null;
       if (saved && ['focus', 'profi', 'premium', 'team'].includes(saved)) {
@@ -37,7 +38,7 @@ export function useDevMode() {
       setIsDevUser(false);
       setForcedPlan(null);
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   const setDevPlan = async (plan: DevPlan, role?: TeamRole) => {
     if (!isDevUser || !user) return;
@@ -91,6 +92,5 @@ export function useDevMode() {
     forcedPlan,
     teamRole,
     setDevPlan,
-    DEV_MODE_EMAIL,
   };
 }

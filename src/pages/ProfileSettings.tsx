@@ -112,9 +112,8 @@ export default function ProfileSettings() {
     return null;
   }
 
-  // Check if user is superadmin or has admin role
-  const isSuperAdmin = user.email === 'serge101.pro@gmail.com';
-  const hasAdminAccess = isSuperAdmin || isAdmin;
+  // Admin access is determined exclusively by the `admin` role in user_roles.
+  const hasAdminAccess = Boolean(isAdmin);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -168,8 +167,8 @@ export default function ProfileSettings() {
                   </Button>
                 </div>
               </div>
-              {/* Set Password - only for serge101.pro@gmail.com */}
-              {user.email === 'serge101.pro@gmail.com' && (
+              {/* Set Password — admin-only utility, gated by `admin` role */}
+              {hasAdminAccess && (
                 <SetPasswordSection />
               )}
             </CardContent>

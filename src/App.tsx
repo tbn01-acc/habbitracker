@@ -37,7 +37,7 @@ import UserCatalog from "./pages/UserCatalog";
 import Achievements from "./pages/Achievements";
 import PartnerProgram from "./pages/PartnerProgram";
 import AboutApp from "./pages/AboutApp";
-import News from "./pages/News";
+import Infocenter from "./pages/Infocenter";
 import Auth from "./pages/Auth";
 import Upgrade from "./pages/Upgrade";
 import Admin from "./pages/Admin";
@@ -259,7 +259,8 @@ const AppContent = () => {
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/partner-program" element={<PartnerProgram />} />
           <Route path="/about" element={<AboutApp />} />
-          <Route path="/news" element={<News />} />
+          <Route path="/news" element={<Navigate to="/infocenter?tab=news" replace />} />
+          <Route path="/infocenter" element={<Infocenter />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/upgrade" element={<Upgrade />} />
           <Route path="/admin" element={<Admin />} />
@@ -283,6 +284,7 @@ const AppContent = () => {
            <Route path="/success-diary" element={<SuccessDiary />} />
           <Route path="/reflection" element={<Reflection />} />
           <Route path="/team-focus" element={<TeamFocus />} />
+          <Route path="/help" element={<Navigate to="/infocenter?tab=help" replace />} />
           <Route path="/team/sphere/:sphereKey" element={<TeamSphereDetail />} />
           <Route path="/team/workspace/:workspaceId" element={<TeamWorkspace />} />
           <Route path="/team/project/:projectId" element={<TeamProject />} />

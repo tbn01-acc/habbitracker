@@ -12,6 +12,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Server-side price table (RUB), per plan + billing period.
+  // The webhook re-validates the actual paid amount against this table.
+  const PRICE_TABLE: Record<string, Record<string, number>> = {
+    pro:     { monthly: 349, quarterly: 995,  semiannual: 1780, annual: 3350, biennial: 5863, lifetime: 7490 },
+    premium: { monthly: 449, quarterly: 1280, semiannual: 2290, annual: 4310, biennial: 7543, lifetime: 9990 },
+    profi:   { monthly: 399, quarterly: 1138, semiannual: 2035, annual: 3832, biennial: 6697, lifetime: 8790 },
+  };
+  // Minimum acceptable percentage of the base price (promo codes can discount,
+  // but never below this floor). 50% caps the maximum promo discount.
+  const MIN_DISCOUNT_FACTOR = 0.5;
+
   try {
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
@@ -40,14 +51,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { amount, period, description, returnUrl, paymentMethodType } = await req.json();
+    const body = await req.json();
+    const { period, description, returnUrl, paymentMethodType, planId } = body;
+    const clientAmount = Number(body.amount);
 
-    if (!amount || amount <= 0) {
-      return new Response(JSON.stringify({ error: "Invalid amount" }), {
+    const normalizedPeriod = typeof period === "string" ? period : "monthly";
+    const normalizedPlan = typeof planId === "string" && PRICE_TABLE[planId] ? planId : "pro";
+    const planTable = PRICE_TABLE[normalizedPlan];
+    if (!planTable || !Object.prototype.hasOwnProperty.call(planTable, normalizedPeriod)) {
+      return new Response(JSON.stringify({ error: "Invalid plan or period" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const basePrice = planTable[normalizedPeriod];
+    const minPrice = Math.round(basePrice * MIN_DISCOUNT_FACTOR);
+    // Honor a client-supplied (discounted) amount only within the allowed band.
+    // If the client tries to undercut the floor, fall back to the base price.
+    const amount =
+      Number.isFinite(clientAmount) && clientAmount >= minPrice && clientAmount <= basePrice
+        ? clientAmount
+        : basePrice;
 
     const shopId = Deno.env.get("YOOKASSA_SHOP_ID");
     const secretKey = Deno.env.get("YOOKASSA_SECRET_KEY");
@@ -84,10 +108,14 @@ Deno.serve(async (req) => {
         return_url: returnUrl || "https://top-focus.ru/profile",
       },
       capture: true,
-      description: description || `ТопФокус PRO — ${period || "subscription"}`,
+      description: description || `ТопФокус PRO — ${normalizedPeriod}`,
       metadata: {
         user_id: user.id,
-        period: period || "monthly",
+        period: normalizedPeriod,
+        plan_id: normalizedPlan,
+        base_price: basePrice,
+        min_price: minPrice,
+        expected_amount: amount,
       },
     };
 
@@ -129,11 +157,11 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from("payments").insert({
       user_id: user.id,
       invoice_id: payment.id,
-      amount: parseFloat(amount),
+      amount: amount,
       currency: "RUB",
       status: "pending",
       payment_method: "yookassa",
-      subscription_period: period || "monthly",
+      subscription_period: normalizedPeriod,
       metadata: { yookassa_payment_id: payment.id },
     });
 

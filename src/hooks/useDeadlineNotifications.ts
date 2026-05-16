@@ -37,16 +37,13 @@ export function useDeadlineNotifications(tasks: Task[], goals: Goal[]) {
     if (!user) return;
 
     try {
-      await supabase
-        .from('user_notifications')
-        .insert({
-          user_id: user.id,
-          type,
-          title,
-          message,
-          reference_id: referenceId,
-          reference_type: referenceType,
-        });
+      await supabase.rpc('create_self_notification', {
+        p_type: type,
+        p_title: title,
+        p_message: message,
+        p_reference_id: referenceId,
+        p_reference_type: referenceType,
+      });
     } catch (error) {
       console.error('Error creating deadline notification:', error);
     }

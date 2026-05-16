@@ -9,7 +9,7 @@ export interface Team {
   description: string | null;
   avatar_url: string | null;
   owner_id: string;
-  invite_code: string | null;
+  invite_code?: string | null;
   max_members: number;
   created_at: string;
 }
@@ -129,7 +129,7 @@ export function useTeam() {
 
       const { data: teamData } = await supabase
         .from('teams')
-        .select('*')
+        .select('id,name,description,avatar_url,owner_id,max_members,created_at,updated_at')
         .eq('id', membership.team_id)
         .single();
 
@@ -157,7 +157,7 @@ export function useTeam() {
       // Fetch profiles for members
       const userIds = data.map(m => m.user_id);
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('user_id, display_name, avatar_url, email')
         .in('user_id', userIds);
 
@@ -290,7 +290,7 @@ export function useTeam() {
     const { data, error } = await supabase
       .from('teams')
       .insert({ name, description, owner_id: authData.user.id })
-      .select()
+      .select('id,name,description,avatar_url,owner_id,max_members,created_at,updated_at')
       .single();
 
     if (error) {
@@ -449,23 +449,11 @@ export function useTeam() {
   // Join team by invite code
   const joinTeam = async (inviteCode: string) => {
     if (!user) return;
-    const { data: teamData } = await supabase
-      .from('teams')
-      .select('id')
-      .eq('invite_code', inviteCode)
-      .single();
+    const { data: joinedId, error: joinErr } = await supabase
+      .rpc('join_team_by_invite_code', { _invite_code: inviteCode });
 
-    if (!teamData) {
+    if (joinErr || !joinedId) {
       toast({ title: 'Команда не найдена', variant: 'destructive' });
-      return;
-    }
-
-    const { error } = await supabase
-      .from('team_members')
-      .insert({ team_id: teamData.id, user_id: user.id, role: 'member' });
-
-    if (error) {
-      toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
       return;
     }
 

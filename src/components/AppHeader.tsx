@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Flame, Bell, Newspaper, Users, Aperture, Trophy, Film } from 'lucide-react';
+import { Gift, Flame, Bell, Info, Users, Aperture, Trophy, Film } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useStars } from '@/hooks/useStars';
@@ -105,14 +105,14 @@ export function AppHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => navigate('/news')}
+                    onClick={() => navigate('/infocenter')}
                     className="hover:bg-blue-500/10"
                   >
-                    <Newspaper className="w-5 h-5" />
+                    <Info className="w-5 h-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Новости
+                  {language === 'ru' ? 'Инфоцентр' : 'Infocenter'}
                 </TooltipContent>
               </Tooltip>
 
