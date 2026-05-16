@@ -364,7 +364,13 @@ export function PublicProfileEditDialog({
 
             {/* Date of Birth */}
             <div className="space-y-2">
-              <Label htmlFor="dob">Дата рождения</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="dob">Дата рождения</Label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <span>Видна в публичном профиле</span>
+                  <Switch checked={showDob} onCheckedChange={setShowDob} />
+                </label>
+              </div>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -380,7 +386,13 @@ export function PublicProfileEditDialog({
 
             {/* Location */}
             <div className="space-y-2">
-              <Label htmlFor="location">Местоположение</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="location">Местоположение</Label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <span>Видно в публичном профиле</span>
+                  <Switch checked={showLocation} onCheckedChange={setShowLocation} />
+                </label>
+              </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -492,7 +504,13 @@ export function PublicProfileEditDialog({
           <TabsContent value="contacts" className="space-y-4 py-4">
             {/* Telegram */}
             <div className="space-y-2">
-              <Label htmlFor="telegram">Telegram</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="telegram">Telegram</Label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <span>Виден в публичном профиле</span>
+                  <Switch checked={showTelegram} onCheckedChange={setShowTelegram} />
+                </label>
+              </div>
               <div className="relative">
                 <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -509,7 +527,13 @@ export function PublicProfileEditDialog({
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email для контактов</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="email">Email для контактов</Label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <span>Виден в публичном профиле</span>
+                  <Switch checked={showEmail} onCheckedChange={setShowEmail} />
+                </label>
+              </div>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -527,7 +551,13 @@ export function PublicProfileEditDialog({
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Телефон</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="phone">Телефон</Label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <span>Виден в публичном профиле</span>
+                  <Switch checked={showPhone} onCheckedChange={setShowPhone} />
+                </label>
+              </div>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
