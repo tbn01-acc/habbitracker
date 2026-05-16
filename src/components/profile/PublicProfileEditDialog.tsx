@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 import { AvatarGallery } from './AvatarGallery';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,6 +54,11 @@ interface PublicProfileEditDialogProps {
     expertise?: string | null;
     can_help?: string | null;
     phone?: string | null;
+    show_email?: boolean | null;
+    show_phone?: boolean | null;
+    show_dob?: boolean | null;
+    show_telegram?: boolean | null;
+    show_location?: boolean | null;
   };
   onUpdate: () => void;
 }
@@ -77,6 +83,11 @@ export function PublicProfileEditDialog({
   const [expertise, setExpertise] = useState(currentData.expertise || '');
   const [canHelp, setCanHelp] = useState(currentData.can_help || '');
   const [phone, setPhone] = useState(currentData.phone || '');
+  const [showEmail, setShowEmail] = useState<boolean>(currentData.show_email ?? false);
+  const [showPhone, setShowPhone] = useState<boolean>(currentData.show_phone ?? false);
+  const [showDob, setShowDob] = useState<boolean>(currentData.show_dob ?? false);
+  const [showTelegram, setShowTelegram] = useState<boolean>(currentData.show_telegram ?? false);
+  const [showLocation, setShowLocation] = useState<boolean>(currentData.show_location ?? false);
   const [showGallery, setShowGallery] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
@@ -100,6 +111,11 @@ export function PublicProfileEditDialog({
       setExpertise(currentData.expertise || '');
       setCanHelp(currentData.can_help || '');
       setPhone(currentData.phone || '');
+      setShowEmail(currentData.show_email ?? false);
+      setShowPhone(currentData.show_phone ?? false);
+      setShowDob(currentData.show_dob ?? false);
+      setShowTelegram(currentData.show_telegram ?? false);
+      setShowLocation(currentData.show_location ?? false);
     }
   }, [currentData, open]);
 
