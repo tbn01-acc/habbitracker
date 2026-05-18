@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Admins can view all notification settings" ON public.notification_settings;
