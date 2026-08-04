@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCloudSync } from '@/hooks/useCloudSync';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import {
   AlertDialog,
   AlertDialogAction,

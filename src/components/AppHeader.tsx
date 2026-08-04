@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useStars } from '@/hooks/useStars';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useProfile } from '@/hooks/useProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';

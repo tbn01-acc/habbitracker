@@ -18,7 +18,7 @@ import { PinSettingsSection } from '@/components/profile/PinSettingsSection';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useCelebrationSettings } from '@/hooks/useCelebrationSettings';
 import { useLegalDocuments } from '@/hooks/useLegalDocuments';
 import { usePageCaching } from '@/hooks/usePageCaching';

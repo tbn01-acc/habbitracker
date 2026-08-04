@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useSubscription } from './useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 

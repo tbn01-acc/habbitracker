@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAchievementsFeed } from '@/hooks/useAchievementsFeed';
 import { useStars } from '@/hooks/useStars';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

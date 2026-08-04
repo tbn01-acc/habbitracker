@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSubscription } from './useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useGuestMode } from './useGuestMode';
 import { useAuth } from './useAuth';
 

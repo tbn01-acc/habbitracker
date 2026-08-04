@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { toast } from 'sonner';
 import { TaskDetailDialog } from './TaskDetailDialog';
 import { PostponeDialog } from './PostponeDialog';

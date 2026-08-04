@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Tag, Plus, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useUserTags } from '@/hooks/useUserTags';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 

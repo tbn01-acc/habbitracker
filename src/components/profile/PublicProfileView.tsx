@@ -19,7 +19,7 @@ import { SubscribeButton } from '@/components/profile/SubscribeButton';
 import { PublicProfileEditDialog } from '@/components/profile/PublicProfileEditDialog';
 import { ProfileStatsDialog } from '@/components/profile/ProfileStatsDialog';
 import { UserBadges, USER_BADGES } from '@/components/rewards/UserBadges';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLevel } from '@/hooks/useUserLevel';
 import { ACHIEVEMENT_DEFINITIONS } from '@/hooks/useAchievements';

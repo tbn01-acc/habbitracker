@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useSubscription } from './useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 
@@ -39,8 +39,12 @@ export function useStars() {
   const [transactions, setTransactions] = useState<StarTransaction[]>([]);
   const [dailyVerifiedCount, setDailyVerifiedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Permanent set of entities that already produced a star for this user.
+  // Mirrors public.star_award_ledger — un-completing an item never clears it.
+  const [awardedRefs, setAwardedRefs] = useState<Set<string>>(new Set());
 
   const multiplier = isProActive ? 2 : 1;
+
 
   const fetchUserStars = useCallback(async () => {
     if (!user) return;
@@ -89,6 +93,14 @@ export function useStars() {
         .limit(50);
 
       setTransactions(txData || []);
+
+      // Permanent award ledger — prevents re-farming stars by toggling items
+      const { data: ledger } = await supabase
+        .from('star_award_ledger')
+        .select('entity_kind, entity_id')
+        .eq('user_id', user.id);
+
+      setAwardedRefs(new Set((ledger || []).map(l => `${l.entity_kind}:${l.entity_id}`)));
     } catch (err) {
       console.error('Error fetching stars:', err);
     } finally {
@@ -99,6 +111,11 @@ export function useStars() {
   useEffect(() => {
     fetchUserStars();
   }, [fetchUserStars]);
+
+  const isStarAwarded = useCallback(
+    (kind: 'task' | 'habit', id: string) => awardedRefs.has(`${kind}:${id}`),
+    [awardedRefs]
+  );
 
   const addStars = useCallback(async (
     amount: number,
@@ -118,56 +135,61 @@ export function useStars() {
     return false;
   }, [user, userStars]);
 
-  const awardTaskCompletion = useCallback(async (
-    taskId: string,
+  const awardCompletion = useCallback(async (
+    kind: 'task' | 'habit',
+    referenceId: string,
     timerMinutes: number
   ) => {
-    if (!user || !userStars) return false;
-    if (timerMinutes < MIN_FOCUS_MINUTES) {
-      toast.error('Минимум 15 минут фокусировки для получения звезды');
-      return false;
-    }
-    const { data, error } = await supabase.rpc('award_completion_star', {
-      p_kind: 'task', p_reference: taskId, p_timer_minutes: timerMinutes,
-    });
-    if (error) { console.error(error); return false; }
-    const result = data as { success: boolean; error?: string; amount?: number; total?: number; daily_count?: number };
-    if (!result?.success) {
-      if (result?.error === 'daily_limit') toast.info('Достигнут дневной лимит (7 задач)');
-      else if (result?.error === 'already_awarded') return false;
-      else toast.error('Не удалось начислить звезду');
-      return false;
-    }
-    if (result.daily_count != null) setDailyVerifiedCount(result.daily_count);
-    if (result.total != null) setUserStars(prev => prev ? { ...prev, total_stars: result.total! } : null);
-    toast.success(`+${result.amount} ⭐`, { description: 'За выполненную задачу' });
-    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
-    return true;
-  }, [user, userStars]);
+    if (!user || !userStars || !referenceId) return false;
 
-  const awardHabitCompletion = useCallback(async (
-    habitId: string,
-    timerMinutes: number
-  ) => {
-    if (!user || !userStars) return false;
+    // Client-side short circuit; the server enforces this too via
+    // public.star_award_ledger (unique per user + entity, never reset).
+    if (isStarAwarded(kind, referenceId)) return false;
+
     if (timerMinutes < MIN_FOCUS_MINUTES) {
       toast.error('Минимум 15 минут фокусировки для получения звезды');
       return false;
     }
+
     const { data, error } = await supabase.rpc('award_completion_star', {
-      p_kind: 'habit', p_reference: habitId, p_timer_minutes: timerMinutes,
+      p_kind: kind, p_reference: referenceId, p_timer_minutes: timerMinutes,
     });
     if (error) { console.error(error); return false; }
+
     const result = data as { success: boolean; error?: string; amount?: number; total?: number; daily_count?: number };
     if (!result?.success) {
-      if (result?.error === 'daily_limit') toast.info('Достигнут дневной лимит (7 задач)');
+      if (result?.error === 'daily_limit') {
+        toast.info('Достигнут дневной лимит (7 задач)');
+      } else if (result?.error === 'already_awarded') {
+        // Remember it locally so we never re-attempt for this entity
+        setAwardedRefs(prev => new Set(prev).add(`${kind}:${referenceId}`));
+      } else if (kind === 'task') {
+        toast.error('Не удалось начислить звезду');
+      }
       return false;
     }
+
+    setAwardedRefs(prev => new Set(prev).add(`${kind}:${referenceId}`));
     if (result.daily_count != null) setDailyVerifiedCount(result.daily_count);
     if (result.total != null) setUserStars(prev => prev ? { ...prev, total_stars: result.total! } : null);
-    toast.success(`+${result.amount} ⭐`, { description: 'За привычку' });
+    toast.success(`+${result.amount} ⭐`, {
+      description: kind === 'task' ? 'За выполненную задачу' : 'За привычку',
+    });
+    if (kind === 'task') confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
     return true;
-  }, [user, userStars]);
+  }, [user, userStars, isStarAwarded]);
+
+  const awardTaskCompletion = useCallback(
+    (taskId: string, timerMinutes: number) => awardCompletion('task', taskId, timerMinutes),
+    [awardCompletion]
+  );
+
+  const awardHabitCompletion = useCallback(
+    (habitId: string, timerMinutes: number) => awardCompletion('habit', habitId, timerMinutes),
+    [awardCompletion]
+  );
+
+
 
   const recordDailyLogin = useCallback(async () => {
     if (!user || !userStars) return;
@@ -233,7 +255,9 @@ export function useStars() {
     minFocusMinutes: MIN_FOCUS_MINUTES,
     freezeCost: FREEZE_COST,
     addStars,
+    isStarAwarded,
     awardTaskCompletion,
+
     awardHabitCompletion,
     recordDailyLogin,
     purchaseFreeze,

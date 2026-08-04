@@ -36,11 +36,61 @@ const ADDITIONAL_SETTINGS_KEYS = [
   'cachingEnabled',
 ];
 
+// Offline mutation queue (survives reloads / network loss)
+const MUTATION_QUEUE_KEY = 'topfocus_sync_queue';
+const SYNC_DEBOUNCE_MS = 5000;
+const MAX_QUEUE_SIZE = 200;
+
+type MutationScope = 'data' | 'settings';
+
+interface SyncMutation {
+  id: string;
+  scope: MutationScope;
+  payload: Record<string, unknown>;
+  queuedAt: number;
+}
+
+function readQueue(): SyncMutation[] {
+  try {
+    const raw = localStorage.getItem(MUTATION_QUEUE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(queue: SyncMutation[]) {
+  try {
+    localStorage.setItem(MUTATION_QUEUE_KEY, JSON.stringify(queue.slice(-MAX_QUEUE_SIZE)));
+  } catch (e) {
+    console.error('Failed to persist sync queue:', e);
+  }
+}
+
+/**
+ * Enqueue a mutation, collapsing it with any pending mutation of the same
+ * scope — the latest snapshot per scope always wins, so network instability
+ * can never produce duplicate or out-of-order writes.
+ */
+function enqueueMutation(scope: MutationScope, payload: Record<string, unknown>) {
+  const queue = readQueue().filter(m => m.scope !== scope);
+  queue.push({
+    id: crypto.randomUUID(),
+    scope,
+    payload,
+    queuedAt: Date.now(),
+  });
+  writeQueue(queue);
+}
+
 interface CloudSyncState {
   isSyncing: boolean;
   lastSyncTime: string | null;
   autoSyncEnabled: boolean;
+  pendingMutations: number;
 }
+
 
 // Check if user has PRO subscription directly
 async function checkProStatus(userId: string): Promise<boolean> {
@@ -82,11 +132,15 @@ export function useCloudSync() {
     isSyncing: false,
     lastSyncTime: null,
     autoSyncEnabled: true,
+    pendingMutations: 0,
   });
   const [isProActive, setIsProActive] = useState(false);
   const syncTimeoutRef = useRef<TimerId | null>(null);
   const lastSyncedDataRef = useRef<string>('');
   const proCheckedRef = useRef(false);
+  // Guards against concurrent flushes (race conditions / duplicate writes)
+  const flushingRef = useRef(false);
+
 
   // Check PRO status on mount and user change
   useEffect(() => {
@@ -153,68 +207,82 @@ export function useCloudSync() {
     return settings;
   }, []);
 
-  // Save settings to cloud
+  /**
+   * Flush the persisted mutation queue through a single transactional RPC.
+   * Guarded so only one flush can be in flight at a time; on failure the
+   * queue is left intact and retried on the next tick (offline-safe).
+   */
+  const flushQueue = useCallback(async (): Promise<boolean> => {
+    if (!user || !isProActive) return false;
+    if (flushingRef.current) return false;
+
+    const queue = readQueue();
+    if (queue.length === 0) return true;
+
+    flushingRef.current = true;
+    try {
+      const { error } = await supabase.rpc('batch_sync_mutations', {
+        p_mutations: queue.map(m => ({ scope: m.scope, payload: m.payload })) as any,
+      });
+
+      if (error) throw error;
+
+      // Drop only the mutations we just sent; anything queued meanwhile stays.
+      const sentIds = new Set(queue.map(m => m.id));
+      const remaining = readQueue().filter(m => !sentIds.has(m.id));
+      writeQueue(remaining);
+      setState(prev => ({ ...prev, pendingMutations: remaining.length }));
+
+      const dataMutation = [...queue].reverse().find(m => m.scope === 'data');
+      if (dataMutation) {
+        lastSyncedDataRef.current = JSON.stringify(dataMutation.payload);
+      }
+      return true;
+    } catch (error) {
+      console.error('Batch sync failed, keeping mutations queued:', error);
+      setState(prev => ({ ...prev, pendingMutations: readQueue().length }));
+      return false;
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [user, isProActive]);
+
+  // Queue settings snapshot, then flush
   const saveSettingsToCloud = useCallback(async () => {
     if (!user || !isProActive) return;
 
     const settings = getLocalSettings();
-    
-    try {
-      const { error } = await supabase
-        .from('cloud_user_settings')
-        .upsert({
-          user_id: user.id,
-          widget_settings: settings.widget_settings,
-          theme_settings: settings.theme_settings,
-          celebration_settings: settings.celebration_settings,
-          notification_settings: settings.notification_settings,
-          general_settings: settings.general_settings,
-          dashboard_layout: settings.dashboard_layout,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+    enqueueMutation('settings', {
+      widget_settings: settings.widget_settings,
+      theme_settings: settings.theme_settings,
+      celebration_settings: settings.celebration_settings,
+      notification_settings: settings.notification_settings,
+      general_settings: settings.general_settings,
+      dashboard_layout: settings.dashboard_layout,
+    });
+    setState(prev => ({ ...prev, pendingMutations: readQueue().length }));
 
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving settings to cloud:', error);
-    }
-  }, [user, isProActive, getLocalSettings]);
+    await flushQueue();
+  }, [user, isProActive, getLocalSettings, flushQueue]);
 
-  // Save data to cloud
+  // Queue data snapshot, then flush
   const saveDataToCloud = useCallback(async () => {
     if (!user || !isProActive) return;
 
     const data = getLocalData();
     const dataHash = JSON.stringify(data);
-    
-    // Skip if data hasn't changed
-    if (dataHash === lastSyncedDataRef.current) {
+
+    // Skip if data hasn't changed and nothing is pending
+    if (dataHash === lastSyncedDataRef.current && readQueue().length === 0) {
       return;
     }
 
-    try {
-      const { error } = await supabase
-        .from('cloud_user_data')
-        .upsert({
-          user_id: user.id,
-          habits: data.habits,
-          tasks: data.tasks,
-          transactions: data.transactions,
-          time_entries: data.time_entries,
-          notes: data.notes,
-          checklists: data.checklists,
-          counters: data.counters,
-          pomodoro_sessions: data.pomodoro_sessions,
-          reflections: data.reflections,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+    enqueueMutation('data', data);
+    setState(prev => ({ ...prev, pendingMutations: readQueue().length }));
 
-      if (error) throw error;
-      
-      lastSyncedDataRef.current = dataHash;
-    } catch (error) {
-      console.error('Error saving data to cloud:', error);
-    }
-  }, [user, isProActive, getLocalData]);
+    await flushQueue();
+  }, [user, isProActive, getLocalData, flushQueue]);
+
 
   // Load settings from cloud
   const loadSettingsFromCloud = useCallback(async () => {
@@ -445,7 +513,10 @@ export function useCloudSync() {
     }
   }, [user, isProActive, state.isSyncing, loadSettingsFromCloud, loadDataFromCloud, saveSettingsToCloud, saveDataToCloud, toast]);
 
-  // Debounced auto-sync
+  /**
+   * Debounced enqueue: coalesces bursts of local changes into a single
+   * queued snapshot per scope, flushed once after the quiet period.
+   */
   const debouncedSync = useCallback(() => {
     if (!user || !isProActive || !state.autoSyncEnabled) return;
 
@@ -454,10 +525,24 @@ export function useCloudSync() {
     }
 
     syncTimeoutRef.current = setTimeout(() => {
-      saveDataToCloud();
-      saveSettingsToCloud();
-    }, 5000); // 5 second debounce
-  }, [user, isProActive, state.autoSyncEnabled, saveDataToCloud, saveSettingsToCloud]);
+      // Queue both scopes, then flush them in one transactional batch.
+      const data = getLocalData();
+      const settings = getLocalSettings();
+
+      enqueueMutation('data', data);
+      enqueueMutation('settings', {
+        widget_settings: settings.widget_settings,
+        theme_settings: settings.theme_settings,
+        celebration_settings: settings.celebration_settings,
+        notification_settings: settings.notification_settings,
+        general_settings: settings.general_settings,
+        dashboard_layout: settings.dashboard_layout,
+      });
+      setState(prev => ({ ...prev, pendingMutations: readQueue().length }));
+
+      void flushQueue();
+    }, SYNC_DEBOUNCE_MS);
+  }, [user, isProActive, state.autoSyncEnabled, getLocalData, getLocalSettings, flushQueue]);
 
   // Listen for storage changes
   useEffect(() => {
@@ -487,6 +572,18 @@ export function useCloudSync() {
     };
   }, [user, isProActive, debouncedSync]);
 
+  // Drain any mutations left over from a previous session / offline period
+  useEffect(() => {
+    if (!user || !isProActive) return;
+
+    setState(prev => ({ ...prev, pendingMutations: readQueue().length }));
+    void flushQueue();
+
+    const handleOnline = () => { void flushQueue(); };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [user, isProActive, flushQueue]);
+
   // Initial sync on login - only once
   useEffect(() => {
     if (user && isProActive && proCheckedRef.current) {
@@ -507,6 +604,7 @@ export function useCloudSync() {
     isSyncing: state.isSyncing,
     lastSyncTime: state.lastSyncTime,
     autoSyncEnabled: state.autoSyncEnabled,
+    pendingMutations: state.pendingMutations,
     syncAll,
     saveDataToCloud,
     saveSettingsToCloud,
@@ -515,6 +613,8 @@ export function useCloudSync() {
     restoreFromCloud,
     checkCloudData,
     isLocalStorageEmpty,
+    flushQueue,
     triggerSync: debouncedSync,
   };
+
 }

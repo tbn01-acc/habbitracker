@@ -23,7 +23,7 @@ import { GuestModeBanner } from "@/components/GuestModeBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrialNotifications } from "@/hooks/useTrialNotifications";
 import { useStars } from "@/hooks/useStars";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useOverdueTasks } from "@/hooks/useOverdueTasks";

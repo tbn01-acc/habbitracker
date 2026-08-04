@@ -9,7 +9,7 @@ import { StarProgram } from '@/components/rewards/StarProgram';
 
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useUserLevel } from '@/hooks/useUserLevel';
 import { useRewardsShop } from '@/hooks/useRewardsShop';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

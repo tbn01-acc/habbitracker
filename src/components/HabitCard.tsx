@@ -12,7 +12,7 @@ import { useUserTags } from '@/hooks/useUserTags';
 import { useGoals } from '@/hooks/useGoals';
 import { useSpheres } from '@/hooks/useSpheres';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { TranslationKey } from '@/i18n/translations';
 import { triggerCompletionCelebration } from '@/utils/celebrations';
 import { cn } from '@/lib/utils';

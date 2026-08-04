@@ -768,6 +768,7 @@ export type Database = {
           postpone_count: number | null
           postponed_until: string | null
           sphere_id: number | null
+          stars_awarded: boolean
           streak: number
           tags: string[] | null
           target_days: number[]
@@ -788,6 +789,7 @@ export type Database = {
           postpone_count?: number | null
           postponed_until?: string | null
           sphere_id?: number | null
+          stars_awarded?: boolean
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -808,6 +810,7 @@ export type Database = {
           postpone_count?: number | null
           postponed_until?: string | null
           sphere_id?: number | null
+          stars_awarded?: boolean
           streak?: number
           tags?: string[] | null
           target_days?: number[]
@@ -828,6 +831,44 @@ export type Database = {
             columns: ["sphere_id"]
             isOneToOne: false
             referencedRelation: "spheres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_followups: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          idea_id: string
+          message: string | null
+          scheduled_for: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          idea_id: string
+          message?: string | null
+          scheduled_for: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          idea_id?: string
+          message?: string | null
+          scheduled_for?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_followups_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
             referencedColumns: ["id"]
           },
         ]
@@ -860,6 +901,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ideas: {
+        Row: {
+          analysis_result: Json | null
+          applied_at: string | null
+          approved_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          raw_text: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          applied_at?: string | null
+          approved_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          raw_text: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          applied_at?: string | null
+          approved_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          raw_text?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       leaderboard_aggregates: {
         Row: {
@@ -1904,6 +1987,30 @@ export type Database = {
           },
         ]
       }
+      star_award_ledger: {
+        Row: {
+          awarded_at: string
+          entity_id: string
+          entity_kind: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          entity_id: string
+          entity_kind: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          entity_id?: string
+          entity_kind?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       star_transactions: {
         Row: {
           amount: number
@@ -2101,6 +2208,7 @@ export type Database = {
           priority: string
           recurrence: string | null
           sphere_id: number | null
+          stars_awarded: boolean
           status: string
           subtasks: Json | null
           tags: string[] | null
@@ -2125,6 +2233,7 @@ export type Database = {
           priority?: string
           recurrence?: string | null
           sphere_id?: number | null
+          stars_awarded?: boolean
           status?: string
           subtasks?: Json | null
           tags?: string[] | null
@@ -2149,6 +2258,7 @@ export type Database = {
           priority?: string
           recurrence?: string | null
           sphere_id?: number | null
+          stars_awarded?: boolean
           status?: string
           subtasks?: Json | null
           tags?: string[] | null
@@ -2930,6 +3040,11 @@ export type Database = {
         Args: { p_expires_at: string; p_plan: string; p_user_id: string }
         Returns: undefined
       }
+      apply_idea_flow: { Args: { p_idea_id: string }; Returns: Json }
+      apply_idea_flow_custom: {
+        Args: { p_actions: Json; p_idea_id: string }
+        Returns: Json
+      }
       award_achievement_post_star: {
         Args: { p_post_id: string }
         Returns: Json
@@ -2938,6 +3053,7 @@ export type Database = {
         Args: { p_kind: string; p_reference: string; p_timer_minutes: number }
         Returns: Json
       }
+      batch_sync_mutations: { Args: { p_mutations: Json }; Returns: Json }
       calculate_level_from_xp: {
         Args: { xp: number }
         Returns: {
@@ -2986,6 +3102,7 @@ export type Database = {
       }
       finish_sprint: { Args: { target_sprint_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
+      get_affiliate_summary: { Args: never; Returns: Json }
       get_group_chat_invite_code: {
         Args: { _chat_id: string }
         Returns: string
@@ -3064,6 +3181,10 @@ export type Database = {
         Args: { tg_id: number; tg_username?: string }
         Returns: Json
       }
+      process_referral_commission: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       process_withdrawal: {
         Args: { p_action: string; p_withdrawal_id: string }
         Returns: boolean
@@ -3078,6 +3199,10 @@ export type Database = {
       revoke_achievement_post_star: {
         Args: { p_post_id: string }
         Returns: Json
+      }
+      schedule_idea_followup: {
+        Args: { p_days_from_now: number; p_idea_id: string; p_message?: string }
+        Returns: string
       }
       upsert_device_fingerprint: {
         Args: {

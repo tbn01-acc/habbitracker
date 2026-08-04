@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Download, Upload, Loader2, ChevronDown, ChevronUp, History, RefreshCw, HardDrive, Cloud } from 'lucide-react';
 import { useLocalBackup } from '@/hooks/useLocalBackup';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useCloudSync } from '@/hooks/useCloudSync';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';

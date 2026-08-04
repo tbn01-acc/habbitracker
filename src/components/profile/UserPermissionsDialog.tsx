@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bell, BarChart3, Target, Share2, FileCheck, AlertTriangle, MapPin, Cookie, Mail } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext as useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import {
   Dialog,
