@@ -178,18 +178,11 @@ function CountUp({ value, duration = 600 }: { value: number; duration?: number }
   return <>{formatPrice(display)}</>;
 }
 
-// ─── Limit updater (post-purchase) ───
-async function updateProfileLimits(userId: string, planId: string) {
-  const limitsMap: Record<string, object> = {
-    focus: { max_habits: 3, max_tasks: 5, max_fin_ops: 15, cloud_sync_interval_days: 0, has_ai_analytics: false, affiliate_level: 'basic' },
-    profi: { max_habits: 7, max_tasks: 10, max_fin_ops: 30, cloud_sync_interval_days: 7, has_ai_analytics: false, affiliate_level: 'pro' },
-    premium: { max_habits: 15, max_tasks: 10, max_fin_ops: 60, cloud_sync_interval_days: 3, has_ai_analytics: true, affiliate_level: 'premium' },
-    team: { max_habits: 15, max_tasks: 10, max_fin_ops: 60, cloud_sync_interval_days: 3, has_ai_analytics: true, affiliate_level: 'premium' },
-  };
-  const updates = limitsMap[planId];
-  if (!updates) return;
-  await supabase.from('profiles').update(updates).eq('user_id', userId);
-}
+// ─── Plan limits are entitlements ───
+// They are applied server-side only (payment webhook / SECURITY DEFINER RPC).
+// The client must never write max_habits / max_tasks / max_fin_ops /
+// has_ai_analytics / affiliate_level / cloud_sync_interval_days to profiles.
+
 
 // ─── Component ───
 export default function Upgrade() {
@@ -324,12 +317,13 @@ export default function Upgrade() {
       return;
     }
 
-    // Bonus payment → apply from partner balance (TODO: implement server-side)
+    // Bonus payment → must be verified and debited server-side before any
+    // entitlement is granted. No client-side plan/limit writes.
     if (paymentMethod === 'bonus') {
-      await updateProfileLimits(user.id, planId);
       toast.info('Оплата бонусным балансом в разработке');
       return;
     }
+
 
     // Card / SBP → call YooKassa edge function
     setPurchasing(true);

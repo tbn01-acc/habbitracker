@@ -29,6 +29,7 @@ import Habits from "./pages/Habits";
 import Tasks from "./pages/Tasks";
 import Finance from "./pages/Finance";
 import Services from "./pages/Services";
+import Ideas from "./pages/Ideas";
 import Statistics from "./pages/Statistics";
 import Profile from "./pages/Profile";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -252,6 +253,7 @@ const AppContent = () => {
           <Route path="/tasks" element={<Tasks openDialog={taskDialogOpen} onDialogClose={() => setTaskDialogOpen(false)} />} />
           <Route path="/finance" element={<Finance openDialog={transactionDialogOpen} onDialogClose={() => setTransactionDialogOpen(false)} />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/ideas" element={<Ideas />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/settings" element={<ProfileSettings />} />

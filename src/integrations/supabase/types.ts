@@ -904,39 +904,60 @@ export type Database = {
       }
       ideas: {
         Row: {
+          analysis_history: Json
           analysis_result: Json | null
+          applied_actions: Json
           applied_at: string | null
           approved_at: string | null
           created_at: string
           description: string | null
           id: string
           raw_text: string
+          reminder_channel: string
+          reminder_enabled: boolean
+          reminder_interval_days: number
+          reminder_note: string | null
+          reminder_time: string
           status: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          analysis_history?: Json
           analysis_result?: Json | null
+          applied_actions?: Json
           applied_at?: string | null
           approved_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
           raw_text: string
+          reminder_channel?: string
+          reminder_enabled?: boolean
+          reminder_interval_days?: number
+          reminder_note?: string | null
+          reminder_time?: string
           status?: string
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          analysis_history?: Json
           analysis_result?: Json | null
+          applied_actions?: Json
           applied_at?: string | null
           approved_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
           raw_text?: string
+          reminder_channel?: string
+          reminder_enabled?: boolean
+          reminder_interval_days?: number
+          reminder_note?: string | null
+          reminder_time?: string
           status?: string
           title?: string
           updated_at?: string

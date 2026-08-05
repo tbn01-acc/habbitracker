@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, LayoutDashboard, Target, CheckSquare, Wallet, Compass, Wrench, Focus, Users } from 'lucide-react';
+import { Plus, LayoutDashboard, Target, CheckSquare, Wallet, Compass, Wrench, Focus, Users, Lightbulb } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { GoalDialog } from '@/components/goals/GoalDialog';
@@ -41,6 +41,7 @@ export function BottomNavigation({
   ];
 
   const quickAddItems: { label: string; icon: LucideIcon; color: string; action: () => void; path: string }[] = [
+    { label: isRussian ? 'Идея' : 'Idea', icon: Lightbulb, color: 'hsl(45, 93%, 47%)', action: () => navigate('/ideas'), path: '/ideas' },
     { label: isRussian ? 'Цель' : 'Goal', icon: Compass, color: 'hsl(262, 80%, 55%)', action: () => setGoalDialogOpen(true), path: '/goals' },
     { label: t('habit'), icon: Target, color: 'hsl(var(--habit))', action: onAddHabit, path: '/habits' },
     { label: t('task'), icon: CheckSquare, color: 'hsl(var(--task))', action: onAddTask, path: '/tasks' },
@@ -50,7 +51,9 @@ export function BottomNavigation({
 
   const handleQuickAdd = (item: typeof quickAddItems[0]) => {
     setIsMenuOpen(false);
-    if (item.label === (isRussian ? 'Цель' : 'Goal') || item.label === (isRussian ? 'Пост' : 'Post')) {
+    if (item.path === '/ideas') {
+      navigate('/ideas');
+    } else if (item.label === (isRussian ? 'Цель' : 'Goal') || item.label === (isRussian ? 'Пост' : 'Post')) {
       item.action();
     } else {
       navigate(item.path);
@@ -72,7 +75,8 @@ export function BottomNavigation({
 
   // Left: Home, Habits, Tasks, Goals | Right: Finance, Team, Services
   const leftItems = navItems.slice(0, 4);
-  const rightItems = navItems.slice(4);
+  const ideasItem = { path: '/ideas', icon: Lightbulb, label: isRussian ? 'Идеи' : 'Ideas', color: 'hsl(45, 93%, 47%)' };
+  const rightItems = [ideasItem, ...navItems.slice(4)];
 
   return (
     <>
@@ -100,7 +104,7 @@ export function BottomNavigation({
                 const startAngle = -180 + (180 - angleSpread) / 2;
                 const angleStep = angleSpread / (totalItems - 1);
                 const angle = startAngle + (index * angleStep);
-                const radius = 120;
+                const radius = 150;
                 const x = Math.cos((angle * Math.PI) / 180) * radius;
                 const y = Math.sin((angle * Math.PI) / 180) * radius;
 
